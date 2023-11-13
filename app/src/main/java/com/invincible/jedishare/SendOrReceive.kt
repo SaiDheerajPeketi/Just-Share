@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -16,24 +17,29 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.invincible.jedishare.ui.theme.JediShareTheme
 
-class MainActivity : ComponentActivity() {
+class SendOrReceive : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Screen1()
+            JediShareTheme {
+                val data = intent.getStringExtra("Data")
+
+                Text(text = data?:"")
+
+                Screen2()
+            }
         }
     }
 }
 
 @Composable
-fun Screen1() {
+fun Screen2() {
     val context = LocalContext.current
     Column (
         modifier = Modifier
@@ -42,25 +48,19 @@ fun Screen1() {
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Button(onClick = {
-            val intent = Intent(context, SendOrReceive::class.java)
-            val one = "Wifi Direct"
-            intent.putExtra("Data", one)
-            context.startActivity(intent)
+            context.startActivity(Intent(context, SelectFile::class.java))
         }) {
             Text(
-                text = "Wifi Direct",
+                text = "Send",
                 fontSize = 20.sp
             )
         }
         Spacer(modifier = Modifier.size(128.dp))
         Button(onClick = {
-            val intent = Intent(context, SendOrReceive::class.java)
-            val one = "Bluetooth"
-            intent.putExtra("Data", one)
-            context.startActivity(intent)
+            context.startActivity(Intent(context, Waiting::class.java))
         }) {
             Text(
-                text = "Bluetooth",
+                text = "Receive",
                 fontSize = 20.sp
             )
         }

@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"/>
+
+    <uses-feature android:name="android.hardware.bluetooth" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,6 +19,42 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.JediShare"
         tools:targetApi="31">
+        <activity
+            android:name=".Progress"
+            android:exported="false"
+            android:label="@string/title_activity_progress"
+            android:theme="@style/Theme.JediShare">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".SelectFile"
+            android:exported="false"
+            android:label="@string/title_activity_select_file"
+            android:theme="@style/Theme.JediShare">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".Waiting"
+            android:exported="false"
+            android:label="@string/title_activity_waiting"
+            android:theme="@style/Theme.JediShare">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".SendOrReceive"
+            android:exported="false"
+            android:label="@string/title_activity_send_or_receive"
+            android:theme="@style/Theme.JediShare">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
         <activity
             android:name=".MainActivity"
             android:exported="true"
