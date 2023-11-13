@@ -48,7 +48,7 @@ fun Screen2() {
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Button(onClick = {
-            context.startActivity(Intent(context, SendOrReceive::class.java))
+            context.startActivity(Intent(context, SelectFile::class.java))
         }) {
             Text(
                 text = "Send",
@@ -57,7 +57,7 @@ fun Screen2() {
         }
         Spacer(modifier = Modifier.size(128.dp))
         Button(onClick = {
-            context.startActivity(Intent(context, SendOrReceive::class.java))
+            context.startActivity(Intent(context, Waiting::class.java))
         }) {
             Text(
                 text = "Receive",
