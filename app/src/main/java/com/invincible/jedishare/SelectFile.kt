@@ -607,173 +607,173 @@ fun CustomButton(buttonText: String, onClickAction: () -> Unit) {
     }
 }
 
-fun getFileDetailsFromUri(
-    uri: Uri,
-    contentResolver: ContentResolver
-): FileInfo {
-    var fileName: String? = null
-    var format: String? = null
-    var size: String? = null
-    var mimeType: String? = null
+//fun getFileDetailsFromUri(
+//    uri: Uri,
+//    contentResolver: ContentResolver
+//): FileInfo {
+//    var fileName: String? = null
+//    var format: String? = null
+//    var size: String? = null
+//    var mimeType: String? = null
+//
+//    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+//        //val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+//        val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+//
+//        val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
+//        val mimeTypeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
+//
+//        if (cursor.moveToFirst()) {
+//            fileName = cursor.getString(nameColumn)
+//            Log.e("HELLOMEE", fileName.toString())
+//            format = fileName?.substringAfterLast('.', "")
+//            size = cursor.getLong(sizeColumn).toString()
+//            mimeType = cursor.getString(mimeTypeColumn)
+//
+//            if (mimeType.isNullOrBlank()) {
+//                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(format?.toLowerCase())
+//            }
+//        }
+//    }
+//
+//    return FileInfo(fileName, format, size, mimeType)
+//}
 
-    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-        //val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
-        val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+//fun convertImageToByteWithInfo(uri: Uri, contentResolver: ContentResolver): ByteArray {
+//    val stream: InputStream? = contentResolver.openInputStream(uri)
+//    var fileInfo: FileInfo? = null
+//    var byteArray: ByteArray
+//
+//    stream.use { inputStream ->
+//        val outputStream = ByteArrayOutputStream()
+//        inputStream?.copyTo(outputStream)
+//        byteArray = outputStream.toByteArray()
+//        Log.e("HEELLOME", "IN ByteArray = " + byteArray.size.toString())
+//
+//        // Get file information
+//        fileInfo = getFileDetailsFromUri(uri, contentResolver)
+//    }
+//
+//    // Serialize FileInfo and image data to byte array
+//    val fileDataBytes = serializeObject(FileData(fileInfo!!, byteArray))
+//
+//    return fileDataBytes
+//}
 
-        val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
-        val mimeTypeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
+//fun convertByteArrayToImageAndSave(contentResolver: ContentResolver, byteArray: ByteArray): String? {
+//    val fileData = deserializeObject(byteArray)
+//
+//    val fileInfo = fileData?.fileInfo
+//    val imageData = fileData?.imageData
+//
+//    val fileName = fileInfo?.fileName ?: ""
+//    val format = fileInfo?.format ?: ""
+//    val size = fileInfo?.size ?: ""
+//    val mimeType = fileInfo?.mimeType ?: ""
+//
+//
+//    // Create a content values to store file information
+//    val values = ContentValues().apply {
+//        put(MediaStore.Images.Media.DISPLAY_NAME, "$fileName")
+//        put(MediaStore.Images.Media.MIME_TYPE, "image/$format")
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+//        }
+//    }
+//
+//    // Get the content URI for the new media entry
+//    val contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+//    val imageUri = contentResolver.insert(contentUri, values)
+//
+//    try {
+//        imageUri?.let {
+//            // Open an output stream to write image data
+//            contentResolver.openOutputStream(it)?.use { outputStream ->
+//                if (imageData != null) {
+//                    outputStream.write(imageData, 0, imageData.size)
+//                }
+//            }
+//
+//            Log.e("HELLOME", "Image saved to MediaStore: $it")
+//            return it.toString()
+//        }
+//    } catch (e: IOException) {
+//        e.printStackTrace()
+//        Log.e("HELLOME", "Failed to write to MediaStore")
+//    }
+//
+//    return null
+//}
 
-        if (cursor.moveToFirst()) {
-            fileName = cursor.getString(nameColumn)
-            Log.e("HELLOMEE", fileName.toString())
-            format = fileName?.substringAfterLast('.', "")
-            size = cursor.getLong(sizeColumn).toString()
-            mimeType = cursor.getString(mimeTypeColumn)
+//fun convertByteArrayToFileAndSave(contentResolver: ContentResolver, byteArray: ByteArray): String? {
+//    Log.e("HELLOME", "EnterFun")
+//
+//    val fileData = deserializeObject(byteArray)
+//
+//    val fileInfo = fileData?.fileInfo
+//    val fileName = fileInfo?.fileName ?: ""
+//    val format = fileInfo?.format ?: ""
+//    val mimeType = fileInfo?.mimeType ?: ""
+//
+//    Log.e("HELLOME", "EnterDir")
+//
+//    // Create a content values to store file information
+//    val values = ContentValues().apply {
+//        put(MediaStore.Files.FileColumns.DISPLAY_NAME, "$fileName")
+//        put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            when {
+//                mimeType.startsWith("image/") -> put(
+//                    MediaStore.Images.Media.RELATIVE_PATH,
+//                    Environment.DIRECTORY_PICTURES
+//                )
+//                mimeType.startsWith("audio/") -> put(
+//                    MediaStore.Audio.Media.RELATIVE_PATH,
+//                    Environment.DIRECTORY_MUSIC
+//                )
+//                mimeType.startsWith("video/") -> put(
+//                    MediaStore.Video.Media.RELATIVE_PATH,
+//                    Environment.DIRECTORY_MOVIES
+//                )
+//            }
+//        }
+//    }
+//
+//    // Get the content URI for the new media entry
+//    val contentUri = when {
+//        mimeType.startsWith("image/") -> MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+//        mimeType.startsWith("audio/") -> MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+//        mimeType.startsWith("video/") -> MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+//        else -> MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+//    }
+//
+//    val fileUri = contentResolver.insert(contentUri, values)
+//
+//    try {
+//        fileUri?.let {
+//            // Open an output stream to write file data
+//            contentResolver.openOutputStream(it)?.use { outputStream ->
+//                outputStream.write(byteArray)
+//            }
+//
+//            Log.e("HELLOME", "File saved to MediaStore: $it")
+//            return it.toString()
+//        }
+//    } catch (e: IOException) {
+//        e.printStackTrace()
+//        Log.e("HELLOME", "Failed to write to MediaStore")
+//    }
+//
+//    return null
+//}
 
-            if (mimeType.isNullOrBlank()) {
-                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(format?.toLowerCase())
-            }
-        }
-    }
-
-    return FileInfo(fileName, format, size, mimeType)
-}
-
-fun convertImageToByteWithInfo(uri: Uri, contentResolver: ContentResolver): ByteArray {
-    val stream: InputStream? = contentResolver.openInputStream(uri)
-    var fileInfo: FileInfo? = null
-    var byteArray: ByteArray
-
-    stream.use { inputStream ->
-        val outputStream = ByteArrayOutputStream()
-        inputStream?.copyTo(outputStream)
-        byteArray = outputStream.toByteArray()
-        Log.e("HEELLOME", "IN ByteArray = " + byteArray.size.toString())
-
-        // Get file information
-        fileInfo = getFileDetailsFromUri(uri, contentResolver)
-    }
-
-    // Serialize FileInfo and image data to byte array
-    val fileDataBytes = serializeObject(FileData(fileInfo!!, byteArray))
-
-    return fileDataBytes
-}
-
-fun convertByteArrayToImageAndSave(contentResolver: ContentResolver, byteArray: ByteArray): String? {
-    val fileData = deserializeObject(byteArray)
-
-    val fileInfo = fileData?.fileInfo
-    val imageData = fileData?.imageData
-
-    val fileName = fileInfo?.fileName ?: ""
-    val format = fileInfo?.format ?: ""
-    val size = fileInfo?.size ?: ""
-    val mimeType = fileInfo?.mimeType ?: ""
-
-
-    // Create a content values to store file information
-    val values = ContentValues().apply {
-        put(MediaStore.Images.Media.DISPLAY_NAME, "$fileName")
-        put(MediaStore.Images.Media.MIME_TYPE, "image/$format")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-        }
-    }
-
-    // Get the content URI for the new media entry
-    val contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-    val imageUri = contentResolver.insert(contentUri, values)
-
-    try {
-        imageUri?.let {
-            // Open an output stream to write image data
-            contentResolver.openOutputStream(it)?.use { outputStream ->
-                if (imageData != null) {
-                    outputStream.write(imageData, 0, imageData.size)
-                }
-            }
-
-            Log.e("HELLOME", "Image saved to MediaStore: $it")
-            return it.toString()
-        }
-    } catch (e: IOException) {
-        e.printStackTrace()
-        Log.e("HELLOME", "Failed to write to MediaStore")
-    }
-
-    return null
-}
-
-fun convertByteArrayToFileAndSave(contentResolver: ContentResolver, byteArray: ByteArray): String? {
-    Log.e("HELLOME", "EnterFun")
-
-    val fileData = deserializeObject(byteArray)
-
-    val fileInfo = fileData?.fileInfo
-    val fileName = fileInfo?.fileName ?: ""
-    val format = fileInfo?.format ?: ""
-    val mimeType = fileInfo?.mimeType ?: ""
-
-    Log.e("HELLOME", "EnterDir")
-
-    // Create a content values to store file information
-    val values = ContentValues().apply {
-        put(MediaStore.Files.FileColumns.DISPLAY_NAME, "$fileName")
-        put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            when {
-                mimeType.startsWith("image/") -> put(
-                    MediaStore.Images.Media.RELATIVE_PATH,
-                    Environment.DIRECTORY_PICTURES
-                )
-                mimeType.startsWith("audio/") -> put(
-                    MediaStore.Audio.Media.RELATIVE_PATH,
-                    Environment.DIRECTORY_MUSIC
-                )
-                mimeType.startsWith("video/") -> put(
-                    MediaStore.Video.Media.RELATIVE_PATH,
-                    Environment.DIRECTORY_MOVIES
-                )
-            }
-        }
-    }
-
-    // Get the content URI for the new media entry
-    val contentUri = when {
-        mimeType.startsWith("image/") -> MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        mimeType.startsWith("audio/") -> MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        mimeType.startsWith("video/") -> MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        else -> MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-    }
-
-    val fileUri = contentResolver.insert(contentUri, values)
-
-    try {
-        fileUri?.let {
-            // Open an output stream to write file data
-            contentResolver.openOutputStream(it)?.use { outputStream ->
-                outputStream.write(byteArray)
-            }
-
-            Log.e("HELLOME", "File saved to MediaStore: $it")
-            return it.toString()
-        }
-    } catch (e: IOException) {
-        e.printStackTrace()
-        Log.e("HELLOME", "Failed to write to MediaStore")
-    }
-
-    return null
-}
-
-private fun serializeObject(obj: Serializable?): ByteArray {
-    val byteArrayOutputStream = ByteArrayOutputStream()
-    val objectOutputStream = ObjectOutputStream(byteArrayOutputStream)
-    objectOutputStream.writeObject(obj)
-    objectOutputStream.close()
-    return byteArrayOutputStream.toByteArray()
-}
+//private fun serializeObject(obj: Serializable?): ByteArray {
+//    val byteArrayOutputStream = ByteArrayOutputStream()
+//    val objectOutputStream = ObjectOutputStream(byteArrayOutputStream)
+//    objectOutputStream.writeObject(obj)
+//    objectOutputStream.close()
+//    return byteArrayOutputStream.toByteArray()
+//}
 
 fun convertByteArrayToFileAndSaveMethod2(contentResolver: ContentResolver, byteArray: ByteArray): String? {
     Log.e("HELLOME", "EnterFun")
@@ -818,22 +818,22 @@ fun convertByteArrayToFileAndSaveMethod2(contentResolver: ContentResolver, byteA
     return null
 }
 
-private fun deserializeObject(byteArray: ByteArray): FileData? {
-    val byteArrayInputStream = ByteArrayInputStream(byteArray)
-    val objectInputStream = ObjectInputStream(byteArrayInputStream)
-    val obj = objectInputStream.readObject() as? FileData
-    objectInputStream.close()
-    return obj
-}
+//private fun deserializeObject(byteArray: ByteArray): FileData? {
+//    val byteArrayInputStream = ByteArrayInputStream(byteArray)
+//    val objectInputStream = ObjectInputStream(byteArrayInputStream)
+//    val obj = objectInputStream.readObject() as? FileData
+//    objectInputStream.close()
+//    return obj
+//}
 
-data class FileInfo(
-    val fileName: String?,
-    val format: String?,
-    val size: String?,
-    val mimeType: String?
-) : java.io.Serializable
-
-data class FileData(
-    val fileInfo: FileInfo,
-    val imageData: ByteArray
-) : java.io.Serializable
+//data class FileInfo(
+//    val fileName: String?,
+//    val format: String?,
+//    val size: String?,
+//    val mimeType: String?
+//) : java.io.Serializable
+//
+//data class FileData(
+//    val fileInfo: FileInfo,
+//    val imageData: ByteArray
+//) : java.io.Serializable

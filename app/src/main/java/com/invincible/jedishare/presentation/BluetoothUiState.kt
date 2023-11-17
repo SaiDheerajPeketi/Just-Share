@@ -2,6 +2,7 @@ package com.invincible.jedishare.presentation
 
 import com.invincible.jedishare.domain.chat.BluetoothDevice
 import com.invincible.jedishare.domain.chat.BluetoothMessage
+import com.invincible.jedishare.domain.chat.FileData
 
 data class BluetoothUiState(
     val scannedDevices: List<BluetoothDevice> = emptyList(),
@@ -9,5 +10,5 @@ data class BluetoothUiState(
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
     val errorMessage: String? = null,
-    val messages: List<BluetoothMessage> = emptyList()
+    val messages: List<FileData> = emptyList()
 )

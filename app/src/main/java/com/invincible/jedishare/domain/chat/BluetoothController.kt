@@ -1,5 +1,6 @@
 package com.invincible.jedishare.domain.chat
 
+import android.net.Uri
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,8 @@ interface BluetoothController {
     fun startBluetoothServer(): Flow<ConnectionResult>
     fun connectToDevice(device: BluetoothDevice): Flow<ConnectionResult>
 
-    suspend fun trySendMessage(message: String): BluetoothMessage?
+//    suspend fun trySendMessage(message: String): BluetoothMessage?
+    suspend fun trySendFile(uri: Uri): FileData?
 
     fun closeConnection()
     fun release()

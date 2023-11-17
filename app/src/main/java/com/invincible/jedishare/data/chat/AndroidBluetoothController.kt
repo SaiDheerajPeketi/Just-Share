@@ -7,18 +7,23 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import android.content.ContentResolver
 import android.content.Context
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import com.invincible.jedishare.domain.chat.BluetoothController
-import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
-import com.invincible.jedishare.domain.chat.BluetoothMessage
-import com.invincible.jedishare.domain.chat.ConnectionResult
+import android.net.Uri
+import android.provider.MediaStore
+import android.provider.OpenableColumns
+import android.util.Log
+import android.webkit.MimeTypeMap
+import com.invincible.jedishare.domain.chat.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.util.*
 
 @SuppressLint("MissingPermission")
@@ -181,7 +186,27 @@ class AndroidBluetoothController(
         }.flowOn(Dispatchers.IO)
     }
 
-    override suspend fun trySendMessage(message: String): BluetoothMessage? {
+//    override suspend fun trySendMessage(message: String): BluetoothMessage? {
+//        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+//            return null
+//        }
+//
+//        if (dataTransferService == null) {
+//            return null
+//        }
+//
+//        val bluetoothMessage = BluetoothMessage(
+//            message = message,
+//            senderName = bluetoothAdapter?.name ?: "Unknown name",
+//            isFromLocalUser = true
+//        )
+//
+//        dataTransferService?.sendMessage(bluetoothMessage.toByteArray())
+//
+//        return bluetoothMessage
+//    }
+
+    override suspend fun trySendFile(uri: Uri): FileData? {
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
             return null
         }
@@ -190,16 +215,29 @@ class AndroidBluetoothController(
             return null
         }
 
-        val bluetoothMessage = BluetoothMessage(
-            message = message,
-            senderName = bluetoothAdapter?.name ?: "Unknown name",
-            isFromLocalUser = true
-        )
+        val stream: InputStream? = context.contentResolver.openInputStream(uri)
+        var fileInfo: FileInfo? = null
+        var byteArray: ByteArray
 
-        dataTransferService?.sendMessage(bluetoothMessage.toByteArray())
+        stream.use { inputStream ->
+            val outputStream = ByteArrayOutputStream()
+            inputStream?.copyTo(outputStream)
+            byteArray = outputStream.toByteArray()
+            Log.e("HEELLOME", "IN ByteArray = " + byteArray.size.toString())
 
-        return bluetoothMessage
+            // Get file information
+            fileInfo = getFileDetailsFromUri(uri)
+        }
+
+        // Serialize FileInfo and image data to byte array
+        val fileData = FileData(fileInfo!!, byteArray)
+
+        fileData.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+
+        return fileData
     }
+
+
 
     override fun closeConnection() {
         currentClientSocket?.close()
@@ -228,6 +266,37 @@ class AndroidBluetoothController(
 
     private fun hasPermission(permission: String): Boolean {
         return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun getFileDetailsFromUri(
+        uri: Uri
+    ): FileInfo {
+        var fileName: String? = null
+        var format: String? = null
+        var size: String? = null
+        var mimeType: String? = null
+
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            //val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+            val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+
+            val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
+            val mimeTypeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
+
+            if (cursor.moveToFirst()) {
+                fileName = cursor.getString(nameColumn)
+                Log.e("HELLOMEE", fileName.toString())
+                format = fileName?.substringAfterLast('.', "")
+                size = cursor.getLong(sizeColumn).toString()
+                mimeType = cursor.getString(mimeTypeColumn)
+
+                if (mimeType.isNullOrBlank()) {
+                    mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(format?.toLowerCase())
+                }
+            }
+        }
+
+        return FileInfo(fileName, format, size, mimeType)
     }
 
     companion object {

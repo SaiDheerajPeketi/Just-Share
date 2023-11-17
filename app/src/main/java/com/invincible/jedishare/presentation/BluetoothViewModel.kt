@@ -1,10 +1,12 @@
 package com.invincible.jedishare.presentation
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.ConnectionResult
+import com.invincible.jedishare.domain.chat.FileData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -66,12 +68,23 @@ class BluetoothViewModel @Inject constructor(
             .listen()
     }
 
-    fun sendMessage(message: String){
+//    fun sendMessage(message: String){
+//        viewModelScope.launch {
+//            val bluetoothMessage = bluetoothController.trySendMessage(message)
+//            if(bluetoothMessage != null){
+//                _state.update { it.copy(
+//                    messages = it.messages + bluetoothMessage
+//                ) }
+//            }
+//        }
+//    }
+
+    fun sendFile(uri: Uri){
         viewModelScope.launch {
-            val bluetoothMessage = bluetoothController.trySendMessage(message)
-            if(bluetoothMessage != null){
+            val bluetoothFile = bluetoothController.trySendFile(uri)
+            if(bluetoothFile != null){
                 _state.update { it.copy(
-                    messages = it.messages + bluetoothMessage
+                    messages = it.messages + bluetoothFile
                 ) }
             }
         }
@@ -97,7 +110,7 @@ class BluetoothViewModel @Inject constructor(
                 }
                 is ConnectionResult.TransferSucceeded -> {
                     _state.update { it.copy(
-                        messages = it.messages + result.message
+                        messages = (it.messages + result.message) as List<FileData>
                     ) }
                 }
                 is ConnectionResult.Error -> {
