@@ -129,4 +129,3 @@ class DeviceList : ComponentActivity() {
         }
     }
 }
-

@@ -1,23 +1,34 @@
 package com.invincible.jedishare
 
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Button
+import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,8 +37,20 @@ import com.invincible.jedishare.ui.theme.JediShareTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            Screen1()
+            setContent {
+                JediShareTheme {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .paint(
+                                painterResource(id = R.drawable.background),
+                                contentScale = ContentScale.FillBounds
+                            )
+                            //.background(Color.Black)
+                    ) {
+                        Screen1()
+                    }
+            }
         }
     }
 }
@@ -41,6 +64,18 @@ fun Screen1() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
+        Text(
+            text = "Jedi Share",
+            fontSize = 60.sp,
+            color = Color.Blue
+        )
+        Divider(
+            color = Color.Blue,
+            thickness = 3.dp,
+            modifier = Modifier
+                .width(300.dp)
+        )
+        Spacer(modifier = Modifier.size(100.dp))
         Button(onClick = {
             val intent = Intent(context, SendOrReceive::class.java)
             val one = "Wifi Direct"
@@ -49,10 +84,10 @@ fun Screen1() {
         }) {
             Text(
                 text = "Wifi Direct",
-                fontSize = 20.sp
+                fontSize = 30.sp
             )
         }
-        Spacer(modifier = Modifier.size(128.dp))
+        Spacer(modifier = Modifier.size(64.dp))
         Button(onClick = {
             val intent = Intent(context, SendOrReceive::class.java)
             val one = "Bluetooth"
@@ -61,7 +96,7 @@ fun Screen1() {
         }) {
             Text(
                 text = "Bluetooth",
-                fontSize = 20.sp
+                fontSize = 30.sp
             )
         }
     }
