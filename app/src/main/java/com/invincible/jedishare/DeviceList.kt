@@ -4,6 +4,7 @@ import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -25,7 +26,9 @@ import com.invincible.jedishare.presentation.BluetoothViewModel
 import com.invincible.jedishare.presentation.components.ChatScreen
 import com.invincible.jedishare.presentation.components.DeviceScreen
 import com.invincible.jedishare.ui.theme.ui.theme.JediShareTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class DeviceList : ComponentActivity() {
     private val bluetoothManager by lazy {
         applicationContext.getSystemService(BluetoothManager::class.java)
@@ -67,7 +70,6 @@ class DeviceList : ComponentActivity() {
                 )
             )
         }
-
         setContent {
             JediShareTheme {
                 val viewModel = hiltViewModel<BluetoothViewModel>()
@@ -108,13 +110,13 @@ class DeviceList : ComponentActivity() {
                             }
                         }
                         state.isConnected -> {
-                            ChatScreen(
-                                state = state,
-                                onDisconnect = viewModel::disconnectFromDevice,
-                                onSendMessage = viewModel::sendMessage
-                            )
+                            val list = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList()
+                            list.forEach { uri ->
+                                viewModel.sendFile(uri)
+                            }
                         }
                         else -> {
+                            viewModel.startScan()
                             DeviceScreen(
                                 state = state,
                                 onStartScan = viewModel::startScan,
@@ -122,6 +124,10 @@ class DeviceList : ComponentActivity() {
                                 onDeviceClick = viewModel::connectToDevice,
                                 onStartServer = viewModel::waitForIncomingConnections
                             )
+                            val isFromReceive = intent.getBooleanExtra("source", false)
+                            if(isFromReceive){
+                                viewModel.waitForIncomingConnections()
+                            }
                         }
                     }
                 }

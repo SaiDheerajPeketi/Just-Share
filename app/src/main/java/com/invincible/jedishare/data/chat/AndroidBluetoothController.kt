@@ -165,9 +165,11 @@ class AndroidBluetoothController(
 
             currentClientSocket?.let { socket ->
                 try {
+                    Log.e("HELLO","one")
                     socket.connect()
                     emit(ConnectionResult.ConnectionEstablished)
 
+                    Log.e("HELLO","two")
                     BluetoothDataTransferService(socket).also {
                         dataTransferService = it
                         emitAll(
@@ -179,6 +181,7 @@ class AndroidBluetoothController(
                     socket.close()
                     currentClientSocket = null
                     emit(ConnectionResult.Error("Connection was interrupted"))
+                    Log.e("HELLOME", e.toString())
                 }
             }
         }.onCompletion {

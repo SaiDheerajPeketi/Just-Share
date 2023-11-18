@@ -58,12 +58,15 @@ import com.invincible.jedishare.ui.theme.JediShareTheme
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Divider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +77,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
 import coil.compose.rememberImagePainter
+import com.invincible.jedishare.domain.chat.FileInfo
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -91,7 +95,7 @@ class SelectFile : ComponentActivity() {
     private val videoViewModel by viewModels<VideoViewModel>()
     private val audioViewModel by viewModels<AudioViewModel>()
 
-    var list by mutableStateOf(emptyList<Uri?>())
+    public var list by mutableStateOf(emptyList<Uri?>())
     val data = registerForActivityResult(GetMultipleContents()){ items ->
         list += items
     }
@@ -234,16 +238,36 @@ class SelectFile : ComponentActivity() {
         setContent {
             var bitmapState by remember { mutableStateOf<Bitmap?>(null) }
             JediShareTheme {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Top
+                val context = LocalContext.current
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colors.background)
                 ) {
-                    item {
-                        Spacer(modifier = Modifier.size(12.dp))
-                        Row (
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Spacer(modifier = Modifier.size(16.dp))
+
+                        Text(
+                            text = "Select Files",
+                            style = MaterialTheme.typography.h4,
+                        )
+                        Divider(
+                            color = MaterialTheme.colors.onBackground,
+                            thickness = 2.dp,
+                            modifier = Modifier.padding(vertical = 16.dp, horizontal = 16.dp)
+                            )
+
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
-                        ){
+                        ) {
                             CustomButton(buttonText = "All") {
                                 data.launch("*/*")
                             }
@@ -258,106 +282,101 @@ class SelectFile : ComponentActivity() {
                             }
                         }
                         Spacer(modifier = Modifier.size(12.dp))
-                    }
-                    items(list){item ->
-//                        TextWithBorder(
-//                            text = image.toString(),
-//                            borderColor = Color.LightGray,
-//                            borderWidth = 2,
-//                            textColor = Color.Black,
-//                        )
-                        val context = LocalContext.current
-                        Surface(
-                            modifier = Modifier
-                                .wrapContentSize()
-                                .padding(4.dp) // Adjust padding as needed
-                                .border(width = 2.dp, color = Color.LightGray)
-                                .clip(MaterialTheme.shapes.medium)
+
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.Top,
+                            horizontalAlignment = Alignment.Start
                         ) {
-                            Text(
-                                text = "Click Me",
-                                fontSize = 40.sp,
-                                modifier = Modifier
-                                    .padding(30.dp) // Adjust padding as needed
-                                .clickable {
+                            items(list) { item ->
+                                Surface(
+                                    modifier = Modifier
+                                        .wrapContentSize()
+                                        .padding(4.dp) // Adjust padding as needed
+                                        .border(width = 2.dp, color = Color.LightGray)
+                                        .clip(CircleShape)
+                                ) {
                                     val uri = Uri.parse(item.toString())
                                     val fileNameAndFormat =
                                         getFileDetailsFromUri(uri, contentResolver)
+                                    fileNameAndFormat.fileName?.let {
+                                        Text(
+                                            text = it,
+                                            fontSize = 16.sp,
+                                            modifier = Modifier
+                                                .padding(16.dp) // Adjust padding as needed
+                                                .clickable {
+                                                    val uri = Uri.parse(item.toString())
+                                                    val fileNameAndFormat =
+                                                        getFileDetailsFromUri(uri, contentResolver)
 
 
-                                    Toast
-                                        .makeText(
-                                            this@SelectFile,
-                                            fileNameAndFormat.fileName,
-                                            Toast.LENGTH_SHORT
+                                                    Toast
+                                                        .makeText(
+                                                            this@SelectFile,
+                                                            fileNameAndFormat.fileName,
+                                                            Toast.LENGTH_SHORT
+                                                        )
+                                                        .show()
+
+                                                    Toast
+                                                        .makeText(
+                                                            this@SelectFile,
+                                                            fileNameAndFormat.size,
+                                                            Toast.LENGTH_SHORT
+                                                        )
+                                                        .show()
+
+                                                    Toast
+                                                        .makeText(
+                                                            this@SelectFile,
+                                                            fileNameAndFormat.mimeType,
+                                                            Toast.LENGTH_SHORT
+                                                        )
+                                                        .show()
+
+                                                    //                                        var byArr = serializeUriData(image.uri, contentResolver)
+                                                    //var byArr =
+                                                    //    item?.let { convertImageToByteWithInfo(it, contentResolver) }
+                                                    //Toast
+                                                    //    .makeText(
+                                                    //        this@SelectFile,
+                                                    //        byArr.toString(),
+                                                    //        Toast.LENGTH_LONG
+                                                    //    )
+                                                    //    .show()
+                                                    //var out = byArr?.let { convertByteArrayToFileAndSaveMethod2(contentResolver, it) }
+                                                    // var out = byArr?.let { convertByteArrayToImageAndSave(it) }
+                                                    //                                    Toast
+                                                    //                                        .makeText(
+                                                    //                                            this@SelectFile,
+                                                    //                                            out.toString(),
+                                                    //                                            Toast.LENGTH_LONG
+                                                    //                                        )
+                                                    //                                        .show()
+                                                    ////                                        bitmapState = out
+
+                                                    //bitmapState = out
+                                                }
                                         )
-                                        .show()
-
-                                    Toast
-                                        .makeText(
-                                            this@SelectFile,
-                                            fileNameAndFormat.size,
-                                            Toast.LENGTH_SHORT
-                                        )
-                                        .show()
-
-                                    Toast
-                                        .makeText(
-                                            this@SelectFile,
-                                            fileNameAndFormat.mimeType,
-                                            Toast.LENGTH_SHORT
-                                        )
-                                        .show()
-
-//                                        var byArr = serializeUriData(image.uri, contentResolver)
-                                    var byArr =
-                                        item?.let { convertImageToByteWithInfo(it, contentResolver) }
-                                    Toast
-                                        .makeText(
-                                            this@SelectFile,
-                                            byArr.toString(),
-                                            Toast.LENGTH_LONG
-                                        )
-                                        .show()
-                                    Log.e("HELLOME","EnterOut")
-                                    var out = byArr?.let { convertByteArrayToFileAndSaveMethod2(contentResolver, it) }
-                                   // var out = byArr?.let { convertByteArrayToImageAndSave(it) }
-                                    Toast
-                                        .makeText(
-                                            this@SelectFile,
-                                            out.toString(),
-                                            Toast.LENGTH_LONG
-                                        )
-                                        .show()
-//                                        bitmapState = out
-
-                                    //bitmapState = out
+                                    }
+                                    //bitmapState?.let { ImageFromBitmap(bitmap = it) }
                                 }
-                            )
-                        //bitmapState?.let { ImageFromBitmap(bitmap = it) }
-                }}
-//                    items(imageViewModel.images) { image ->
-//                        Column(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .clickable {
-//                                    Toast
-//                                        .makeText(
-//                                            this@SelectFile,
-//                                            image.toString(),
-//                                            Toast.LENGTH_SHORT
-//                                        )
-//                                        .show()
-//                                    data.launch("image/*")
-//                                },
-//                            horizontalAlignment = Alignment.CenterHorizontally
-//                        ) {
-////                            ImageWithUri(uri = image.uri.toString())
-//                            Text(text = image.name)
-////                            Text(text = image.uri.toString())
-//                        }
-////                            Spacer(modifier = Modifier.height(25.dp))
-//                    }
+                            }
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        Button(onClick = {
+                            val intent = Intent(this@SelectFile, DeviceList::class.java)
+                            intent.putParcelableArrayListExtra("urilist", ArrayList(list))
+                            context.startActivity(intent)
+                        },
+                            modifier = Modifier
+                                .padding(bottom = 16.dp)
+                            ) {
+                            Text(text = "Continue to Device Select")
+                        }
+                    }
                 }
             }
         }
@@ -607,37 +626,37 @@ fun CustomButton(buttonText: String, onClickAction: () -> Unit) {
     }
 }
 
-//fun getFileDetailsFromUri(
-//    uri: Uri,
-//    contentResolver: ContentResolver
-//): FileInfo {
-//    var fileName: String? = null
-//    var format: String? = null
-//    var size: String? = null
-//    var mimeType: String? = null
-//
-//    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-//        //val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
-//        val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-//
-//        val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
-//        val mimeTypeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
-//
-//        if (cursor.moveToFirst()) {
-//            fileName = cursor.getString(nameColumn)
-//            Log.e("HELLOMEE", fileName.toString())
-//            format = fileName?.substringAfterLast('.', "")
-//            size = cursor.getLong(sizeColumn).toString()
-//            mimeType = cursor.getString(mimeTypeColumn)
-//
-//            if (mimeType.isNullOrBlank()) {
-//                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(format?.toLowerCase())
-//            }
-//        }
-//    }
-//
-//    return FileInfo(fileName, format, size, mimeType)
-//}
+fun getFileDetailsFromUri(
+    uri: Uri,
+    contentResolver: ContentResolver
+): FileInfo {
+    var fileName: String? = null
+    var format: String? = null
+    var size: String? = null
+    var mimeType: String? = null
+
+    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        //val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+        val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+
+        val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
+        val mimeTypeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
+
+        if (cursor.moveToFirst()) {
+            fileName = cursor.getString(nameColumn)
+            Log.e("HELLOMEE", fileName.toString())
+            format = fileName?.substringAfterLast('.', "")
+            size = cursor.getLong(sizeColumn).toString()
+            mimeType = cursor.getString(mimeTypeColumn)
+
+            if (mimeType.isNullOrBlank()) {
+                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(format?.toLowerCase())
+            }
+        }
+    }
+
+    return FileInfo(fileName, format, size, mimeType)
+}
 
 //fun convertImageToByteWithInfo(uri: Uri, contentResolver: ContentResolver): ByteArray {
 //    val stream: InputStream? = contentResolver.openInputStream(uri)
@@ -775,48 +794,48 @@ fun CustomButton(buttonText: String, onClickAction: () -> Unit) {
 //    return byteArrayOutputStream.toByteArray()
 //}
 
-fun convertByteArrayToFileAndSaveMethod2(contentResolver: ContentResolver, byteArray: ByteArray): String? {
-    Log.e("HELLOME", "EnterFun")
-
-    val fileData = deserializeObject(byteArray)
-
-    val fileInfo = fileData?.fileInfo
-    val fileName = fileInfo?.fileName ?: ""
-    val format = fileInfo?.format ?: ""
-    val mimeType = fileInfo?.mimeType ?: ""
-
-    Log.e("HELLOME", "EnterDir")
-
-    // Create a content values to store file information
-    val values = ContentValues().apply {
-        put(MediaStore.Files.FileColumns.DISPLAY_NAME, "$fileName")
-        put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
-        }
-    }
-
-    // Get the content URI for the new media entry
-    val contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-    val fileUri = contentResolver.insert(contentUri, values)
-
-    try {
-        fileUri?.let {
-            // Open an output stream to write file data
-            contentResolver.openOutputStream(it)?.use { outputStream ->
-                outputStream.write(fileData?.imageData)
-            }
-
-            Log.e("HELLOME", "File saved to MediaStore: $it")
-            return it.toString()
-        }
-    } catch (e: IOException) {
-        e.printStackTrace()
-        Log.e("HELLOME", "Failed to write to MediaStore")
-    }
-
-    return null
-}
+//fun convertByteArrayToFileAndSaveMethod2(contentResolver: ContentResolver, byteArray: ByteArray): String? {
+//    Log.e("HELLOME", "EnterFun")
+//
+//    val fileData = deserializeObject(byteArray)
+//
+//    val fileInfo = fileData?.fileInfo
+//    val fileName = fileInfo?.fileName ?: ""
+//    val format = fileInfo?.format ?: ""
+//    val mimeType = fileInfo?.mimeType ?: ""
+//
+//    Log.e("HELLOME", "EnterDir")
+//
+//    // Create a content values to store file information
+//    val values = ContentValues().apply {
+//        put(MediaStore.Files.FileColumns.DISPLAY_NAME, "$fileName")
+//        put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
+//        }
+//    }
+//
+//    // Get the content URI for the new media entry
+//    val contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+//    val fileUri = contentResolver.insert(contentUri, values)
+//
+//    try {
+//        fileUri?.let {
+//            // Open an output stream to write file data
+//            contentResolver.openOutputStream(it)?.use { outputStream ->
+//                outputStream.write(fileData?.imageData)
+//            }
+//
+//            Log.e("HELLOME", "File saved to MediaStore: $it")
+//            return it.toString()
+//        }
+//    } catch (e: IOException) {
+//        e.printStackTrace()
+//        Log.e("HELLOME", "Failed to write to MediaStore")
+//    }
+//
+//    return null
+//}
 
 //private fun deserializeObject(byteArray: ByteArray): FileData? {
 //    val byteArrayInputStream = ByteArrayInputStream(byteArray)
