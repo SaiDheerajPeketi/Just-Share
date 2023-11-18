@@ -1,5 +1,6 @@
 package com.invincible.jedishare.presentation.components
 
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,7 +10,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
@@ -26,7 +26,8 @@ import com.invincible.jedishare.presentation.BluetoothUiState
 fun ChatScreen(
     state: BluetoothUiState,
     onDisconnect: () -> Unit,
-    onSendMessage : (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    uriList: List<Uri>,
 ){
     val message = rememberSaveable {
         mutableStateOf("")
@@ -90,7 +91,10 @@ fun ChatScreen(
                 }
             )
             IconButton(onClick = {
-                onSendMessage(message.value)
+//                onSendMessage(message.value)
+                uriList.forEach { it ->
+                    onSendMessage(it.toString())
+                }
                 message.value = ""
                 keyboardController?.hide()
             }) {

@@ -658,6 +658,8 @@ fun getFileDetailsFromUri(
     return FileInfo(fileName, format, size, mimeType)
 }
 
+
+
 //fun convertImageToByteWithInfo(uri: Uri, contentResolver: ContentResolver): ByteArray {
 //    val stream: InputStream? = contentResolver.openInputStream(uri)
 //    var fileInfo: FileInfo? = null

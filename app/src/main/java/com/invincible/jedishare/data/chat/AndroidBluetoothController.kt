@@ -9,15 +9,22 @@ import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.util.Log
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.BluetoothMessage
 import com.invincible.jedishare.domain.chat.ConnectionResult
+import com.invincible.jedishare.domain.chat.FileData
+import com.invincible.jedishare.domain.chat.FileInfo
+import com.invincible.jedishare.getFileDetailsFromUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.util.*
 
 @SuppressLint("MissingPermission")
@@ -195,7 +202,27 @@ class AndroidBluetoothController(
             isFromLocalUser = true
         )
 
-        dataTransferService?.sendMessage(bluetoothMessage.toByteArray())
+
+        val stream: InputStream? = context.contentResolver.openInputStream(Uri.parse(message))
+        var fileInfo: FileInfo? = null
+        var byteArray: ByteArray
+
+        stream.use { inputStream ->
+            val outputStream = ByteArrayOutputStream()
+            inputStream?.copyTo(outputStream)
+            byteArray = outputStream.toByteArray()
+            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
+
+            // Get file information
+            fileInfo = getFileDetailsFromUri(Uri.parse(message), context.contentResolver)
+        }
+
+        // Serialize FileInfo and image data to byte array
+        val fileData = fileInfo?.let { FileData(it, byteArray) }
+
+        fileData?.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+
+//        dataTransferService?.sendMessage(bluetoothMessage.toByteArray())
 
         return bluetoothMessage
     }

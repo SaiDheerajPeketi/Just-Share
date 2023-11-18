@@ -7,7 +7,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -111,10 +110,12 @@ class DeviceList : ComponentActivity() {
                             }
                         }
                         state.isConnected -> {
+                            val list = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList<Uri>()
                             ChatScreen(
                                 state = state,
                                 onDisconnect = viewModel::disconnectFromDevice,
-                                onSendMessage = viewModel::sendMessage
+                                onSendMessage = viewModel::sendMessage,
+                                list
                             )
                         }
                         else -> {
