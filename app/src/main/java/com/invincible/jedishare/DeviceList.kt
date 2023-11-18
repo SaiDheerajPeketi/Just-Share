@@ -111,23 +111,13 @@ class DeviceList : ComponentActivity() {
                             }
                         }
                         state.isConnected -> {
-                            val isFromReceive = intent.getBooleanExtra("source", false)
-                            if(!isFromReceive) {
-                                var list = intent?.getParcelableArrayListExtra<Uri>("urilist")
-                                    ?: emptyList()
-                                Log.e("HELLOME", "List size = " + list.size)
-                                list.forEach { uri ->
-                                    viewModel.sendFile(uri)
-                                }
-                                Log.e("HELLOME", "Updated List size = " + list.size)
-                                list = list.drop(0)
-
-                                Log.e("HELLOME", "Updated List size = " + list.size)
-                            }
-                            Text(text = "were here")
+                            ChatScreen(
+                                state = state,
+                                onDisconnect = viewModel::disconnectFromDevice,
+                                onSendMessage = viewModel::sendMessage
+                            )
                         }
                         else -> {
-                            viewModel.startScan()
                             DeviceScreen(
                                 state = state,
                                 onStartScan = viewModel::startScan,
@@ -135,10 +125,6 @@ class DeviceList : ComponentActivity() {
                                 onDeviceClick = viewModel::connectToDevice,
                                 onStartServer = viewModel::waitForIncomingConnections
                             )
-                            val isFromReceive = intent.getBooleanExtra("source", false)
-                            if(isFromReceive){
-//                                viewModel.waitForIncomingConnections()
-                            }
                         }
                     }
                 }

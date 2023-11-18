@@ -64,13 +64,13 @@ fun ChatScreen(
                     Column(
                         modifier = Modifier.fillMaxWidth()
                     ){
-//                        ChatMessage(
-//                            message = message,
-//                            modifier = Modifier
-//                                .align(
-//                                    if(message.isFromLocalUser) Alignment.End else Alignment.Start
-//                                )
-//                        )
+                        ChatMessage(
+                            message = message,
+                            modifier = Modifier
+                                .align(
+                                    if(message.isFromLocalUser) Alignment.End else Alignment.Start
+                                )
+                        )
                     }
                 }
             }

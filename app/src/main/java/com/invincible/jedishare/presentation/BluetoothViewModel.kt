@@ -1,13 +1,11 @@
 package com.invincible.jedishare.presentation
 
-import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.ConnectionResult
-import com.invincible.jedishare.domain.chat.FileData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -28,7 +26,7 @@ class BluetoothViewModel @Inject constructor(
         state.copy(
             scannedDevices = scannedDevices,
             pairedDevices = pairedDevices,
-//            messages = if(state.isConnected) state.messages else emptyList()
+            messages = if(state.isConnected) state.messages else emptyList()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _state.value)
 
@@ -49,7 +47,7 @@ class BluetoothViewModel @Inject constructor(
     fun connectToDevice(device: BluetoothDeviceDomain) {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .connectToDevice(device, null)
+            .connectToDevice(device)
             .listen()
     }
 
@@ -69,16 +67,12 @@ class BluetoothViewModel @Inject constructor(
             .listen()
     }
 
-
-
-    fun sendFile(uri: Uri){
+    fun sendMessage(message: String){
         viewModelScope.launch {
-            Log.e("HELLOME","Called sendFIle from viewModel")
-            val bluetoothFile = bluetoothController.trySendFile(uri)
-            if(bluetoothFile != null){
-                Log.e("HELLOME","bf is not null  " + bluetoothFile)
+            val bluetoothMessage = bluetoothController.trySendMessage(message)
+            if(bluetoothMessage != null){
                 _state.update { it.copy(
-//                    messages = it.messages + bluetoothFile
+                    messages = it.messages + bluetoothMessage
                 ) }
             }
         }
@@ -103,9 +97,8 @@ class BluetoothViewModel @Inject constructor(
                     ) }
                 }
                 is ConnectionResult.TransferSucceeded -> {
-                    Log.e("HELLOME", result.message.toString())
                     _state.update { it.copy(
-//                        messages = (it.messages + result.message) as List<FileData>
+                        messages = it.messages + result.message
                     ) }
                 }
                 is ConnectionResult.Error -> {
@@ -130,5 +123,18 @@ class BluetoothViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         bluetoothController.release()
+    }
+}
+
+class BluetoothViewModelFactory @Inject constructor(
+    private val bluetoothController: BluetoothController
+) : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(BluetoothViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return BluetoothViewModel(bluetoothController) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

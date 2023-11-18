@@ -2,9 +2,7 @@ package com.invincible.jedishare.data.chat
 
 
 import android.bluetooth.BluetoothSocket
-import android.util.Log
 import com.invincible.jedishare.domain.chat.BluetoothMessage
-import com.invincible.jedishare.domain.chat.FileData
 import com.invincible.jedishare.domain.chat.TransferFailedException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -16,12 +14,12 @@ import java.io.IOException
 class BluetoothDataTransferService(
     private val socket: BluetoothSocket
 ) {
-    fun listenForIncomingMessages(): Flow<FileData?> {
+    fun listenForIncomingMessages(): Flow<BluetoothMessage> {
         return flow{
             if(!socket.isConnected){
                 return@flow
             }
-            val buffer = ByteArray(102400)
+            val buffer = ByteArray(1024)
             while(true) {
                 val byteCount = try{
                     socket.inputStream.read(buffer)
@@ -30,9 +28,11 @@ class BluetoothDataTransferService(
                 }
 
                 emit(
-                      buffer.toFileData(
-                            isFromLocalUser = false
-                      )
+                    buffer.decodeToString(
+                        endIndex = byteCount
+                    ).toBluetoothMessage(
+                        isFromLocalUser = false
+                    )
                 )
             }
         }.flowOn(Dispatchers.IO)
