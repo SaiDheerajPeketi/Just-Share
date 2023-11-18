@@ -1,10 +1,21 @@
 package com.invincible.jedishare
 
+import android.app.ActivityManager
+import android.app.usage.StorageStatsManager
+import android.content.Context
+import android.content.Context.ACTIVITY_SERVICE
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.os.StatFs
+import android.os.storage.StorageManager
+import android.os.storage.StorageVolume
+import android.util.Log
 import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +37,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat.getSystemService
 import com.invincible.jedishare.ui.theme.JediShareTheme
+import java.util.Formatter
+import java.util.UUID
 
 class SendOrReceive : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,9 +54,11 @@ class SendOrReceive : ComponentActivity() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colors.background)
+                        .background(MaterialTheme.colors.background),
+                    contentAlignment = androidx.compose.ui.Alignment.BottomCenter,
                 ) {
                     Screen2()
+                    NavBar()
                 }
             }
         }
@@ -80,16 +96,7 @@ fun Screen2() {
             context.startActivity(intent)
         },
             buttonName = "Recieve",
-            icon = receiveIcon)
-//        Button(onClick = {
-//            val intent = Intent(context, DeviceList::class.java)
-//            intent.putExtra("source", true)
-//            context.startActivity(intent)
-//        }) {
-//            Text(
-//                text = "Receive",
-//                fontSize = 20.sp
-//            )
-//        }
+            icon = receiveIcon
+        )
     }
 }

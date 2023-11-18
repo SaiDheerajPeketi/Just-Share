@@ -136,6 +136,9 @@ class AndroidBluetoothController(
                     val service = BluetoothDataTransferService(it)
                     dataTransferService = service
 
+                    FileData(FileInfo("null",null,null,null),"Hello".toByteArray(),true).toByteArray()
+                        ?.let { it1 -> service.sendMessage(it1) }
+
                     emitAll(
                         service
                             .listenForIncomingMessages()
@@ -150,7 +153,7 @@ class AndroidBluetoothController(
         }.flowOn(Dispatchers.IO)
     }
 
-    override fun connectToDevice(device: BluetoothDeviceDomain): Flow<ConnectionResult> {
+    override fun connectToDevice(device: BluetoothDeviceDomain, uri: Uri?): Flow<ConnectionResult> {
         return flow {
             if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
                 throw SecurityException("No BLUETOOTH_CONNECT permission")
@@ -163,25 +166,67 @@ class AndroidBluetoothController(
                 )
             stopDiscovery()
 
+            if(currentClientSocket == null){
+                Log.e("HELLOME","socket is null")
+            }
+            else{
+                Log.e("HELLOME","socket is not null" + currentClientSocket.toString())
+            }
+
             currentClientSocket?.let { socket ->
                 try {
-                    Log.e("HELLO","one")
                     socket.connect()
                     emit(ConnectionResult.ConnectionEstablished)
 
-                    Log.e("HELLO","two")
+                    Log.e("HELLOME","two")
+//                    while(true){
+//
+//                    }
                     BluetoothDataTransferService(socket).also {
                         dataTransferService = it
+
+                        //////////////////////////////////////////////////////////////////////////////////
+//                        val stream: InputStream? = uri?.let { it1 ->
+//                            context.contentResolver.openInputStream(
+//                                it1
+//                            )
+//                        }
+//                        var fileInfo: FileInfo? = null
+//                        var byteArray: ByteArray
+//
+//                        stream.use { inputStream ->
+//                            val outputStream = ByteArrayOutputStream()
+//                            inputStream?.copyTo(outputStream)
+//                            byteArray = outputStream.toByteArray()
+//                            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
+//
+//                            // Get file information
+//                            fileInfo = uri?.let { it1 -> getFileDetailsFromUri(it1) }
+//                        }
+//
+//                        // Serialize FileInfo and image data to byte array
+//                        val fileData = FileData(fileInfo!!, byteArray)
+//
+//                        fileData.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+                        //////////////////////////////////////////////////////////////////////////////////
+
+
+
+//
+//                        FileData(FileInfo("null",null,null,null),"Hello".toByteArray(),true).toByteArray()
+//                            ?.let { it1 -> it.sendMessage(it1) }
+
                         emitAll(
                             it.listenForIncomingMessages()
-                                .map { ConnectionResult.TransferSucceeded(it) }
+                               .map { ConnectionResult.TransferSucceeded(it) }
                         )
                     }
-                } catch (e: IOException) {
+                    Log.e("HELLOME","one")
+                } catch (e: Exception) {
                     socket.close()
                     currentClientSocket = null
                     emit(ConnectionResult.Error("Connection was interrupted"))
-                    Log.e("HELLOME", e.toString())
+                    Log.e("HELLOME", "main prob = "+e.toString())
                 }
             }
         }.onCompletion {
@@ -226,7 +271,7 @@ class AndroidBluetoothController(
             val outputStream = ByteArrayOutputStream()
             inputStream?.copyTo(outputStream)
             byteArray = outputStream.toByteArray()
-            Log.e("HEELLOME", "IN ByteArray = " + byteArray.size.toString())
+            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
 
             // Get file information
             fileInfo = getFileDetailsFromUri(uri)
@@ -288,7 +333,7 @@ class AndroidBluetoothController(
 
             if (cursor.moveToFirst()) {
                 fileName = cursor.getString(nameColumn)
-                Log.e("HELLOMEE", fileName.toString())
+                Log.e("HELLOMEEE", fileName.toString())
                 format = fileName?.substringAfterLast('.', "")
                 size = cursor.getLong(sizeColumn).toString()
                 mimeType = cursor.getString(mimeTypeColumn)

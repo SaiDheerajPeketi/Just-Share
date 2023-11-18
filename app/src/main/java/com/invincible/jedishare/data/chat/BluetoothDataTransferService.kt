@@ -2,6 +2,7 @@ package com.invincible.jedishare.data.chat
 
 
 import android.bluetooth.BluetoothSocket
+import android.util.Log
 import com.invincible.jedishare.domain.chat.BluetoothMessage
 import com.invincible.jedishare.domain.chat.FileData
 import com.invincible.jedishare.domain.chat.TransferFailedException
@@ -20,7 +21,7 @@ class BluetoothDataTransferService(
             if(!socket.isConnected){
                 return@flow
             }
-            val buffer = ByteArray(1024)
+            val buffer = ByteArray(102400)
             while(true) {
                 val byteCount = try{
                     socket.inputStream.read(buffer)

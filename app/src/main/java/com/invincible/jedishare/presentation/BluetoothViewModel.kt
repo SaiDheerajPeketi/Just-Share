@@ -1,6 +1,7 @@
 package com.invincible.jedishare.presentation
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.domain.chat.BluetoothController
@@ -27,7 +28,7 @@ class BluetoothViewModel @Inject constructor(
         state.copy(
             scannedDevices = scannedDevices,
             pairedDevices = pairedDevices,
-            messages = if(state.isConnected) state.messages else emptyList()
+//            messages = if(state.isConnected) state.messages else emptyList()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _state.value)
 
@@ -48,7 +49,7 @@ class BluetoothViewModel @Inject constructor(
     fun connectToDevice(device: BluetoothDeviceDomain) {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .connectToDevice(device)
+            .connectToDevice(device, null)
             .listen()
     }
 
@@ -72,10 +73,12 @@ class BluetoothViewModel @Inject constructor(
 
     fun sendFile(uri: Uri){
         viewModelScope.launch {
+            Log.e("HELLOME","Called sendFIle from viewModel")
             val bluetoothFile = bluetoothController.trySendFile(uri)
             if(bluetoothFile != null){
+                Log.e("HELLOME","bf is not null  " + bluetoothFile)
                 _state.update { it.copy(
-                    messages = it.messages + bluetoothFile
+//                    messages = it.messages + bluetoothFile
                 ) }
             }
         }
@@ -100,8 +103,9 @@ class BluetoothViewModel @Inject constructor(
                     ) }
                 }
                 is ConnectionResult.TransferSucceeded -> {
+                    Log.e("HELLOME", result.message.toString())
                     _state.update { it.copy(
-                        messages = (it.messages + result.message) as List<FileData>
+//                        messages = (it.messages + result.message) as List<FileData>
                     ) }
                 }
                 is ConnectionResult.Error -> {

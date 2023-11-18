@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -110,10 +111,20 @@ class DeviceList : ComponentActivity() {
                             }
                         }
                         state.isConnected -> {
-                            val list = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList()
-                            list.forEach { uri ->
-                                viewModel.sendFile(uri)
+                            val isFromReceive = intent.getBooleanExtra("source", false)
+                            if(!isFromReceive) {
+                                var list = intent?.getParcelableArrayListExtra<Uri>("urilist")
+                                    ?: emptyList()
+                                Log.e("HELLOME", "List size = " + list.size)
+                                list.forEach { uri ->
+                                    viewModel.sendFile(uri)
+                                }
+                                Log.e("HELLOME", "Updated List size = " + list.size)
+                                list = list.drop(0)
+
+                                Log.e("HELLOME", "Updated List size = " + list.size)
                             }
+                            Text(text = "were here")
                         }
                         else -> {
                             viewModel.startScan()
@@ -126,7 +137,7 @@ class DeviceList : ComponentActivity() {
                             )
                             val isFromReceive = intent.getBooleanExtra("source", false)
                             if(isFromReceive){
-                                viewModel.waitForIncomingConnections()
+//                                viewModel.waitForIncomingConnections()
                             }
                         }
                     }

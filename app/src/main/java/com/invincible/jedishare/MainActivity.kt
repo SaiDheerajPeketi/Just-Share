@@ -5,10 +5,13 @@ import android.os.Bundle
 import android.view.Window
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import com.invincible.jedishare.ui.*
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +35,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
@@ -46,9 +50,14 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat.startActivity
 import com.invincible.jedishare.ui.theme.JediShareTheme
+import com.invincible.jedishare.ui.theme.MyRed
+import com.invincible.jedishare.ui.theme.MyRedSecondary
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,11 +71,6 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .background(MaterialTheme.colors.background),
                         contentAlignment = androidx.compose.ui.Alignment.BottomCenter,
-//                            .paint(
-//                                painterResource(id = R.drawable.background),
-//                                contentScale = ContentScale.FillBounds
-//                            )
-                            //.background(Color.Black)
                     ) {
                         Screen1()
                         NavBar()
@@ -115,19 +119,59 @@ fun Screen1() {
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        Spacer(modifier = Modifier.size(100.dp))
-        Text(
-            text = "Jedi Share",
-            fontSize = 60.sp,
-            color = MaterialTheme.colors.primary
-        )
-        Divider(
-            color = MaterialTheme.colors.primary,
-            thickness = 3.dp,
+
+        Box(
             modifier = Modifier
-                .width(300.dp)
-        )
-        Spacer(modifier = Modifier.size(200.dp))
+                .clip(RoundedCornerShape(0.dp, 0.dp, 50.dp, 50.dp))
+                .background(MyRedSecondary)
+                .fillMaxWidth()
+                .height(400.dp)
+                    ,
+        contentAlignment = androidx.compose.ui.Alignment.BottomCenter,
+        ) {
+            Column (
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ){
+                val context = LocalContext.current as? ComponentActivity
+                Row (modifier = Modifier.fillMaxWidth().padding(start = 16.dp), horizontalArrangement = Arrangement.Start){
+                    IconButton(
+                        onClick = {
+                        },
+                        modifier = Modifier
+                            .size(35.dp)
+                            .clip(CircleShape)
+                            .fillMaxWidth(),
+                    ) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null,
+                            modifier = Modifier
+                                .clickable {
+                                    context?.finish()
+                                }
+                                .fillMaxSize(),
+                            tint = MyRed
+                        )
+                    }
+                }
+                Image(
+                    painter = painterResource(id = R.drawable.main_activity_image),
+                    contentDescription = "Image with Shadow",
+                    modifier = Modifier.size(200.dp),
+                )
+                Text(
+                    text = "Jedi Share",
+                    fontSize = 40.sp,
+                    style = MaterialTheme.typography.h1,
+                    color = MyRed,
+                    textAlign = TextAlign.Center,
+                    textDecoration = TextDecoration.Underline
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.size(100.dp))
 
         Row(
             modifier = Modifier
@@ -174,12 +218,14 @@ fun NavBar() {
         backgroundColor = Color.White,
         elevation = 10.dp,
         modifier = Modifier
-            .shadow(40.dp, CircleShape,true)
+            .shadow(40.dp, CircleShape, true)
             .fillMaxWidth()
             .padding(16.dp)
             .height(56.dp)
-            .clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp))
+            .clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp)
+            )
     ) {
+        val context = LocalContext.current as? ComponentActivity
         BottomNavigationItem(
             icon = {
                 Icon(
@@ -191,7 +237,11 @@ fun NavBar() {
             },
             label = { Text(text = "Home") },
             selected = false,
-            onClick = { /*TODO*/ },
+            onClick = {
+                context?.finish()
+                val intent = Intent(context, MainActivity::class.java)
+                context?.startActivity(intent)
+            },
             alwaysShowLabel = true,
             selectedContentColor = Color.Black,
             unselectedContentColor = Color.Gray,
