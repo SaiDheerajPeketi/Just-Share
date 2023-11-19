@@ -73,6 +73,7 @@ class DeviceList : ComponentActivity() {
         setContent {
             JediShareTheme {
                 val viewModel = hiltViewModel<BluetoothViewModel>()
+                viewModel.contentResolver = this@DeviceList.contentResolver
                 val state by viewModel.state.collectAsState()
 
                 LaunchedEffect(key1 = state.errorMessage) {

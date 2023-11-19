@@ -725,7 +725,7 @@ fun getFileDetailsFromUri(
 //
 //    return null
 //}
-
+//
 //fun convertByteArrayToFileAndSave(contentResolver: ContentResolver, byteArray: ByteArray): String? {
 //    Log.e("HELLOME", "EnterFun")
 //

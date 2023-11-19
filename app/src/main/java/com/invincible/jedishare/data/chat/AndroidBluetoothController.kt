@@ -15,7 +15,6 @@ import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.BluetoothMessage
 import com.invincible.jedishare.domain.chat.ConnectionResult
-import com.invincible.jedishare.domain.chat.FileData
 import com.invincible.jedishare.domain.chat.FileInfo
 import com.invincible.jedishare.getFileDetailsFromUri
 import kotlinx.coroutines.CoroutineScope
@@ -137,6 +136,8 @@ class AndroidBluetoothController(
                     val service = BluetoothDataTransferService(it)
                     dataTransferService = service
 
+//                    service.listenForIncomingMessages().
+
                     emitAll(
                         service
                             .listenForIncomingMessages()
@@ -207,21 +208,37 @@ class AndroidBluetoothController(
         var fileInfo: FileInfo? = null
         var byteArray: ByteArray
 
+        // Get file information
+        fileInfo = getFileDetailsFromUri(Uri.parse(message), context.contentResolver)
+        fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+
         stream.use { inputStream ->
             val outputStream = ByteArrayOutputStream()
-            inputStream?.copyTo(outputStream)
-            byteArray = outputStream.toByteArray()
-            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
+            val buffer = ByteArray(990)
+            var bytesRead: Int
+            bytesRead = 0
 
-            // Get file information
-            fileInfo = getFileDetailsFromUri(Uri.parse(message), context.contentResolver)
+            while (inputStream?.read(buffer).also {
+                    if (it != null) {
+                        bytesRead = it
+                    }
+                } != -1) {
+//                outputStream.write(buffer, 0, bytesRead)
+                Log.e("HELLOME", "Bytes Read : " + bytesRead.toString())
+                dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
+            }
+//
+//            byteArray = outputStream.toByteArray()
+//            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
         }
 
+
+
         // Serialize FileInfo and image data to byte array
-        val fileData = fileInfo?.let { FileData(it, byteArray) }
-        Log.e("HELLOME","BYTE ARRAY SIZE: " + byteArray.size.toString())
+//        val fileData = fileInfo?.let { FileData(it, byteArray) }
+//        Log.e("HELLOME","BYTE ARRAY SIZE: " + byteArray.size.toString())
 //        fileData?.toByteArray()?.let { dataTransferService?.sendMessage(it) }
-            dataTransferService?.sendMessage(byteArray)
+//            dataTransferService?.sendMessage(byteArray)
 //        dataTransferService?.sendMessage(bluetoothMessage.toByteArray())
 
         return bluetoothMessage
