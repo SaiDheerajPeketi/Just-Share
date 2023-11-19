@@ -219,9 +219,9 @@ class AndroidBluetoothController(
 
         // Serialize FileInfo and image data to byte array
         val fileData = fileInfo?.let { FileData(it, byteArray) }
-
-        fileData?.toByteArray()?.let { dataTransferService?.sendMessage(it) }
-
+        Log.e("HELLOME","BYTE ARRAY SIZE: " + byteArray.size.toString())
+//        fileData?.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+            dataTransferService?.sendMessage(byteArray)
 //        dataTransferService?.sendMessage(bluetoothMessage.toByteArray())
 
         return bluetoothMessage
