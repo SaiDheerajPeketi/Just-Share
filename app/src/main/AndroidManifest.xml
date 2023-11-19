@@ -48,9 +48,15 @@
         </activity>
         <activity
             android:name=".DeviceList"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/title_activity_device_list"
             android:theme="@style/Theme.JediShare" >
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />

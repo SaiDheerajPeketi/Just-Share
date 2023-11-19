@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -70,6 +71,29 @@ class DeviceList : ComponentActivity() {
                 )
             )
         }
+
+        if(intent.action == Intent.ACTION_SEND){
+            val uri: Uri? = intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+            if(uri != null){
+                Log.e("HELLOME",uri?.toString())
+                var fileInfo = getFileDetailsFromUri(uri, contentResolver)
+                Log.e("HELLOME",fileInfo.toString())
+                Toast.makeText(this, fileInfo.fileName,Toast.LENGTH_SHORT).show()
+            }
+        }
+        else if(intent.action == Intent.ACTION_SEND_MULTIPLE){
+            val uriList: ArrayList<Uri>? = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+
+            if (uriList != null && uriList.isNotEmpty()) {
+                uriList.forEach { it ->
+                    Log.e("HELLOME", it.toString())
+                    var fileInfo = getFileDetailsFromUri(it, contentResolver)
+                    Log.e("HELLOME",fileInfo.toString())
+                    Toast.makeText(this, fileInfo.fileName,Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
         setContent {
             JediShareTheme {
                 val viewModel = hiltViewModel<BluetoothViewModel>()
