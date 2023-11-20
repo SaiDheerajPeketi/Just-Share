@@ -167,7 +167,7 @@ class BluetoothViewModel @Inject constructor(
                         try {
                             fileUri?.let {
 //                                // Open an output stream to write file data
-                                delay(1)
+//                                delay(1)
 
                                 contentResolver?.openOutputStream(it, "wa")?.use { outputStream ->
 //                                    Log.e("HELLOME",result.message.size.toString())

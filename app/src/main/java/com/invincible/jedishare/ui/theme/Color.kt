@@ -14,3 +14,4 @@ val MyGray = Color(0xFF2B2B2B)
 
 val MyRed = Color(0xFFec1c22)
 val MyRedSecondary = Color(0xFFf2cdce)
+val MyRedSecondaryLight = Color(0x77f2cdce)

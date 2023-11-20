@@ -67,6 +67,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.material.OutlinedButton
+import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,9 +78,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
 import coil.compose.rememberImagePainter
+import com.airbnb.lottie.LottieComposition
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.invincible.jedishare.domain.chat.FileInfo
+import com.invincible.jedishare.ui.theme.MyRed
+import com.invincible.jedishare.ui.theme.MyRedSecondary
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -256,10 +269,11 @@ class SelectFile : ComponentActivity() {
 
                         Text(
                             text = "Select Files",
+                            fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.h4,
                         )
                         Divider(
-                            color = MaterialTheme.colors.onBackground,
+                            color = Color.LightGray,
                             thickness = 2.dp,
                             modifier = Modifier.padding(vertical = 16.dp, horizontal = 16.dp)
                             )
@@ -290,97 +304,171 @@ class SelectFile : ComponentActivity() {
                             horizontalAlignment = Alignment.Start
                         ) {
                             items(list) { item ->
-                                Surface(
+                                Column(
                                     modifier = Modifier
-                                        .wrapContentSize()
-                                        .padding(4.dp) // Adjust padding as needed
-                                        .border(width = 2.dp, color = Color.LightGray)
-                                        .clip(CircleShape)
+                                        .fillMaxWidth(),
+                                    horizontalAlignment = Alignment.Start,
+                                    verticalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    val uri = Uri.parse(item.toString())
-                                    val fileNameAndFormat =
-                                        getFileDetailsFromUri(uri, contentResolver)
-                                    fileNameAndFormat.fileName?.let {
-                                        Text(
-                                            text = it,
-                                            fontSize = 16.sp,
+                                    Row(
+                                        modifier = Modifier
+                                            .wrapContentSize()
+                                            .padding(4.dp) // Adjust padding as needed
+                                    ) {
+
+
+                                        Spacer(modifier = Modifier.size(10.dp))
+
+                                        val uri = Uri.parse(item.toString())
+                                        val fileNameAndFormat =
+                                            getFileDetailsFromUri(uri, contentResolver)
+                                        val fileType = fileNameAndFormat.format?.let { classifyFileType(it) }
+
+                                        val icon: Painter
+                                        val iconTint: Color
+                                        val iconBackground: Color
+
+                                        if(fileType == "Photo"){
+                                            icon = painterResource(id = R.drawable.photo_icon)
+                                            iconTint = Color(0xFF33A850)
+                                            iconBackground = Color(0x2233A850)
+                                        }else if(fileType == "Video"){
+                                            icon = painterResource(id = R.drawable.video_icon)
+                                            iconTint = Color(0xFFC54EE6)
+                                            iconBackground = Color(0x22C54EE6)
+                                        }else{
+                                            icon = painterResource(id = R.drawable.document_icon)
+                                            iconTint = Color(0xFF4187E6)
+                                            iconBackground = Color(0x224187E6)
+                                        }
+
+                                        Box(
                                             modifier = Modifier
-                                                .padding(16.dp) // Adjust padding as needed
-                                                .clickable {
-                                                    val uri = Uri.parse(item.toString())
-                                                    val fileNameAndFormat =
-                                                        getFileDetailsFromUri(uri, contentResolver)
+                                                .background(iconBackground, shape = CircleShape)
+                                                .size(50.dp),
+                                            contentAlignment = androidx.compose.ui.Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                painter = icon,
+                                                contentDescription = null,
+                                                tint = iconTint,
+                                                modifier = Modifier.size(30.dp)
+                                            )
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.size(10.dp))
 
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth(),
+                                            horizontalAlignment = Alignment.Start,
+                                            verticalArrangement = Arrangement.SpaceBetween
+                                        ) {
 
-                                                    Toast
-                                                        .makeText(
-                                                            this@SelectFile,
-                                                            fileNameAndFormat.fileName,
-                                                            Toast.LENGTH_SHORT
-                                                        )
-                                                        .show()
+                                            fileNameAndFormat.fileName?.let {
+                                                Text(
+                                                    text = it,
+                                                    fontSize = 15.sp,
+//                                                    style = MaterialTheme.typography.h4,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier
+//                                                        .padding(16.dp) // Adjust padding as needed
+                                                )
 
-                                                    Toast
-                                                        .makeText(
-                                                            this@SelectFile,
-                                                            fileNameAndFormat.size,
-                                                            Toast.LENGTH_SHORT
-                                                        )
-                                                        .show()
+                                                val sizeInBytes = fileNameAndFormat.size
 
-                                                    Toast
-                                                        .makeText(
-                                                            this@SelectFile,
-                                                            fileNameAndFormat.mimeType,
-                                                            Toast.LENGTH_SHORT
-                                                        )
-                                                        .show()
+                                                val units = arrayOf("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+                                                val digitGroups = (sizeInBytes?.let { it1 ->
+                                                    Math.log10(
+                                                        it1.toDouble())
+                                                }?.div(Math.log10(1024.0)))?.toInt()
 
-                                                    //                                        var byArr = serializeUriData(image.uri, contentResolver)
-                                                    //var byArr =
-                                                    //    item?.let { convertImageToByteWithInfo(it, contentResolver) }
-                                                    //Toast
-                                                    //    .makeText(
-                                                    //        this@SelectFile,
-                                                    //        byArr.toString(),
-                                                    //        Toast.LENGTH_LONG
-                                                    //    )
-                                                    //    .show()
-                                                    //var out = byArr?.let { convertByteArrayToFileAndSaveMethod2(contentResolver, it) }
-                                                    // var out = byArr?.let { convertByteArrayToImageAndSave(it) }
-                                                    //                                    Toast
-                                                    //                                        .makeText(
-                                                    //                                            this@SelectFile,
-                                                    //                                            out.toString(),
-                                                    //                                            Toast.LENGTH_LONG
-                                                    //                                        )
-                                                    //                                        .show()
-                                                    ////                                        bitmapState = out
+//                                                val humanReadableSize = String.format("%.1f %s", sizeInBytes / digitGroups?.let { it1 -> Math.pow(1024.0, it1.toDouble()) }, units[digitGroups!!])
 
-                                                    //bitmapState = out
-                                                }
-                                        )
+                                                Text(
+                                                    text = fileNameAndFormat.size?.let { it1 ->
+                                                        bytesToHumanReadableSize(
+                                                            it1.toDouble())
+                                                    }.toString(),
+                                                    fontSize = 15.sp,
+//                                                    style = MaterialTheme.typography.h6,
+                                                )
+
+                                            }
+                                        }
                                     }
-                                    //bitmapState?.let { ImageFromBitmap(bitmap = it) }
+                                    Divider(
+                                        color = Color(0xFFEEEEEE),
+                                        thickness = 1.dp,
+                                        modifier = Modifier.padding(
+                                            vertical = 16.dp,
+                                            horizontal = 16.dp
+                                        )
+                                    )
                                 }
                             }
                         }
                         Spacer(modifier = Modifier.weight(1f))
-                        Button(onClick = {
-                            val intent = Intent(this@SelectFile, DeviceList::class.java)
-                            intent.putParcelableArrayListExtra("urilist", ArrayList(list))
-                            context.startActivity(intent)
-                        },
+                        Button(
+                            onClick = {
+                                val intent = Intent(this@SelectFile, DeviceList::class.java)
+                                intent.putParcelableArrayListExtra("urilist", ArrayList(list))
+                                context.startActivity(intent)
+                            },
                             modifier = Modifier
-                                .padding(bottom = 16.dp)
-                            ) {
-                            Text(text = "Continue to Device Select")
+                                .padding(20.dp),
+//                                .fillMaxWidth()
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFec1c22)),
+                            shape = RoundedCornerShape(50)
+                        ) {
+                            Text(text = "Send", style=MaterialTheme.typography.h5, color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun AnimatedPreloader(modifier: Modifier = Modifier, drawable: Int, iterations: Int = LottieConstants.IterateForever,) {
+    val preloaderLottieComposition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(
+            drawable
+        )
+    )
+
+    val preloaderProgress by animateLottieCompositionAsState(
+        preloaderLottieComposition,
+        iterations = iterations,
+        isPlaying = true,
+
+    )
+    LottieAnimation(
+        composition = preloaderLottieComposition,
+        progress = preloaderProgress,
+        modifier = modifier,
+    )
+}
+
+fun classifyFileType(fileExtension: String): String {
+    val photoExtensions = listOf("jpg", "jpeg", "png", "gif", "bmp", "heic")
+    val videoExtensions = listOf("mp4", "mov", "avi", "mkv", "wmv", "flv", "mp3")
+    val documentExtensions = listOf("pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt")
+
+    return when {
+        photoExtensions.contains(fileExtension.toLowerCase()) -> "Photo"
+        videoExtensions.contains(fileExtension.toLowerCase()) -> "Video"
+        documentExtensions.contains(fileExtension.toLowerCase()) -> "Document"
+        else -> "Document"
+    }
+}
+
+fun bytesToHumanReadableSize(bytes: Double) = when {
+    bytes >= 1 shl 30 -> "%.1f GB".format(bytes / (1 shl 30))
+    bytes >= 1 shl 20 -> "%.1f MB".format(bytes / (1 shl 20))
+    bytes >= 1 shl 10 -> "%.0f kB".format(bytes / (1 shl 10))
+    else -> "$bytes bytes"
 }
 
 @Composable
@@ -644,8 +732,8 @@ fun getFileDetailsFromUri(
 
         if (cursor.moveToFirst()) {
             fileName = cursor.getString(nameColumn)
-            Log.e("HELLOMEE", fileName.toString())
             format = fileName?.substringAfterLast('.', "")
+            Log.e("HELLOMEE", fileName.toString() + format.toString())
             size = cursor.getLong(sizeColumn).toString()
             mimeType = cursor.getString(mimeTypeColumn)
 

@@ -21,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.invincible.jedishare.presentation.BluetoothViewModel
 import com.invincible.jedishare.presentation.components.ChatScreen
@@ -101,13 +102,12 @@ class DeviceList : ComponentActivity() {
                 ) {
                     when {
                         state.isConnecting -> {
-                            Column(
+                            Box(
                                 modifier = Modifier.fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
-                                Text(text = "Connecting...")
+                                AnimatedPreloader(modifier = Modifier.size(400.dp), R.raw.connecting_animation)
+                                AnimatedPreloader(modifier = Modifier.size(300.dp).offset(y = 150.dp), R.raw.connecting_text_animation, 1)
                             }
                         }
                         state.isConnected -> {
@@ -127,6 +127,10 @@ class DeviceList : ComponentActivity() {
                                 onDeviceClick = viewModel::connectToDevice,
                                 onStartServer = viewModel::waitForIncomingConnections
                             )
+                            val isFromReceive = intent.getBooleanExtra("source", false)
+                            if(isFromReceive){
+                                viewModel.waitForIncomingConnections()
+                            }
                         }
                     }
                 }

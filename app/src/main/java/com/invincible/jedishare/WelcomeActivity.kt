@@ -25,7 +25,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
@@ -36,6 +39,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.invincible.jedishare.ui.theme.JediShareTheme
+import com.invincible.jedishare.ui.theme.MyRedSecondary
+import com.invincible.jedishare.ui.theme.MyRedSecondaryLight
 
 class WelcomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,7 +64,7 @@ class WelcomeActivity : ComponentActivity() {
                         ){
                             Text(
                                 modifier = Modifier
-                                    .padding(top = 40.dp),
+                                    .padding(top = 60.dp),
                                 text = "Welcome to",
                                 style = MaterialTheme.typography.h3,
                                 color = Color.Black,
@@ -81,21 +86,23 @@ class WelcomeActivity : ComponentActivity() {
                         ){
                             Box(
                                 modifier = Modifier
-                                    .size(220.dp)
-                                    .shadow(elevation = 4.dp, shape = CircleShape)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colors.primary)
+//                                    .shadow(elevation = 8.dp, shape = CircleShape)
+//                                    .size(280.dp)
+//                                    .clip(CircleShape)
+//                                    .background(MyRedSecondary)
+//                                    .background(Color.White)
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.welcome_image),
-                                    contentDescription = "Image with Shadow",
-                                    modifier = Modifier.fillMaxSize(),
-                                )
+//                                Image(
+//                                    painter = painterResource(id = R.drawable.welcome_image),
+//                                    contentDescription = "Image with Shadow",
+//                                    modifier = Modifier.fillMaxSize(),
+//                                )
+                                AnimatedPreloader(modifier = Modifier.size(400.dp), R.raw.welcome_activity_animation)
                             }
 
                             Text(
                                 modifier = Modifier
-                                    .padding(top = 10.dp),
+                                    .padding(bottom = 30.dp),
 //                            text = "Share files instantly\n" +
 //                                    "with Jedi Share",
                                 text = "Quickly transfer photos, videos, documents, audio files",
@@ -109,7 +116,8 @@ class WelcomeActivity : ComponentActivity() {
 //                        Text(
 //                            text = "Jedi Share is the ultimate file sharing app, designed to make sharing files a breeze.",
 //                            textAlign = TextAlign.Center,
-//                            style = MaterialTheme.typography.h6)
+//                            style = MaterialTheme.tyopography.h6)
+                        
 
                         Button(
                                 onClick = {
@@ -118,11 +126,16 @@ class WelcomeActivity : ComponentActivity() {
                                 },
                         modifier = Modifier
                             .padding(20.dp)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(50.dp, 50.dp, 50.dp, 50.dp)),
+                            .fillMaxWidth(),
+                            shape = RoundedCornerShape(50),
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFec1c22)),
                         ) {
-                            Text(text = "Continue", style=MaterialTheme.typography.h4, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "Continue",
+                                style=MaterialTheme.typography.h4,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
