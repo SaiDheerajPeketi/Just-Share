@@ -126,6 +126,14 @@ class DeviceList : ComponentActivity() {
                 ) {
                     when {
                         state.isConnecting -> {
+//                            val list = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList<Uri>()
+//                            ChatScreen(
+//                                state = state,
+//                                onDisconnect = viewModel::disconnectFromDevice,
+//                                onSendMessage = viewModel::sendMessage,
+//                                list,
+//                                viewModel
+//                            )
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -140,7 +148,8 @@ class DeviceList : ComponentActivity() {
                                 state = state,
                                 onDisconnect = viewModel::disconnectFromDevice,
                                 onSendMessage = viewModel::sendMessage,
-                                list
+                                list,
+                                viewModel
                             )
                         }
                         else -> {

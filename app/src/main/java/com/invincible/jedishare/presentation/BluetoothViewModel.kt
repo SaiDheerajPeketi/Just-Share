@@ -18,6 +18,8 @@ import com.invincible.jedishare.data.chat.toFileInfo
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.ConnectionResult
+import com.invincible.jedishare.getFileDetailsFromUri
+import com.invincible.jedishare.presentation.components.CustomProgressIndicator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -102,6 +104,23 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.stopDiscovery()
     }
 
+    // Functions to send currSize to the progressIndicator
+    private val _statee = MutableStateFlow(BluetoothUiState())
+    val statee: StateFlow<BluetoothUiState> get() = _statee
+
+    private fun updateState(newState: BluetoothUiState, ) {
+        _statee.value = newState
+    }
+
+    private fun setGlobalSize(newCurrSize: Long, globalsize: Long?) {
+        globalsize?.let { _statee.value.copy(currSize = newCurrSize, globalSize = it) }
+            ?.let { updateState(it) }
+//        updateState(globalsize?.let { _statee.value.copy(currSize = newCurrSize, globalSize = it) })
+    }
+    private fun updateCurrSize(newCurrSize: Long) {
+        updateState(_statee.value.copy(currSize = newCurrSize))
+    }
+
     private fun Flow<ConnectionResult>.listen(): Job {
         var isFirst: Boolean = true
         var currSize: Long = -1
@@ -129,6 +148,12 @@ class BluetoothViewModel @Inject constructor(
                         val mimeType = fileInfo?.mimeType ?: ""
 
                         Log.e("HELLOME", fileInfo.toString())
+
+                        // Setting globalSize
+                        if (fileInfo != null) {
+                            fileInfo.size?.let { setGlobalSize(0, it.toLong()) }
+                        }
+
 
                         // Create a content values to store file information
                         val values = ContentValues().apply {
@@ -175,6 +200,9 @@ class BluetoothViewModel @Inject constructor(
                                     currSize = currSize + result.message.size
                                     outputStream.write(result.message)
 //                                    outputStream.write(result.message, currSize.toInt(),result.message.size)
+
+
+                                    updateCurrSize(currSize.toLong())
 //
                                 }
 //

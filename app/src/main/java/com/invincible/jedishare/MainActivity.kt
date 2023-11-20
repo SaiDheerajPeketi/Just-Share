@@ -1,5 +1,6 @@
 package com.invincible.jedishare
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -126,7 +127,8 @@ fun CustomSwitch(
     borderWidth: Dp = 2.dp,
     cornerSize: Int = 50,
     iconInnerPadding: Dp = 4.dp,
-    thumbSize: Dp = 30.dp
+    thumbSize: Dp = 30.dp,
+    context: Context
 ) {
 
     // this is to disable the ripple effect
@@ -207,6 +209,41 @@ fun CustomSwitch(
     Text(text = if (switchOn) "Bluetooth" else "Wifi-Direct")
 
     Spacer(modifier = Modifier.height(32.dp))
+
+    Row (
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ){
+        val sendIcon: Painter = painterResource(id = R.drawable.send)
+        CircularButton(onClick = {
+            val intent = Intent(context, SelectFile::class.java)
+            if(switchOn){
+                intent.putExtra("transferMethod", "Bluetooth")
+            }else{
+                intent.putExtra("transferMethod", "Wifi-Direct")
+            }
+            context.startActivity(intent)
+        },
+            buttonName = "Send",
+            icon = sendIcon)
+        Spacer(modifier = Modifier.size(64.dp))
+        val receiveIcon: Painter = painterResource(id = R.drawable.receive)
+        CircularButton(onClick = {
+            val intent = Intent(context, DeviceList::class.java)
+            if(switchOn){
+                intent.putExtra("transferMethod", "Bluetooth")
+            }else{
+                intent.putExtra("transferMethod", "Wifi-Direct")
+            }
+            intent.putExtra("source", true)
+            context.startActivity(intent)
+        },
+            buttonName = "Recieve",
+            icon = receiveIcon
+        )
+    }
 }
 
 @Composable
@@ -261,7 +298,7 @@ fun Screen1() {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(0.dp, 0.dp, 50.dp, 50.dp))
-                .background(Color.White)
+                .background(MyRedSecondary)
                 .fillMaxWidth()
                 .height(400.dp)
                     ,
@@ -312,7 +349,7 @@ fun Screen1() {
                     contentDescription = "Image with Shadow",
                     modifier = Modifier
                         .size(400.dp)
-                        .shadow(elevation = 600.dp, CircleShape),
+//                        .shadow(elevation = 600.dp, CircleShape),
                 )
                 Text(
                     text = "Jedi Share",
@@ -360,30 +397,7 @@ fun Screen1() {
 //                customDrawable2
 //            )
 //        }
-        CustomSwitch()
-        Row (
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            val sendIcon: Painter = painterResource(id = R.drawable.send)
-            CircularButton(onClick = {
-                context.startActivity(Intent(context, SelectFile::class.java))
-            },
-                buttonName = "Send",
-                icon = sendIcon)
-            Spacer(modifier = Modifier.size(64.dp))
-            val receiveIcon: Painter = painterResource(id = R.drawable.receive)
-            CircularButton(onClick = {
-                val intent = Intent(context, DeviceList::class.java)
-                intent.putExtra("source", true)
-                context.startActivity(intent)
-            },
-                buttonName = "Recieve",
-                icon = receiveIcon
-            )
-        }
+        CustomSwitch(context = context)
 
 
 
