@@ -231,11 +231,11 @@ fun CustomSwitch(
         Spacer(modifier = Modifier.size(64.dp))
         val receiveIcon: Painter = painterResource(id = R.drawable.receive)
         CircularButton(onClick = {
-            val intent = Intent(context, DeviceList::class.java)
-            if(switchOn){
-                intent.putExtra("transferMethod", "Bluetooth")
+            val intent: Intent
+            if(!switchOn){
+                intent = Intent(context, WifiDirectDeviceSelectActivity::class.java)
             }else{
-                intent.putExtra("transferMethod", "Wifi-Direct")
+                intent = Intent(context, DeviceList::class.java)
             }
             intent.putExtra("source", true)
             context.startActivity(intent)

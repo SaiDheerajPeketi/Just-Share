@@ -422,7 +422,21 @@ class SelectFile : ComponentActivity() {
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = {
-                                val intent = Intent(this@SelectFile, DeviceList::class.java)
+                                val destinationActivity = intent.getStringExtra("transferMethod")
+                                val isFromReceive = intent.getBooleanExtra("source", false)
+                                val intent: Intent
+
+                                if(destinationActivity == "Wifi-Direct"){
+                                    intent = Intent(this@SelectFile, WifiDirectDeviceSelectActivity::class.java)
+                                }else{
+                                    intent = Intent(this@SelectFile, DeviceList::class.java)
+                                }
+
+                                if(isFromReceive){
+                                    intent.putExtra("source", true)
+                                }else{
+                                    intent.putExtra("source", false)
+                                }
                                 intent.putParcelableArrayListExtra("urilist", ArrayList(list))
                                 context.startActivity(intent)
                             },
