@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.LinearProgressIndicator
@@ -41,6 +42,7 @@ import com.invincible.jedishare.presentation.BluetoothUiState
 import com.invincible.jedishare.presentation.BluetoothViewModel
 import com.invincible.jedishare.ui.theme.MyRed
 import com.invincible.jedishare.ui.theme.MyRedSecondary
+import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -114,9 +116,13 @@ fun ChatScreen(
             )
             IconButton(onClick = {
 //                onSendMessage(message.value)
-                uriList.forEach { it ->
-                    onSendMessage(it.toString())
-                }
+//                uriList.forEach {
+//                    onSendMessage(it.toString())
+//                }
+
+                viewModel.setUriList(uriList)
+                onSendMessage(uriList[0].toString())
+
                 message.value = ""
                 keyboardController?.hide()
             }) {
@@ -167,13 +173,31 @@ fun CustomProgressIndicator(
 
 
     val progressFromViewModel = viewModel.statee.collectAsState()
+    val currSizeReceived by viewModel.getIterationCountFlow().collectAsState(initial = 0)
+    val fileSize by viewModel.fileInfoState.collectAsState()
+    val receiverPercent = currSizeReceived*990*100 / fileSize
+    val sentPercent = progressFromViewModel.value.currSize*100 / progressFromViewModel.value.globalSize
+
+    var progress: Long
+    if(sentPercent.toInt() == -100){
+        progress = receiverPercent
+    }else{
+        progress = sentPercent
+    }
+    var indColor by remember{
+        mutableStateOf(Color.Black)
+    }
+    if(progress.toInt() == 100){
+        indColor = MyRed
+    }
 
     Box(
         modifier = Modifier
             .size(width = width, height = height)
             .border(
                 width = borderWidth,
-                color = if (switchOn) checkedTrackColor else uncheckedTrackColor,
+                color = indColor,
+//                color = if (switchOn) checkedTrackColor else uncheckedTrackColor,
                 shape = RoundedCornerShape(percent = cornerSize)
             )
             .clickable(
@@ -196,28 +220,30 @@ fun CustomProgressIndicator(
                 .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-
-//            Box(
-//                modifier = Modifier.fillMaxSize().background(Color(0x22606060))
-//            ){
-                LinearProgressIndicator(
-                    progress = progressFromViewModel.value.currSize.toFloat() / progressFromViewModel.value.globalSize.toFloat(),
+            LinearProgressIndicator(
+                progress = (progress.toFloat() / 100),
                 modifier = Modifier
                     .height(15.dp)
                     .fillMaxWidth()
                     .padding(top = 2.dp, bottom = 2.dp)
                     .clip(RoundedCornerShape(percent = 50)),
-                color = Color.Black,
+                color = indColor,
                 backgroundColor = Color.White,
-                )
-//            }
+            )
         }
+
     }
 
     // gap between switch and the text
     Spacer(modifier = Modifier.height(height = 5.dp))
+//    viewModel.statee.collectAsState().value.copy(currSize = 10)
 
-    Text(text = if (switchOn) "Bluetooth" else "Wifi-Direct")
+
+    Text(text = "receivedPercent = " + receiverPercent.toString())
+    Text(text = "sentPercent = " + sentPercent.toString())
+
+    Text(text = "currSizeReceived = " + currSizeReceived.toString())
+    Text(text = "fileSize = " + fileSize.toString())
     Text(text = ((progressFromViewModel.value.currSize*100 / progressFromViewModel.value.globalSize)).toString()+"%" )
     Text(text = progressFromViewModel.value.globalSize.toString())
 

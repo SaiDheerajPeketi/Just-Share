@@ -114,7 +114,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CustomSwitch(
-    width: Dp = 180.dp,
+    width: Dp = 120.dp,
     height: Dp = 40.dp,
     // mutiplied width and height by 2
 //    width: Dp = 72.dp,

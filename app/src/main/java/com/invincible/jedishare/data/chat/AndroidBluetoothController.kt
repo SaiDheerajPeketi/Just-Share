@@ -17,8 +17,10 @@ import com.invincible.jedishare.domain.chat.BluetoothMessage
 import com.invincible.jedishare.domain.chat.ConnectionResult
 import com.invincible.jedishare.domain.chat.FileInfo
 import com.invincible.jedishare.getFileDetailsFromUri
+import com.invincible.jedishare.presentation.BluetoothViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
@@ -111,7 +113,7 @@ class AndroidBluetoothController(
         bluetoothAdapter?.cancelDiscovery()
     }
 
-    override fun startBluetoothServer(): Flow<ConnectionResult> {
+    override fun startBluetoothServer(viewModel: BluetoothViewModel): Flow<ConnectionResult> {
         return flow {
             if(!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
                 throw SecurityException("No BLUETOOTH_CONNECT permission")
@@ -140,7 +142,7 @@ class AndroidBluetoothController(
 
                     emitAll(
                         service
-                            .listenForIncomingMessages()
+                            .listenForIncomingMessages(viewModel)
                             .map {
                                 ConnectionResult.TransferSucceeded(it)
                             }
@@ -152,7 +154,7 @@ class AndroidBluetoothController(
         }.flowOn(Dispatchers.IO)
     }
 
-    override fun connectToDevice(device: BluetoothDeviceDomain): Flow<ConnectionResult> {
+    override fun connectToDevice(device: BluetoothDeviceDomain, viewModel: BluetoothViewModel): Flow<ConnectionResult> {
         return flow {
             if(!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
                 throw SecurityException("No BLUETOOTH_CONNECT permission")
@@ -173,7 +175,7 @@ class AndroidBluetoothController(
                     BluetoothDataTransferService(socket).also {
                         dataTransferService = it
                         emitAll(
-                            it.listenForIncomingMessages()
+                            it.listenForIncomingMessages(viewModel)
                                 .map { ConnectionResult.TransferSucceeded(it) }
                         )
                     }
@@ -188,7 +190,13 @@ class AndroidBluetoothController(
         }.flowOn(Dispatchers.IO)
     }
 
-    override suspend fun trySendMessage(message: String): BluetoothMessage? {
+    val FILE_DELIMITER = "----FILE_DELIMITER----"
+
+    override suspend fun trySendMessage(
+        message: String,
+        iterationCountFlow: MutableSharedFlow<Long>, // Use SharedFlow to emit values
+        viewModel: BluetoothViewModel
+        ): BluetoothMessage? {
         if(!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)){
             return null
         }
@@ -204,33 +212,80 @@ class AndroidBluetoothController(
         )
 
 
-        val stream: InputStream? = context.contentResolver.openInputStream(Uri.parse(message))
-        var fileInfo: FileInfo? = null
-        var byteArray: ByteArray
+        val uriList = viewModel.getUriList()
 
-        // Get file information
-        fileInfo = getFileDetailsFromUri(Uri.parse(message), context.contentResolver)
-        fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+        for(uri in uriList){
+            val stream: InputStream? = context.contentResolver.openInputStream(uri)
+            var fileInfo: FileInfo? = null
 
-        stream.use { inputStream ->
-            val outputStream = ByteArrayOutputStream()
-            val buffer = ByteArray(990)
-            var bytesRead: Int
-            bytesRead = 0
+            // Get file information
+            fileInfo = getFileDetailsFromUri(uri, context.contentResolver)
+            viewModel.setFileInfo(fileInfo.size?.toLong())
+            fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
 
-            while (inputStream?.read(buffer).also {
-                    if (it != null) {
-                        bytesRead = it
-                    }
-                } != -1) {
-//                outputStream.write(buffer, 0, bytesRead)
-                Log.e("HELLOME", "Bytes Read : " + bytesRead.toString())
-                dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
+            stream.use { inputStream ->
+                val buffer = ByteArray(990)
+                var bytesRead: Int = 0
+                var iterationCount = 0L
+
+                while (inputStream?.read(buffer).also {
+                        if (it != null) {
+                            bytesRead = it
+                            iterationCountFlow.emit(iterationCount)
+                        }
+                    } != -1) {
+                    Log.e("HELLOME", "Bytes Read : " + bytesRead.toString())
+                    dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
+
+                    iterationCount++
+                }
+                delay(1000)
+
+
+                // Add file delimiter after sending the file
+                dataTransferService?.sendMessage(FILE_DELIMITER.toByteArray())
             }
-//
-//            byteArray = outputStream.toByteArray()
-//            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
+
+            for (i in 1..5){
+                delay(1000)
+                Log.e("MYTAG", "DELAY")
+            }
+
         }
+
+//        val stream: InputStream? = context.contentResolver.openInputStream(Uri.parse(message))
+//        var fileInfo: FileInfo? = null
+//        var byteArray: ByteArray
+//
+//        // Get file information
+//        fileInfo = getFileDetailsFromUri(Uri.parse(message), context.contentResolver)
+//        viewModel.setFileInfo(fileInfo.size?.toLong())
+//        fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+//
+//        stream.use { inputStream ->
+//            val outputStream = ByteArrayOutputStream()
+//            val buffer = ByteArray(990)
+//            var bytesRead: Int
+//            bytesRead = 0
+//
+//            var iterationCount = 0L // Declare and initialize iterationCount before the loop
+//
+//            while (inputStream?.read(buffer).also {
+//                    if (it != null) {
+//                        bytesRead = it
+//                        iterationCountFlow.emit(iterationCount) // Emit iteration count
+//                    }
+//                } != -1) {
+////                outputStream.write(buffer, 0, bytesRead)
+//                Log.e("HELLOME", "Bytes Read : " + bytesRead.toString())
+//                dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
+//
+//                iterationCount++
+//            }
+////
+////            byteArray = outputStream.toByteArray()
+////            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
+//        }
 
 
 

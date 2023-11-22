@@ -7,6 +7,8 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -65,7 +67,7 @@ class BluetoothViewModel @Inject constructor(
     fun connectToDevice(device: BluetoothDeviceDomain) {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .connectToDevice(device)
+            .connectToDevice(device, this@BluetoothViewModel)
             .listen()
     }
 
@@ -81,13 +83,38 @@ class BluetoothViewModel @Inject constructor(
     fun waitForIncomingConnections() {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .startBluetoothServer()
+            .startBluetoothServer(this@BluetoothViewModel)
             .listen()
+    }
+
+    private val _iterationCountFlow = MutableSharedFlow<Long>()
+    fun getIterationCountFlow(): MutableSharedFlow<Long> = _iterationCountFlow
+
+    private val _fileSizeState = MutableStateFlow<Long>(1)
+    val fileInfoState: StateFlow<Long> = _fileSizeState
+    fun setFileInfo(fileSize: Long?) {
+        if (fileSize != null) {
+            _fileSizeState.value = fileSize
+        }
+    }
+
+
+    // Getting and Setting the UriList
+    private val _uriList = mutableStateOf<List<Uri>>(emptyList())
+    val uriList: State<List<Uri>> = _uriList
+
+    fun setUriList(uris: List<Uri>) {
+        _uriList.value = uris
+    }
+
+    fun getUriList(): List<Uri> {
+        return _uriList.value
     }
 
     fun sendMessage(message: String){
         viewModelScope.launch {
-            val bluetoothMessage = bluetoothController.trySendMessage(message)
+            val iterationCountFlow = getIterationCountFlow() // Get the SharedFlow from the ViewModel
+            val bluetoothMessage = bluetoothController.trySendMessage(message, iterationCountFlow, this@BluetoothViewModel)
             if(bluetoothMessage != null){
                 _state.update { it.copy(
                     messages = it.messages + bluetoothMessage
@@ -121,8 +148,9 @@ class BluetoothViewModel @Inject constructor(
         updateState(_statee.value.copy(currSize = newCurrSize))
     }
 
+    var isFirst: Boolean = true
+
     private fun Flow<ConnectionResult>.listen(): Job {
-        var isFirst: Boolean = true
         var currSize: Long = -1
         var fileUri: Uri? = null
         return onEach { result ->
@@ -151,7 +179,7 @@ class BluetoothViewModel @Inject constructor(
 
                         // Setting globalSize
                         if (fileInfo != null) {
-                            fileInfo.size?.let { setGlobalSize(0, it.toLong()) }
+                            fileInfo.size?.let { setGlobalSize(1, it.toLong()) }
                         }
 
 
@@ -192,7 +220,7 @@ class BluetoothViewModel @Inject constructor(
                         try {
                             fileUri?.let {
 //                                // Open an output stream to write file data
-//                                delay(1)
+                                delay(1)
 
                                 contentResolver?.openOutputStream(it, "wa")?.use { outputStream ->
 //                                    Log.e("HELLOME",result.message.size.toString())

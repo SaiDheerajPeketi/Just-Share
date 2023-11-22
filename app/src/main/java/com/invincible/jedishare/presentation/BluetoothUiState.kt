@@ -11,5 +11,6 @@ data class BluetoothUiState(
     val messages: List<BluetoothMessage> = emptyList(),
 
     val currSize: Long = 1, // Add currSize to the state
+    val currSizeReceiver: Long = 1,
     val globalSize: Long = -1
 )
