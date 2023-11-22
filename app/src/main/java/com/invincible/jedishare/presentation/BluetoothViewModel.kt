@@ -269,15 +269,3 @@ class BluetoothViewModel @Inject constructor(
     }
 }
 
-class BluetoothViewModelFactory @Inject constructor(
-    private val bluetoothController: BluetoothController
-) : ViewModelProvider.Factory {
-
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(BluetoothViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return BluetoothViewModel(bluetoothController) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}
