@@ -39,6 +39,9 @@ import com.invincible.jedishare.ui.theme.JediShareTheme
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+
+    private var communicationService = CommunicationService()
+
     val TAG = "myDebugTag"
 
     var peers: List<WifiP2pDevice> = emptyList()
@@ -80,6 +83,7 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -123,6 +127,42 @@ class MainActivity : ComponentActivity() {
                 localList.add(device)
             }
             peers = localList
+        }
+
+        connectionInfoListener = WifiP2pManager.ConnectionInfoListener { wifiP2pInfo ->
+            Log.d("TAG", "onConnectionInfoAvailable : " + wifiP2pInfo.toString())
+            connectionText = wifiP2pInfo.toString()
+
+            if (wifiP2pInfo.groupFormed) {
+                Log.d(TAG, "connectionInfoListener")
+                var role: Int
+                if (wifiP2pInfo.isGroupOwner) {
+                    Log.d(TAG, "I am host")
+                    role = communicationService.SERVER_ROLE
+                } else {
+                    Log.d(TAG, "I am client")
+                    role = communicationService.CLIENT_ROLE
+                }
+
+                var groupOwnerAddress: String = wifiP2pInfo.groupOwnerAddress.hostAddress
+                var groupOwnerPort: Int = 8888
+                connectionInfoAvailable = true
+
+                var i: Intent = Intent(applicationContext, CommunicationService::class.java)
+                i.setAction(communicationService.ACTION_START_COMMUNICATION)
+                i.putExtra(communicationService.EXTRAS_COMMUNICATION_ROLE, role)
+                i.putExtra(communicationService.EXTRAS_GROUP_OWNER_ADDRESS, groupOwnerAddress)
+                i.putExtra(communicationService.EXTRAS_GROUP_OWNER_PORT, groupOwnerPort)
+                i.putExtra(communicationService.EXTRAS_DEVICE_NAME, wifiP2PdeviceName)
+
+//                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                    startForegroundService(i)
+//                } else {
+//                    startService(i)
+//                }
+                startService(i)
+                Log.d(TAG, "connectionInfoListener Done")
+            }
         }
 
 
@@ -233,7 +273,38 @@ class MainActivity : ComponentActivity() {
                             Text(text = peer.deviceName, modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-
+                                    if (peer.status == WifiP2pDevice.CONNECTED && connectionInfoAvailable) {
+                                        // here
+                                        Log.d(TAG, "CASE 1")
+                                    } else if (peer.status == WifiP2pDevice.CONNECTED) {
+                                        // here
+                                        Log.d(TAG, "CASE 2")
+                                    } else if (peer.status == WifiP2pDevice.AVAILABLE) {
+                                        Log.d(TAG, "CASE 3")
+                                        val connectedDeviceName: String? = peer.deviceName
+                                        if (connectedDeviceName != null) {
+                                            var config: WifiP2pConfig = WifiP2pConfig()
+                                            config.deviceAddress = peer.deviceAddress
+                                            wifiP2pManager?.connect(
+                                                wifiP2pChannel,
+                                                config,
+                                                actionListener
+                                            )
+                                        } else {
+                                            Log.d(TAG, "CASE 4")
+                                            Toast
+                                                .makeText(
+                                                    this@MainActivity,
+                                                    "You are already connected to another device. Disconnect to start another communication",
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
+                                        }
+                                    } else if (peer.status == WifiP2pDevice.INVITED) {
+                                        if (wifiP2pManager != null && wifiP2pChannel != null) {
+                                            disconnectP2P()
+                                        }
+                                    }
                                 }, fontSize = 24.sp, textAlign = TextAlign.Center)
                         }
                     }
@@ -248,7 +319,13 @@ class MainActivity : ComponentActivity() {
                             .padding(8.dp)
                     )
                     Button(onClick = {
-                        Toast.makeText(this@MainActivity,"TODO",Toast.LENGTH_SHORT).show()
+                        if (!text.trim { it <= ' ' }.isEmpty()) {
+                            val i = Intent(applicationContext, CommunicationService::class.java)
+                            i.action = communicationService.ACTION_SEND_MSG
+                            i.putExtra(communicationService.EXTRAS_MSG_TYPE, 0)
+                            i.putExtra(communicationService.EXTRAS_TEXT_CONTENT, text)
+                            startService(i)
+                        }
                     }) {
                         Text(text = "Send")
                     }
@@ -282,6 +359,47 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    @SuppressLint("MissingPermission")
+    fun startDiscovery(){
+        if(isWiFiDirectActive && !isDiscovering){
+            wifiP2pManager?.discoverPeers(wifiP2pChannel, actionListener)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun requestPeerList() {
+        wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
+    }
+
+    fun newWiFiDirectConnection(){
+        wifiP2pManager?.requestConnectionInfo(wifiP2pChannel, connectionInfoListener)
+    }
+
+    fun disconnectP2P(){
+        if(wifiP2pManager != null && wifiP2pChannel != null){
+            wifiP2pManager!!.cancelConnect(wifiP2pChannel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    Log.d(TAG, "cancelConnect onSuccess -")
+                }
+
+                override fun onFailure(reason: Int) {
+                    Log.d(TAG, "cancelConnect onFailure -$reason")
+                }
+            })
+            wifiP2pManager!!.removeGroup(wifiP2pChannel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    Log.d(TAG, "removeGroup onSuccess -")
+                }
+
+                override fun onFailure(reason: Int) {
+                    Log.d(TAG, "removeGroup onFailure -$reason")
+                }
+            })
+        }
+        connectionInfoAvailable = false
+        peers = emptyList()
+    }
+
     fun setWiFiDirectActive(wiFiDirectActive: Boolean) {
         this.isWiFiDirectActive = wiFiDirectActive
         if(wiFiDirectActive){
@@ -295,16 +413,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    fun startDiscovery(){
-        if(isWiFiDirectActive && !isDiscovering){
-            wifiP2pManager?.discoverPeers(wifiP2pChannel, actionListener)
+    fun setWifiP2PdeviceName(wifiP2PdeviceName: String?) {
+        this.wifiP2PdeviceName = wifiP2PdeviceName!!
+    }
+
+    fun setIsDiscovering(discovering: Boolean){
+        this.isDiscovering = discovering
+    }
+
+    fun setLocationState(locationEnabled: Boolean) {
+        if(!locationEnabled){
+            disconnectP2P()
         }
     }
 
-    @SuppressLint("MissingPermission")
-    fun requestPeerList() {
-        wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
+    fun isWiFiDirectActive(): Boolean {
+        return isWiFiDirectActive
+    }
+
+    fun isDiscovering(): Boolean {
+        return isDiscovering
     }
 
     override fun onResume() {

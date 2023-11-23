@@ -38,6 +38,11 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <service
+            android:name=".CommunicationService"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>
