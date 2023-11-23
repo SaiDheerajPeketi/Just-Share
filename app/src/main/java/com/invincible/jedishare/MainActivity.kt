@@ -53,7 +53,9 @@ class MainActivity : ComponentActivity() {
     private val intentFilter: IntentFilter = IntentFilter()
     private var wifiP2pManager: WifiP2pManager? = null
     private var wifiP2pChannel: WifiP2pManager.Channel? = null
-
+    private var actionListener: WifiP2pManager.ActionListener? = null
+    var peerListListener: WifiP2pManager.PeerListListener? = null
+    var connectionInfoListener: WifiP2pManager.ConnectionInfoListener? = null
 
     private val permissionsToRequest = if(Build.VERSION.SDK_INT >= 33) {
         arrayOf(
@@ -99,6 +101,29 @@ class MainActivity : ComponentActivity() {
         intentFilter.addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
 
         receiver = WiFiDirectBroadcastReceiver(this)
+
+        actionListener = object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {}
+            override fun onFailure(reason: Int) {
+                var errorMsg = "Wi-fi direct Failed: "
+                errorMsg += when (reason) {
+                    WifiP2pManager.BUSY -> "Framework busy"
+                    WifiP2pManager.ERROR -> "Internal error"
+                    WifiP2pManager.P2P_UNSUPPORTED -> "Unsupported"
+                    else -> "Unknown message"
+                }
+                Log.d(TAG, errorMsg)
+            }
+        }
+
+        peerListListener = WifiP2pManager.PeerListListener { peerList ->
+            peers = emptyList()
+            var localList = mutableListOf<WifiP2pDevice>()
+            peerList.deviceList.forEach { device ->
+                localList.add(device)
+            }
+            peers = localList
+        }
 
 
         setContent {
@@ -194,7 +219,7 @@ class MainActivity : ComponentActivity() {
                         Text(text = "Turn Wifi On")
                     }
                     Button(onClick = {
-                        Toast.makeText(this@MainActivity,"TODO",Toast.LENGTH_SHORT).show()
+                        startDiscovery()
                     }) {
                         Text(text = "Discover Peers")
                     }
@@ -260,7 +285,7 @@ class MainActivity : ComponentActivity() {
     fun setWiFiDirectActive(wiFiDirectActive: Boolean) {
         this.isWiFiDirectActive = wiFiDirectActive
         if(wiFiDirectActive){
-            //startDiscovery()
+            startDiscovery()
             Log.d(TAG,"Its ON Its Working")
         }
         else{
@@ -268,6 +293,18 @@ class MainActivity : ComponentActivity() {
             peers = emptyList()
 
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startDiscovery(){
+        if(isWiFiDirectActive && !isDiscovering){
+            wifiP2pManager?.discoverPeers(wifiP2pChannel, actionListener)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun requestPeerList() {
+        wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
     }
 
     override fun onResume() {
