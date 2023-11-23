@@ -1,11 +1,15 @@
 package com.invincible.jedishare
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.content.IntentFilter
+import android.location.LocationManager
 import android.net.Uri
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -30,14 +34,39 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.invincible.jedishare.data.chat.CommunicationService
+import com.invincible.jedishare.data.chat.WiFiDirectBroadcastReceiver
 import com.invincible.jedishare.presentation.PermissionViewModel
 import com.invincible.jedishare.presentation.components.InternetPermissionTextProvider
 import com.invincible.jedishare.presentation.components.LocationPermissionTextProvider
 import com.invincible.jedishare.presentation.components.PermissionDialog
 import com.invincible.jedishare.presentation.components.WifiPermissionTextProvider
 import com.invincible.jedishare.presentation.ui.theme.JediShareTheme
+import kotlinx.coroutines.delay
 
 class WifiDirectDeviceSelectActivity : ComponentActivity() {
+    private var communicationService = CommunicationService()
+
+    val TAG = "myDebugTag"
+
+    private val NECESSARY_PERMISSION_CODE = 1
+
+    private var isWiFiDirectActive = false
+    private var isDiscovering = false
+    private var wifiP2PdeviceName = ""
+    private var connectionInfoAvailable = false
+
+    private var receiver: WiFiDirectBroadcastReceiver? = null
+    private val intentFilter: IntentFilter = IntentFilter()
+    private var wifiP2pManager: WifiP2pManager? = null
+    private var wifiP2pChannel: WifiP2pManager.Channel? = null
+    private var actionListener: WifiP2pManager.ActionListener? = null
+    var peerListListener: WifiP2pManager.PeerListListener? = null
+    var connectionInfoListener: WifiP2pManager.ConnectionInfoListener? = null
+
+    var peers: List<WifiP2pDevice> = emptyList()
+    var connectionText = ""
+
     private val permissionsToRequest = if(Build.VERSION.SDK_INT >= 33) {
         arrayOf(
             Manifest.permission.ACCESS_WIFI_STATE,
@@ -77,6 +106,85 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
         val isFromReceive = intent.getBooleanExtra("source", false)
 
+        initializeWiFiDirect()
+
+        // Indicates a change in the Wi-Fi Direct status.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
+
+        // Indicates a change in the list of available peers.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+
+        // Indicates the state of Wi-Fi Direct connectivity has changed.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+
+        // Indicates this device's details have changed.
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
+
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION)
+        intentFilter.addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
+
+        receiver = WiFiDirectBroadcastReceiver(this)
+
+        actionListener = object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {}
+            override fun onFailure(reason: Int) {
+                var errorMsg = "Wi-fi direct Failed: "
+                errorMsg += when (reason) {
+                    WifiP2pManager.BUSY -> "Framework busy"
+                    WifiP2pManager.ERROR -> "Internal error"
+                    WifiP2pManager.P2P_UNSUPPORTED -> "Unsupported"
+                    else -> "Unknown message"
+                }
+                Log.d(TAG, errorMsg)
+            }
+        }
+
+        peerListListener = WifiP2pManager.PeerListListener { peerList ->
+            peers = emptyList()
+            var localList = mutableListOf<WifiP2pDevice>()
+            peerList.deviceList.forEach { device ->
+                localList.add(device)
+            }
+            peers = localList
+        }
+
+        connectionInfoListener = WifiP2pManager.ConnectionInfoListener { wifiP2pInfo ->
+            Log.d("TAG", "onConnectionInfoAvailable : " + wifiP2pInfo.toString())
+            connectionText = wifiP2pInfo.toString()
+
+            if(wifiP2pInfo.groupFormed){
+                Log.d(TAG, "connectionInfoListener")
+                var role: Int
+                if(wifiP2pInfo.isGroupOwner){
+                    Log.d(TAG, "I am host")
+                    role = communicationService.SERVER_ROLE
+                }
+                else{
+                    Log.d(TAG, "I am client")
+                    role = communicationService.CLIENT_ROLE
+                }
+
+                var groupOwnerAddress: String = wifiP2pInfo.groupOwnerAddress.hostAddress
+                var groupOwnerPort: Int = 8888
+                connectionInfoAvailable = true
+
+                var i: Intent = Intent(applicationContext, CommunicationService::class.java)
+                i.setAction(communicationService.ACTION_START_COMMUNICATION)
+                i.putExtra(communicationService.EXTRAS_COMMUNICATION_ROLE, role)
+                i.putExtra(communicationService.EXTRAS_GROUP_OWNER_ADDRESS,groupOwnerAddress)
+                i.putExtra(communicationService.EXTRAS_GROUP_OWNER_PORT,groupOwnerPort)
+                i.putExtra(communicationService.EXTRAS_DEVICE_NAME, wifiP2PdeviceName)
+
+//                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                    startForegroundService(i)
+//                } else {
+//                    startService(i)
+//                }
+                startService(i)
+                Log.d(TAG, "connectionInfoListener Done")
+            }
+        }
+
 
         setContent {
             JediShareTheme {
@@ -85,6 +193,14 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                 var peerListInternal by remember { mutableStateOf<List<WifiP2pDevice>>(emptyList()) }
                 var connectionStatusValue by remember { mutableStateOf("Connection Status: ") }
                 var text by remember { mutableStateOf("Hello") }
+
+                LaunchedEffect(key1 = Unit){
+                    while (true) {
+                        delay(1000L)
+                        peerListInternal = peers
+                        connectionStatusValue = connectionText
+                    }
+                }
 
                 val multiplePermissionResultLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -168,7 +284,38 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                             Text(text = peer.deviceName, modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-
+                                    if (peer.status == WifiP2pDevice.CONNECTED && connectionInfoAvailable) {
+                                        // here
+                                        Log.d(TAG, "CASE 1")
+                                    } else if (peer.status == WifiP2pDevice.CONNECTED) {
+                                        // here
+                                        Log.d(TAG, "CASE 2")
+                                    } else if (peer.status == WifiP2pDevice.AVAILABLE) {
+                                        Log.d(TAG, "CASE 3")
+                                        val connectedDeviceName: String? = peer.deviceName
+                                        if (connectedDeviceName != null) {
+                                            var config: WifiP2pConfig = WifiP2pConfig()
+                                            config.deviceAddress = peer.deviceAddress
+                                            wifiP2pManager?.connect(
+                                                wifiP2pChannel,
+                                                config,
+                                                actionListener
+                                            )
+                                        } else {
+                                            Log.d(TAG, "CASE 4")
+                                            Toast
+                                                .makeText(
+                                                    this@WifiDirectDeviceSelectActivity,
+                                                    "You are already connected to another device. Disconnect to start another communication",
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
+                                        }
+                                    } else if (peer.status == WifiP2pDevice.INVITED) {
+                                        if (wifiP2pManager != null && wifiP2pChannel != null) {
+                                            disconnectP2P()
+                                        }
+                                    }
                                 }, fontSize = 24.sp, textAlign = TextAlign.Center)
                         }
                     }
@@ -190,13 +337,19 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
                         Button(onClick = {
-
+                            startDiscovery()
                         }) {
                             Text(text = "Discover Peers")
                         }
 
                         Button(onClick = {
-
+                            if (!text.trim { it <= ' ' }.isEmpty()) {
+                                val i = Intent(applicationContext, CommunicationService::class.java)
+                                i.action = communicationService.ACTION_SEND_MSG
+                                i.putExtra(communicationService.EXTRAS_MSG_TYPE, 0)
+                                i.putExtra(communicationService.EXTRAS_TEXT_CONTENT, text)
+                                startService(i)
+                            }
                         }) {
                             Text(text = "Send")
                         }
@@ -205,6 +358,115 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                 }
             }
         }
+
+    private fun initializeWiFiDirect(): Boolean {
+        wifiP2pManager = getSystemService(WIFI_P2P_SERVICE) as WifiP2pManager
+        if (wifiP2pManager == null) {
+            Log.e(TAG, "Cannot get Wi-Fi system service.")
+            return false
+        }
+        wifiP2pChannel = wifiP2pManager!!.initialize(
+            this, mainLooper
+        ) { Log.d(TAG, "Wifi P2P Channel disconnected") }
+        if (wifiP2pChannel == null) {
+            Log.e(TAG, "Cannot initialize Wi-Fi Direct.")
+            return false
+        }
+        wifiP2pManager!!.requestConnectionInfo(
+            wifiP2pChannel
+        ) { wifiP2pInfo ->
+            if (wifiP2pInfo.groupOwnerAddress != null) {
+                Log.d(TAG, "Info Available")
+                connectionInfoAvailable = true
+            }
+        }
+        return true
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startDiscovery(){
+        if(isWiFiDirectActive && !isDiscovering){
+            wifiP2pManager?.discoverPeers(wifiP2pChannel, actionListener)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun requestPeerList() {
+        wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
+    }
+
+    fun newWiFiDirectConnection(){
+        wifiP2pManager?.requestConnectionInfo(wifiP2pChannel, connectionInfoListener)
+    }
+
+    fun disconnectP2P(){
+        if(wifiP2pManager != null && wifiP2pChannel != null){
+            wifiP2pManager!!.cancelConnect(wifiP2pChannel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    Log.d(TAG, "cancelConnect onSuccess -")
+                }
+
+                override fun onFailure(reason: Int) {
+                    Log.d(TAG, "cancelConnect onFailure -$reason")
+                }
+            })
+            wifiP2pManager!!.removeGroup(wifiP2pChannel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    Log.d(TAG, "removeGroup onSuccess -")
+                }
+
+                override fun onFailure(reason: Int) {
+                    Log.d(TAG, "removeGroup onFailure -$reason")
+                }
+            })
+        }
+        connectionInfoAvailable = false
+        peers = emptyList()
+    }
+
+    fun setWiFiDirectActive(wiFiDirectActive: Boolean) {
+        this.isWiFiDirectActive = wiFiDirectActive
+        if(wiFiDirectActive){
+            startDiscovery()
+        }
+        else{
+            Log.d(TAG,"Wifi Direct is inactive")
+            peers = emptyList()
+
+        }
+    }
+
+    fun setWifiP2PdeviceName(wifiP2PdeviceName: String?) {
+        this.wifiP2PdeviceName = wifiP2PdeviceName!!
+    }
+
+    fun setIsDiscovering(discovering: Boolean){
+        this.isDiscovering = discovering
+    }
+
+    fun setLocationState(locationEnabled: Boolean) {
+        if(!locationEnabled){
+            disconnectP2P()
+        }
+    }
+
+    fun isWiFiDirectActive(): Boolean {
+        return isWiFiDirectActive
+    }
+
+    fun isDiscovering(): Boolean {
+        return isDiscovering
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (receiver != null && intentFilter != null) registerReceiver(receiver, intentFilter)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (receiver != null && intentFilter != null) unregisterReceiver(receiver)
+    }
 }
 
 
