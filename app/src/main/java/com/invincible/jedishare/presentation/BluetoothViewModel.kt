@@ -7,6 +7,8 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -18,6 +20,8 @@ import com.invincible.jedishare.data.chat.toFileInfo
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.ConnectionResult
+import com.invincible.jedishare.getFileDetailsFromUri
+import com.invincible.jedishare.presentation.components.CustomProgressIndicator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -63,7 +67,7 @@ class BluetoothViewModel @Inject constructor(
     fun connectToDevice(device: BluetoothDeviceDomain) {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .connectToDevice(device)
+            .connectToDevice(device, this@BluetoothViewModel)
             .listen()
     }
 
@@ -79,13 +83,38 @@ class BluetoothViewModel @Inject constructor(
     fun waitForIncomingConnections() {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .startBluetoothServer()
+            .startBluetoothServer(this@BluetoothViewModel)
             .listen()
+    }
+
+    private val _iterationCountFlow = MutableSharedFlow<Long>()
+    fun getIterationCountFlow(): MutableSharedFlow<Long> = _iterationCountFlow
+
+    private val _fileSizeState = MutableStateFlow<Long>(1)
+    val fileInfoState: StateFlow<Long> = _fileSizeState
+    fun setFileInfo(fileSize: Long?) {
+        if (fileSize != null) {
+            _fileSizeState.value = fileSize
+        }
+    }
+
+
+    // Getting and Setting the UriList
+    private val _uriList = mutableStateOf<List<Uri>>(emptyList())
+    val uriList: State<List<Uri>> = _uriList
+
+    fun setUriList(uris: List<Uri>) {
+        _uriList.value = uris
+    }
+
+    fun getUriList(): List<Uri> {
+        return _uriList.value
     }
 
     fun sendMessage(message: String){
         viewModelScope.launch {
-            val bluetoothMessage = bluetoothController.trySendMessage(message)
+            val iterationCountFlow = getIterationCountFlow() // Get the SharedFlow from the ViewModel
+            val bluetoothMessage = bluetoothController.trySendMessage(message, iterationCountFlow, this@BluetoothViewModel)
             if(bluetoothMessage != null){
                 _state.update { it.copy(
                     messages = it.messages + bluetoothMessage
@@ -102,8 +131,26 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.stopDiscovery()
     }
 
+    // Functions to send currSize to the progressIndicator
+    private val _statee = MutableStateFlow(BluetoothUiState())
+    val statee: StateFlow<BluetoothUiState> get() = _statee
+
+    private fun updateState(newState: BluetoothUiState, ) {
+        _statee.value = newState
+    }
+
+    private fun setGlobalSize(newCurrSize: Long, globalsize: Long?) {
+        globalsize?.let { _statee.value.copy(currSize = newCurrSize, globalSize = it) }
+            ?.let { updateState(it) }
+//        updateState(globalsize?.let { _statee.value.copy(currSize = newCurrSize, globalSize = it) })
+    }
+    private fun updateCurrSize(newCurrSize: Long) {
+        updateState(_statee.value.copy(currSize = newCurrSize))
+    }
+
+    var isFirst: Boolean = true
+
     private fun Flow<ConnectionResult>.listen(): Job {
-        var isFirst: Boolean = true
         var currSize: Long = -1
         var fileUri: Uri? = null
         return onEach { result ->
@@ -129,6 +176,11 @@ class BluetoothViewModel @Inject constructor(
                         val mimeType = fileInfo?.mimeType ?: ""
 
                         Log.e("HELLOME", fileInfo.toString())
+
+                        // Setting globalSize
+                        if (fileInfo != null) {
+                            fileInfo.size?.let { setGlobalSize(1, it.toLong()) }
+                        }
 
                         // Create a content values to store file information
                         val values = ContentValues().apply {
@@ -175,6 +227,9 @@ class BluetoothViewModel @Inject constructor(
                                     currSize = currSize + result.message.size
                                     outputStream.write(result.message)
 //                                    outputStream.write(result.message, currSize.toInt(),result.message.size)
+
+
+                                    updateCurrSize(currSize.toLong())
 //
                                 }
 //
