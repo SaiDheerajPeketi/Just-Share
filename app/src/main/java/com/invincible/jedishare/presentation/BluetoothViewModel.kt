@@ -182,7 +182,6 @@ class BluetoothViewModel @Inject constructor(
                             fileInfo.size?.let { setGlobalSize(1, it.toLong()) }
                         }
 
-
                         // Create a content values to store file information
                         val values = ContentValues().apply {
                             put(MediaStore.Files.FileColumns.DISPLAY_NAME, "$fileName")
@@ -220,7 +219,7 @@ class BluetoothViewModel @Inject constructor(
                         try {
                             fileUri?.let {
 //                                // Open an output stream to write file data
-                                delay(1)
+//                                delay(1)
 
                                 contentResolver?.openOutputStream(it, "wa")?.use { outputStream ->
 //                                    Log.e("HELLOME",result.message.size.toString())

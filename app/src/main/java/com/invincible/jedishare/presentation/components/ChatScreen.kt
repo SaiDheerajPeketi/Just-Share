@@ -75,7 +75,7 @@ fun ChatScreen(
             IconButton(onClick = onDisconnect) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Disconnect"
+                    contentDescription = "Disconnect",
                 )
             }
 //            LazyColumn(
@@ -189,6 +189,8 @@ fun CustomProgressIndicator(
     }
     if(progress.toInt() == 100){
         indColor = MyRed
+    }else{
+        indColor = Color.Black
     }
 
     Box(

@@ -191,6 +191,7 @@ class AndroidBluetoothController(
     }
 
     val FILE_DELIMITER = "----FILE_DELIMITER----"
+    val repeatedString = FILE_DELIMITER.repeat(40)
 
     override suspend fun trySendMessage(
         message: String,
@@ -215,18 +216,26 @@ class AndroidBluetoothController(
         val uriList = viewModel.getUriList()
 
         for(uri in uriList){
+//            delay(500)
             val stream: InputStream? = context.contentResolver.openInputStream(uri)
             var fileInfo: FileInfo? = null
 
             // Get file information
             fileInfo = getFileDetailsFromUri(uri, context.contentResolver)
             viewModel.setFileInfo(fileInfo.size?.toLong())
+//            delay(500)
             fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
+            delay(2000)
+
+//            delay(1000)
 
             stream.use { inputStream ->
                 val buffer = ByteArray(990)
                 var bytesRead: Int = 0
                 var iterationCount = 0L
+
+                // Add file delimiter before sending the file
+//                dataTransferService?.sendMessage(FILE_DELIMITER.toByteArray())
 
                 while (inputStream?.read(buffer).also {
                         if (it != null) {
@@ -234,22 +243,28 @@ class AndroidBluetoothController(
                             iterationCountFlow.emit(iterationCount)
                         }
                     } != -1) {
-                    Log.e("HELLOME", "Bytes Read : " + bytesRead.toString())
+                    Log.e("MYTAG", "Bytes Read : " + bytesRead.toString())
+                    delay(10)
                     dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
+                    delay(10)
 
                     iterationCount++
                 }
-                delay(1000)
 
+//                delay(1000)
 
                 // Add file delimiter after sending the file
-                dataTransferService?.sendMessage(FILE_DELIMITER.toByteArray())
+//                dataTransferService?.sendMessage(FILE_DELIMITER.toByteArray())
+                delay(2000)
+                dataTransferService?.sendMessage(repeatedString.toByteArray())
+                delay(5000)
+
+
+//                delay(1000)
             }
 
-            for (i in 1..5){
-                delay(1000)
-                Log.e("MYTAG", "DELAY")
-            }
+            Log.e("MYTAG", "DELAY")
+//            delay(1000)
 
         }
 

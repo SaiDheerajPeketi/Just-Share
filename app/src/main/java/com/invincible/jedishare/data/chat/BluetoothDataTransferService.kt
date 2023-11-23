@@ -17,6 +17,7 @@ import java.nio.ByteBuffer
 
 const val BUFFER_SIZE = 990 // Adjust the buffer size as needed
 const val FILE_DELIMITER = "----FILE_DELIMITER----"
+val repeatedString = FILE_DELIMITER.repeat(40)
 
 class BluetoothDataTransferService(
     private val socket: BluetoothSocket
@@ -39,14 +40,21 @@ class BluetoothDataTransferService(
                 var bufferRed = buffer.copyOfRange(0, byteCount)
                 Log.e("HELLOME", "Received: " + bufferRed.size.toString())
 
-                processIncomingData(bufferRed)
-                checkForFiles(viewModel)?.let { fileBytes ->
+//                processIncomingData(bufferRed)
+//                checkForFiles(viewModel)?.let { fileBytes ->
 //                    emit(fileBytes)
+//                }
+                Log.e("MYTAG", "Bytes Read : " + bufferRed.size)
+
+                if(bufferRed.size == 880){
+                    viewModel?.isFirst = true
+                }else{
+                    emit(bufferRed)
                 }
 
-                emit(
-                    bufferRed
-                )
+//                emit(
+//                    bufferRed
+//                )
             }
         }.flowOn(Dispatchers.IO)
     }
@@ -57,32 +65,36 @@ class BluetoothDataTransferService(
 
     private fun checkForFiles(viewModel: BluetoothViewModel?): ByteArray? {
         val data = incomingDataStream.toByteArray()
-        val delimiterIndex = findIndexOfSubArray(incomingDataStream.toByteArray(), FILE_DELIMITER.toByteArray())
+        val delimiterIndex = findIndexOfSubArray(incomingDataStream.toByteArray(), repeatedString.toByteArray())
 
 
 //        Log.e("MYTAG","delimiter size" + FILE_DELIMITER.toByteArray().size.toString())
-        Log.e("MYTAG","byte array size" + data.size)
+//        Log.e("MYTAG","byte array size" + data.size)
 
 //        val delimiterIndex = data.indexOf(FILE_DELIMITER.toByteArray())
-        if (delimiterIndex != -1) {
+        if (delimiterIndex == 0) {
 //            val fileBytes = data.copyOfRange(0, delimiterIndex)
-            incomingDataStream.reset()
-            Log.e("MYTAG","END OF FILE" + delimiterIndex)
-            Log.e("MYTAG","main array size" + incomingDataStream.toByteArray().size.toString())
-            Log.e("MYTAG","delimiter size" + FILE_DELIMITER.toByteArray().size.toString())
+//            incomingDataStream.reset()
+//            Log.e("MYTAG","END OF FILE" + delimiterIndex)
+//            Log.e("MYTAG","main array size" + incomingDataStream.toByteArray().size.toString())
+//            Log.e("MYTAG","delimiter size" + repeatedString.toByteArray().size.toString())
             viewModel?.isFirst = true
-            incomingDataStream.write(data, delimiterIndex + FILE_DELIMITER.length, data.size - (delimiterIndex + FILE_DELIMITER.length))
+//            incomingDataStream.write(data, delimiterIndex + FILE_DELIMITER.length, data.size - (delimiterIndex + FILE_DELIMITER.length))
 //            return fileBytes
             incomingDataStream.reset()
             return null
-            return incomingDataStream.toByteArray()
+//            return incomingDataStream.toByteArray()
         }
+//        else if(viewModel?.isFirst == true && data.size == 990){
+//            incomingDataStream.reset()
+//            return null
+//        }
         incomingDataStream.reset()
         return data
     }
 
     fun findIndexOfSubArray(mainArray: ByteArray, subArray: ByteArray): Int {
-        if(mainArray.size == 22)
+        if(mainArray.size == repeatedString.toByteArray().size)
             return 0
 //        for (i in 0 until mainArray.size - subArray.size + 1) {
 //            if (mainArray.copyOfRange(i, i + subArray.size).contentEquals(subArray)) {
