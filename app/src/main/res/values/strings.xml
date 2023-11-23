@@ -6,4 +6,6 @@
     <string name="title_activity_progress">Progress</string>
     <string name="title_activity_device_list">DeviceList</string>
     <string name="title_activity_welcome">Just Share</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="title_activity_history">HistoryActivity</string>
 </resources>

@@ -409,6 +409,39 @@ fun NavBar() {
 //            .height(56.dp)
     ) {
         val context = LocalContext.current as? ComponentActivity
+
+//        BottomNavigationItem(
+//            icon = {
+//                Icon(
+//                    imageVector = Icons.Default.Person,
+//                    contentDescription = "Profile",
+//                    tint = iconColor,
+//                    modifier = Modifier.size(24.dp)
+//                )
+//            },
+//            label = { Text(text = "Profile") },
+//            selected = false,
+//            onClick = { /*TODO*/ },
+//            alwaysShowLabel = true,
+//            selectedContentColor = Color.Black,
+//            unselectedContentColor = Color.Gray,
+//        )
+        BottomNavigationItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            label = { Text(text = "Settings") },
+            selected = false,
+            onClick = { /*TODO*/ },
+            alwaysShowLabel = true,
+            selectedContentColor = Color.Black,
+            unselectedContentColor = Color.Gray,
+        )
         BottomNavigationItem(
             icon = {
                 Icon(
@@ -432,47 +465,19 @@ fun NavBar() {
         BottomNavigationItem(
             icon = {
                 Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile",
-                    tint = iconColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            label = { Text(text = "Profile") },
-            selected = false,
-            onClick = { /*TODO*/ },
-            alwaysShowLabel = true,
-            selectedContentColor = Color.Black,
-            unselectedContentColor = Color.Gray,
-        )
-        BottomNavigationItem(
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = iconColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            label = { Text(text = "Settings") },
-            selected = false,
-            onClick = { /*TODO*/ },
-            alwaysShowLabel = true,
-            selectedContentColor = Color.Black,
-            unselectedContentColor = Color.Gray,
-        )
-        BottomNavigationItem(
-            icon = {
-                Icon(
                     imageVector = Icons.Default.Info,
-                    contentDescription = "About Us",
+                    contentDescription = "History",
                     tint = iconColor,
                     modifier = Modifier.size(24.dp)
                 )
             },
-            label = { Text(text = "About Us") },
+            label = { Text(text = "History") },
             selected = false,
-            onClick = { /*TODO*/ },
+            onClick = {
+//                context?.finish()
+//                val intent = Intent(context,)
+
+            },
             alwaysShowLabel = true,
             selectedContentColor = Color.Black,
             unselectedContentColor = Color.Gray,

@@ -72,7 +72,7 @@ class WelcomeActivity : ComponentActivity() {
                             Text(
                                 modifier = Modifier
                                     .padding(bottom = 5.dp),
-                                text = "Jedi Share",
+                                text = "Just Share",
                                 color = Color(0xFFec1c22),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.h1,

@@ -2,7 +2,7 @@
 <resources>
 
     <style name="Theme.JediShare" parent="android:Theme.Material.Light.NoActionBar">
-       <!-- <item name="android:windowFullscreen">true</item> -->
+        <!-- <item name="android:windowFullscreen">true</item> -->
         <item name="android:statusBarColor">@color/myRedSecondary</item>
         <item name="android:navigationBarColor">@color/myRedSecondary</item>
     </style>
