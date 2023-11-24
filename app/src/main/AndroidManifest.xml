@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools" >
 
-    <uses-permission android:name="android.permission.BLUETOOTH"  />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+
 
     <uses-feature android:name="android.hardware.bluetooth" />
 
@@ -21,6 +35,7 @@
     <uses-feature android:name="android.hardware.wifi.direct" android:required="true"/>
 
     <application
+        android:name=".SharingApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -29,12 +44,68 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.JediShare"
-        tools:targetApi="31">
+        tools:targetApi="31" >
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="false"
+            android:label="@string/title_activity_history"
+            android:theme="@style/Theme.JediShare">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="@string/title_activity_settings"
+            android:theme="@style/Theme.JediShare">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".WifiDirectDeviceSelectActivity"
+            android:exported="false"
+            android:label="@string/title_activity_wifi_direct_device_select"
+            android:theme="@style/Theme.JediShare">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".WelcomeActivity"
+            android:exported="true"
+            android:label="@string/title_activity_welcome"
+            android:theme="@style/Theme.JediShare" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".DeviceList"
+            android:exported="true"
+            android:label="@string/title_activity_device_list"
+            android:theme="@style/Theme.JediShare" >
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
         <activity
             android:name=".Progress"
             android:exported="false"
             android:label="@string/title_activity_progress"
-            android:theme="@style/Theme.JediShare">
+            android:theme="@style/Theme.JediShare" >
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -43,7 +114,7 @@
             android:name=".SelectFile"
             android:exported="false"
             android:label="@string/title_activity_select_file"
-            android:theme="@style/Theme.JediShare">
+            android:theme="@style/Theme.JediShare" >
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -52,7 +123,7 @@
             android:name=".Waiting"
             android:exported="false"
             android:label="@string/title_activity_waiting"
-            android:theme="@style/Theme.JediShare">
+            android:theme="@style/Theme.JediShare" >
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -61,7 +132,7 @@
             android:name=".SendOrReceive"
             android:exported="false"
             android:label="@string/title_activity_send_or_receive"
-            android:theme="@style/Theme.JediShare">
+            android:theme="@style/Theme.JediShare" >
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -70,12 +141,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.JediShare">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:theme="@style/Theme.JediShare" >
+            <!--android:launchMode="singleInstance" -->
 
             <meta-data
                 android:name="android.app.lib_name"

@@ -4,4 +4,10 @@
     <string name="title_activity_waiting">Waiting</string>
     <string name="title_activity_select_file">SelectFile</string>
     <string name="title_activity_progress">Progress</string>
+    <string name="title_activity_device_list">DeviceList</string>
+    <string name="title_activity_welcome">Just Share</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="title_activity_history">HistoryActivity</string>
+
+    <string name="title_activity_wifi_direct_device_select">WifiDirectDeviceSelectActivity</string>
 </resources>

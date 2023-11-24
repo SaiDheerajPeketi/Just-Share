@@ -1,5 +1,6 @@
 package com.invincible.jedishare
 
+import android.content.Context
 import android.content.Intent
 import android.Manifest
 import android.annotation.SuppressLint
@@ -18,22 +19,60 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.invincible.jedishare.ui.*
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,13 +84,16 @@ import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.*
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.getSystemService
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import kotlinx.coroutines.delay
+import androidx.core.content.ContextCompat.startActivity
+import com.invincible.jedishare.ui.theme.JediShareTheme
+import com.invincible.jedishare.ui.theme.MyRed
+import com.invincible.jedishare.ui.theme.MyRedSecondary
 
 class MainActivity : ComponentActivity() {
 
@@ -259,7 +301,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                 /*****************************************************************
-                                        * UI STARTS HERE *
+                 * UI STARTS HERE *
                  ******************************************************************/
 
                 Column(
@@ -292,42 +334,43 @@ class MainActivity : ComponentActivity() {
                     ) {
                         //To be completed
                         items(peerListInternal) { peer ->
-                            Text(text = peer.deviceName, modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (peer.status == WifiP2pDevice.CONNECTED && connectionInfoAvailable) {
-                                        // here
-                                        Log.d(TAG, "CASE 1")
-                                    } else if (peer.status == WifiP2pDevice.CONNECTED) {
-                                        // here
-                                        Log.d(TAG, "CASE 2")
-                                    } else if (peer.status == WifiP2pDevice.AVAILABLE) {
-                                        Log.d(TAG, "CASE 3")
-                                        val connectedDeviceName: String? = peer.deviceName
-                                        if (connectedDeviceName != null) {
-                                            var config: WifiP2pConfig = WifiP2pConfig()
-                                            config.deviceAddress = peer.deviceAddress
-                                            wifiP2pManager?.connect(
-                                                wifiP2pChannel,
-                                                config,
-                                                actionListener
-                                            )
-                                        } else {
-                                            Log.d(TAG, "CASE 4")
-                                            Toast
-                                                .makeText(
-                                                    this@MainActivity,
-                                                    "You are already connected to another device. Disconnect to start another communication",
-                                                    Toast.LENGTH_SHORT
+                            Text(
+                                text = peer.deviceName, modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (peer.status == WifiP2pDevice.CONNECTED && connectionInfoAvailable) {
+                                            // here
+                                            Log.d(TAG, "CASE 1")
+                                        } else if (peer.status == WifiP2pDevice.CONNECTED) {
+                                            // here
+                                            Log.d(TAG, "CASE 2")
+                                        } else if (peer.status == WifiP2pDevice.AVAILABLE) {
+                                            Log.d(TAG, "CASE 3")
+                                            val connectedDeviceName: String? = peer.deviceName
+                                            if (connectedDeviceName != null) {
+                                                var config: WifiP2pConfig = WifiP2pConfig()
+                                                config.deviceAddress = peer.deviceAddress
+                                                wifiP2pManager?.connect(
+                                                    wifiP2pChannel,
+                                                    config,
+                                                    actionListener
                                                 )
-                                                .show()
+                                            } else {
+                                                Log.d(TAG, "CASE 4")
+                                                Toast
+                                                    .makeText(
+                                                        this@MainActivity,
+                                                        "You are already connected to another device. Disconnect to start another communication",
+                                                        Toast.LENGTH_SHORT
+                                                    )
+                                                    .show()
+                                            }
+                                        } else if (peer.status == WifiP2pDevice.INVITED) {
+                                            if (wifiP2pManager != null && wifiP2pChannel != null) {
+                                                disconnectP2P()
+                                            }
                                         }
-                                    } else if (peer.status == WifiP2pDevice.INVITED) {
-                                        if (wifiP2pManager != null && wifiP2pChannel != null) {
-                                            disconnectP2P()
-                                        }
-                                    }
-                                }, fontSize = 24.sp, textAlign = TextAlign.Center
+                                    }, fontSize = 24.sp, textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -356,6 +399,20 @@ class MainActivity : ComponentActivity() {
 
             }
 
+
+//            setContent {
+//                JediShareTheme {
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxSize()
+//                            .background(MaterialTheme.colors.background),
+//                        contentAlignment = androidx.compose.ui.Alignment.BottomCenter,
+//                    ) {
+//                        Screen1()
+//                        NavBar()
+//                    }
+//                }
+//            }
         }
     }
 
@@ -480,13 +537,187 @@ fun Activity.openAppSettings() {
 }
 
 @Composable
+fun CustomSwitch(
+    width: Dp = 120.dp,
+    height: Dp = 40.dp,
+    // mutiplied width and height by 2
+//    width: Dp = 72.dp,
+//    height: Dp = 40.dp,
+//    checkedTrackColor: Color = Color(0xFF35898F),
+//    uncheckedTrackColor: Color = Color(0xFFe0e0e0),
+    checkedTrackColor: Color = MyRed,
+    uncheckedTrackColor: Color = MyRed,
+    gapBetweenThumbAndTrackEdge: Dp = 8.dp,
+    borderWidth: Dp = 2.dp,
+    cornerSize: Int = 50,
+    iconInnerPadding: Dp = 4.dp,
+    thumbSize: Dp = 30.dp,
+    context: Context
+) {
+
+    // this is to disable the ripple effect
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
+
+    // state of the switch
+    var switchOn by remember {
+        mutableStateOf(true)
+    }
+
+    // for moving the thumb
+    val alignment by animateAlignmentAsState(if (switchOn) 1f else -1f)
+
+    // outer rectangle with border
+    val scrollState = rememberScrollState()
+    Box(
+        modifier = Modifier
+            .size(width = width, height = height)
+            .border(
+                width = borderWidth,
+                color = if (switchOn) checkedTrackColor else uncheckedTrackColor,
+                shape = RoundedCornerShape(percent = cornerSize)
+            )
+            .clickable(
+                indication = null,
+                interactionSource = interactionSource
+            ) {
+                switchOn = !switchOn
+            }
+            .verticalScroll(scrollState)
+        ,
+        contentAlignment = Alignment.Center
+    ) {
+
+        // this is to add padding at the each horizontal side
+        Box(
+            modifier = Modifier
+                .padding(
+                    start = gapBetweenThumbAndTrackEdge,
+                    end = gapBetweenThumbAndTrackEdge
+                )
+                .fillMaxSize(),
+            contentAlignment = alignment
+        ) {
+
+            // thumb with icon
+            val icon: Painter = painterResource(id = R.drawable.wifi_icon)
+            val icon2: Painter = painterResource(id = R.drawable.bluetooth_24)
+            Icon(
+                painter = if (switchOn) icon2 else icon,
+                contentDescription = if (switchOn) "Enabled" else "Disabled",
+                modifier = Modifier
+                    .size(size = thumbSize)
+                    .background(
+                        color = if (switchOn) checkedTrackColor else uncheckedTrackColor,
+                        shape = CircleShape
+                    )
+                    .padding(all = iconInnerPadding),
+                tint = Color.White
+            )
+        }
+    }
+
+    if(scrollState.isScrollInProgress){
+        DisposableEffect(Unit) {
+            onDispose {
+                switchOn = !switchOn
+            }
+        }
+    }
+
+
+    // gap between switch and the text
+    Spacer(modifier = Modifier.height(height = 5.dp))
+
+    Text(text = if (switchOn) "Bluetooth" else "Wifi-Direct")
+
+    Spacer(modifier = Modifier.height(32.dp))
+
+    Row (
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ){
+        val sendIcon: Painter = painterResource(id = R.drawable.send)
+        CircularButton(onClick = {
+            val intent = Intent(context, SelectFile::class.java)
+            if(switchOn){
+                intent.putExtra("transferMethod", "Bluetooth")
+            }else{
+                intent.putExtra("transferMethod", "Wifi-Direct")
+            }
+            context.startActivity(intent)
+        },
+            buttonName = "Send",
+            icon = sendIcon)
+        Spacer(modifier = Modifier.size(64.dp))
+        val receiveIcon: Painter = painterResource(id = R.drawable.receive)
+        CircularButton(onClick = {
+            val intent: Intent
+            if(!switchOn){
+                intent = Intent(context, WifiDirectDeviceSelectActivity::class.java)
+            }else{
+                intent = Intent(context, DeviceList::class.java)
+            }
+            intent.putExtra("source", true)
+            context.startActivity(intent)
+        },
+            buttonName = "Recieve",
+            icon = receiveIcon
+        )
+    }
+}
+
+@Composable
+private fun animateAlignmentAsState(
+    targetBiasValue: Float
+): State<BiasAlignment> {
+    val bias by animateFloatAsState(targetBiasValue)
+    return derivedStateOf { BiasAlignment(horizontalBias = bias, verticalBias = 0f) }
+}
+
+@Composable
+fun CircularButton(onClick: () -> Unit, buttonName: String, icon: Painter, color: Color = MaterialTheme.colors.primary) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ){
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 2.dp)
+                .size(55.dp)
+                .clip(CircleShape)
+                .background(color)
+        ) {
+            androidx.compose.material.Icon(
+                painter = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colors.background,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+
+
+        Text(
+            text = buttonName,
+            fontSize = 16.sp,
+            style = MaterialTheme.typography.h6,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
 fun Screen1() {
     val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
+
     ) {
         Button(onClick = {
             val intent = Intent(context, SendOrReceive::class.java)
@@ -510,6 +741,217 @@ fun Screen1() {
                 text = "Bluetooth",
                 fontSize = 20.sp
             )
+
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(0.dp, 0.dp, 50.dp, 50.dp))
+                .background( MyRedSecondary)
+                .fillMaxWidth()
+                .height(400.dp)
+                    ,
+        contentAlignment = androidx.compose.ui.Alignment.BottomCenter,
+        ) {
+            Column (
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ){
+                val context = LocalContext.current as? ComponentActivity
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+                {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.CenterStart)
+                            .padding(start = 16.dp, top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null,
+                            modifier = Modifier
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null, // Disable the click animation
+                                ) {
+                                    context?.finish()
+                                }
+                                .size(35.dp)
+                                .fillMaxSize(),
+                            tint = MyRed
+                        )
+                    }
+                    Text(
+                        text = "Home",
+                        fontWeight = FontWeight.Bold,
+                        color = MyRed,
+                        style = MaterialTheme.typography.h3,
+                        modifier = Modifier.align(Alignment.Center).padding(top = 8.dp)
+                    )
+                }
+                Image(
+                    painter = painterResource(id = R.drawable.main_activity_illustration),
+                    contentDescription = "Image with Shadow",
+                    modifier = Modifier
+                        .size(400.dp)
+//                        .shadow(elevation = 600.dp, CircleShape),
+                )
+                Text(
+                    text = "Jedi Share",
+                    fontSize = 40.sp,
+                    style = MaterialTheme.typography.h1,
+                    color = MyRed,
+                    textAlign = TextAlign.Center,
+                    textDecoration = TextDecoration.Underline
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.size(30.dp))
+
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth(),
+//            horizontalArrangement = Arrangement.Center,
+//            verticalAlignment = Alignment.CenterVertically
+//        ) {
+//
+//            val customDrawable: Painter = painterResource(id = R.drawable.wifi_icon)
+//            CircularButton(
+//                onClick = {
+//                    val intent = Intent(context, SendOrReceive::class.java)
+//                    val one = "Wifi Direct"
+//                    intent.putExtra("Data", one)
+//                    context.startActivity(intent)
+//                },
+//                "Wifi Direct",
+//                customDrawable
+//            )
+//
+//            Spacer(modifier = Modifier.size(64.dp))
+//
+//            val customDrawable2: Painter = painterResource(id = R.drawable.bluetooth_24)
+//            CircularButton(
+//                onClick = {
+//                    val intent = Intent(context, SendOrReceive::class.java)
+//                    val one = "Bluetooth"
+//                    intent.putExtra("Data", one)
+//                    context.startActivity(intent)
+//                },
+//                "Bluetooth",
+//                customDrawable2
+//            )
+//        }
+        CustomSwitch(context = context)
+
+
+
+
+    }
+}
+    }
+
+
+@Composable
+fun NavBar() {
+
+    val iconColor = Color(0xFF555555)
+
+    BottomNavigation(
+        backgroundColor = Color.White,
+        elevation = 10.dp,
+        modifier = Modifier
+            .shadow(elevation = 80.dp, CircleShape)
+//            .clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp))
+            .padding(16.dp)
+            .clip(RoundedCornerShape(percent = 50))
+            .border(width = 2.dp, color = Color.Black, shape = CircleShape)
+            .fillMaxWidth()
+//            .height(56.dp)
+    ) {
+        val context = LocalContext.current as? ComponentActivity
+
+//        BottomNavigationItem(
+//            icon = {
+//                Icon(
+//                    imageVector = Icons.Default.Person,
+//                    contentDescription = "Profile",
+//                    tint = iconColor,
+//                    modifier = Modifier.size(24.dp)
+//                )
+//            },
+//            label = { Text(text = "Profile") },
+//            selected = false,
+//            onClick = { /*TODO*/ },
+//            alwaysShowLabel = true,
+//            selectedContentColor = Color.Black,
+//            unselectedContentColor = Color.Gray,
+//        )
+        BottomNavigationItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            label = { Text(text = "Settings") },
+            selected = false,
+            onClick = {
+                context?.finish()
+                val intent = Intent(context, SettingsActivity ::class.java)
+                context?.startActivity(intent)
+            },
+            alwaysShowLabel = true,
+            selectedContentColor = Color.Black,
+            unselectedContentColor = Color.Gray,
+        )
+        BottomNavigationItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
+            label = { Text(text = "Home") },
+            selected = false,
+            onClick = {
+                context?.finish()
+                val intent = Intent(context, MainActivity::class.java)
+                context?.startActivity(intent)
+            },
+            alwaysShowLabel = true,
+            selectedContentColor = Color.Black,
+            unselectedContentColor = Color.Gray,
+        )
+        BottomNavigationItem(
+            icon = {
+                val icon: Painter = painterResource(id = R.drawable.history_icon)
+                Icon(
+                    painter = icon ,
+                    contentDescription = "History",
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+
+                
+            },
+            label = { Text(text = "History") },
+            selected = false,
+            onClick = {
+                context?.finish()
+                val intent = Intent(context, HistoryActivity ::class.java)
+                context?.startActivity(intent)
+            },
+            alwaysShowLabel = true,
+            selectedContentColor = Color.Black,
+            unselectedContentColor = Color.Gray,
+        )
     }
 }

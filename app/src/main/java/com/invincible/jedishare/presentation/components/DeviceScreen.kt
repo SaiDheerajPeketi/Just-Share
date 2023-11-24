@@ -78,15 +78,16 @@ fun BluetoothDeviceList(
                     .padding(16.dp)
             )
         }
-
-        item {
-            Text(
-                text = "Scanned Devices",
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
+    }
+    Text(
+        text = "Scanned Devices",
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+        modifier = Modifier.padding(16.dp)
+    )
+    LazyColumn(
+        modifier = modifier
+    ) {
         items(scannedDevices) { device ->
             Text(
                 text = device.name ?: "(No name)",
