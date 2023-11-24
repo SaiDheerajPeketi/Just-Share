@@ -327,7 +327,6 @@ class SelectFile : ComponentActivity() {
                                     tint = MyRed
                                 )
 
-                                var interactionSource = remember { MutableInteractionSource() }
                                 Text(
                                     modifier = Modifier
                                         .align(Alignment.CenterEnd),
