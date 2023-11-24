@@ -61,9 +61,11 @@ class WiFiDirectBroadcastReceiver(
                     if (state == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED) {
                         Log.d(activity.TAG, "Wi-Fi P2P discovery started")
                         activity.setIsDiscovering(true)
-                    } else {
+                    } else if (state == WifiP2pManager.WIFI_P2P_DISCOVERY_STOPPED) {
                         Log.d(activity.TAG, "Wi-Fi P2P discovery stopped")
                         activity.setIsDiscovering(false)
+                    } else {
+                        Log.d(activity.TAG, "onReceive: $state")
                     }
                 }
                 LocationManager.PROVIDERS_CHANGED_ACTION -> {

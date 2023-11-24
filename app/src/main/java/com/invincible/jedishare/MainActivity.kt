@@ -137,6 +137,7 @@ class MainActivity : ComponentActivity() {
 
         peerListListener = WifiP2pManager.PeerListListener { peerList ->
             peers = emptyList()
+            Log.d(TAG, "onCreate: $peerList")
             var localList = mutableListOf<WifiP2pDevice>()
             peerList.deviceList.forEach { device ->
                 localList.add(device)
