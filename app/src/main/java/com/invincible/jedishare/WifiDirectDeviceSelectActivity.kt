@@ -42,9 +42,11 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     private var communicationService = CommunicationService()
 
     val TAG = "myDebugTag"
+    val SENDING_UPDATE = "com.invincible.jedishare.SENDING_UPDATE"
 
     var peers: List<WifiP2pDevice> = emptyList()
     var connectionText = ""
+
 
     private var isWiFiDirectActive = false
     private var isDiscovering = false
@@ -59,6 +61,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     var peerListListener: WifiP2pManager.PeerListListener? = null
     var connectionInfoListener: WifiP2pManager.ConnectionInfoListener? = null
     var fileUriList = emptyList<Uri>()
+    var connectionUpdateReceiver:WiFiDirectServiceBroadcastReceiver? = null
 
     private val permissionsToRequest = if (Build.VERSION.SDK_INT >= 33) {
         arrayOf(
@@ -106,7 +109,11 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION)
         intentFilter.addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
 
+
         receiver = WiFiDirectBroadcastReceiver(this)
+        connectionUpdateReceiver = WiFiDirectServiceBroadcastReceiver(this)
+        registerReceiver(connectionUpdateReceiver, IntentFilter(SENDING_UPDATE))
+
 
         actionListener = object : WifiP2pManager.ActionListener {
             override fun onSuccess() {}
@@ -178,11 +185,12 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
                 LaunchedEffect(key1 = Unit) {
                     while (true) {
-                        delay(1000L)
+                        delay(10L)
                         peerListInternal = peers
                         connectionStatusValue = connectionText
                     }
                 }
+
 
                 val multiplePermissionResultLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -446,11 +454,13 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (receiver != null && intentFilter != null) registerReceiver(receiver, intentFilter)
+        registerReceiver(connectionUpdateReceiver, IntentFilter(SENDING_UPDATE))
     }
 
     override fun onPause() {
         super.onPause()
         if (receiver != null && intentFilter != null) unregisterReceiver(receiver)
+        unregisterReceiver(connectionUpdateReceiver)
     }
 
 }

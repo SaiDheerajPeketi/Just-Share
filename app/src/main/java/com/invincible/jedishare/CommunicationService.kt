@@ -1,6 +1,5 @@
 package com.invincible.jedishare
 
-import android.app.NotificationManager
 import android.app.Service
 import android.content.ContentValues
 import android.content.Intent
@@ -8,8 +7,6 @@ import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
 import android.util.Log
-import android.widget.Toast
-import androidx.core.app.NotificationCompat
 import com.invincible.jedishare.data.chat.toByteArray
 import com.invincible.jedishare.data.chat.toFileInfo
 import com.invincible.jedishare.domain.chat.FileInfo
@@ -30,7 +27,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
-public class CommunicationService: Service() {
+public class CommunicationService(): Service() {
     private val NOTIFICATION_CHANNEL_ID = "communication_service_channel"
     val TAG = "myDebugTag"
 
@@ -45,6 +42,9 @@ public class CommunicationService: Service() {
     val ONGOING_NOTIFICATION_ID = 22
 
     private val CHUCK_FILE_SIZE = 8192 //8 KB
+
+    val FILE_DELIMITER = "----FILE_DELIMITER----"
+    val repeatedString = FILE_DELIMITER.repeat(40)
 
 
     val ACTION_SEND_MSG = "com.invincible.jedishare.ACTION_SEND_MSG"
@@ -73,9 +73,7 @@ public class CommunicationService: Service() {
     private var serverSocket: ServerSocket? = null
     private var dataOutputStream: DataOutputStream? = null
 
-    private val notificationBuilder: NotificationCompat.Builder? = null
 
-    private var notificationManager: NotificationManager? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -89,7 +87,6 @@ public class CommunicationService: Service() {
         currentFileNameSending = ""
         isChatActivityOpen = AtomicBoolean(false)
         serviceState = AtomicInteger(NOT_CONNECTED)
-        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -122,7 +119,6 @@ public class CommunicationService: Service() {
                             intent.getStringExtra(EXTRAS_GROUP_OWNER_ADDRESS)
                         var role: Int = intent.getIntExtra(EXTRAS_COMMUNICATION_ROLE, 1)
                         var thisDeviceName: String? = intent.getStringExtra(EXTRAS_DEVICE_NAME)
-
                         try {
                             if(role == SERVER_ROLE){
                                 startListeningForMsgServer(groupOwnerPort, thisDeviceName)
@@ -195,14 +191,16 @@ public class CommunicationService: Service() {
             serviceState!!.set(CONNECTED)
 
             var msgType: Int
-            var size: Long
-            var fileTitle: String
+            var size: Long = 0
+            var fileTitle: String = ""
 
             var isFirst: Boolean = true
             var currSize: Long = -1
             var fileUri: Uri? = null
+            var progress: Int = 0
 
             var buffer = ByteArray(CHUCK_FILE_SIZE)
+            val i = Intent("com.invincible.jedishare.SENDING_UPDATE")
 
             while (true){
 //                msgType = dataInputStream.readInt()
@@ -222,6 +220,20 @@ public class CommunicationService: Service() {
 
                         var fileInfo = buffer.toFileInfo()
                         Log.d(TAG, "messageReadingLoop: ${fileInfo.toString()}")
+                    if (fileInfo != null) {
+                        size = fileInfo.size?.toLong() ?: 0
+                    }
+                    if (fileInfo != null) {
+                        fileTitle = fileInfo.fileName.toString()
+                    }
+                    i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", 0)
+                    if (fileInfo != null) {
+                        i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileInfo.fileName)
+                    }
+                    if (fileInfo != null) {
+                        i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", fileInfo.size)
+                    }
+                    sendBroadcast(i)
 
                         // Create a content values to store file information
                         val values = ContentValues().apply {
@@ -267,6 +279,13 @@ public class CommunicationService: Service() {
                         val bytesRead = dataInputStream.read(buffer)
                         currSize += bytesRead
                         Log.d(TAG,"messageReadingLoop: " + buffer.toString()+" $bytesRead")
+                        progress = (currSize.toFloat() / (size.toFloat() ?: currSize.toFloat()) * 100).toInt()
+                        Log.e(TAG, "sendMsg: $progress", )
+                        i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", progress)
+                        i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileTitle)
+                        i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", size)
+                        sendBroadcast(i)
+
                         fileUri?.let {
                             contentResolver.openOutputStream(it, "wa")?.use { outputStream ->
                                 outputStream.write(buffer.copyOfRange(0,bytesRead))
@@ -355,10 +374,19 @@ public class CommunicationService: Service() {
             }
             Log.e(TAG, "sendMsg: ${fileInfo.toString()}")
 
+            val i = Intent("com.invincible.jedishare.SENDING_UPDATE")
+            i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", 0)
+            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileInfo.fileName)
+            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", fileInfo.size)
+            sendBroadcast(i)
+//            LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(i)
+
             stream.use { inputStream ->
                 val buffer = ByteArray(CHUCK_FILE_SIZE)
                 var bytesRead: Int = 0
                 var iterationCount = 0L
+                var currSize = 0L
+                var progress = 0
 
                 while (inputStream?.read(buffer).also {
                         if (it != null) {
@@ -366,8 +394,15 @@ public class CommunicationService: Service() {
                         }
                     } != -1) {
                     Log.e("MYTAG", "Bytes Read : $iterationCount " + bytesRead.toString())
+                    currSize += bytesRead
                     runBlocking {
                         launch(Dispatchers.IO){
+                            progress = (currSize.toFloat() / (fileInfo.size?.toLong()?.toFloat() ?: currSize.toFloat()) * 100).toInt()
+                            Log.e(TAG, "sendMsg: $progress", )
+                            i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", progress)
+                            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileInfo.fileName)
+                            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", fileInfo.size)
+                            sendBroadcast(i)
                             delay(20)
                         }
                     }
@@ -376,5 +411,17 @@ public class CommunicationService: Service() {
                 }
             }
         }
+//        runBlocking {
+//            launch(Dispatchers.IO){
+//                delay(1000)
+//            }
+//        }
+//        dataOutputStream!!.writeBytes(repeatedString)
+//        Log.e(TAG,repeatedString.toByteArray().toString() + " ${repeatedString.toByteArray().size}")
+//        runBlocking {
+//            launch(Dispatchers.IO){
+//                delay(100)
+//            }
+//        }
     }
 }
