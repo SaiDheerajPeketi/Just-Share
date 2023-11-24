@@ -11,7 +11,7 @@ import android.util.Log
 import androidx.core.location.LocationManagerCompat
 
 class WiFiDirectBroadcastReceiver(
-    private val activity: MainActivity
+    private val activity: WifiDirectDeviceSelectActivity
 ): BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
