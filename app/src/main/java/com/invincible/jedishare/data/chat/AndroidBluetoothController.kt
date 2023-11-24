@@ -322,8 +322,16 @@ class AndroidBluetoothController(
     }
 
     override fun release() {
-        context.unregisterReceiver(foundDeviceReceiver)
-        context.unregisterReceiver(bluetoothStateReceiver)
+        try{
+            context.unregisterReceiver(foundDeviceReceiver)
+        } catch (e: Exception) {
+            Log.e("MYTAG","cant unregister")
+        }
+        try{
+            context.unregisterReceiver(bluetoothStateReceiver)
+        } catch (e: Exception) {
+            Log.e("MYTAG","cant unregister")
+        }
         closeConnection()
     }
 

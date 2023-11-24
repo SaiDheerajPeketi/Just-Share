@@ -1,6 +1,8 @@
 package com.invincible.jedishare
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
@@ -23,6 +25,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.GetMultipleContents
 import androidx.activity.viewModels
 import androidx.compose.animation.animateContentSize
@@ -406,8 +409,8 @@ class SelectFile : ComponentActivity() {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth(),
-                                    verticalArrangement = Arrangement.Bottom,
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        verticalArrangement = Arrangement.Bottom,
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
 
 //                                    Row(
@@ -432,13 +435,14 @@ class SelectFile : ComponentActivity() {
 
                                     LazyColumn(
                                         modifier = Modifier
-                                            .fillMaxWidth()
+                                            .heightIn(max = 570.dp)
                                             .animateContentSize(
                                                 animationSpec = spring(
                                                     dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                    stiffness = Spring.StiffnessMedium
+                                                    stiffness = Spring.StiffnessLow
                                                 )
-                                            ),
+                                            )
+                                            .fillMaxWidth(),
                                         verticalArrangement = Arrangement.Top,
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
@@ -467,7 +471,11 @@ class SelectFile : ComponentActivity() {
                                         items(list) { item ->
                                             Column(
                                                 modifier = Modifier
-                                                    .padding(8.dp)
+                                                    .padding(
+                                                        top = 8.dp,
+                                                        bottom = 8.dp,
+                                                        end = 8.dp
+                                                    ) // Adjust padding as needed
                                                     .fillMaxWidth(),
                                                 horizontalAlignment = Alignment.Start,
                                                 verticalArrangement = Arrangement.SpaceBetween
@@ -475,7 +483,11 @@ class SelectFile : ComponentActivity() {
                                                 Row(
                                                     modifier = Modifier
                                                         .wrapContentSize()
-                                                        .padding(4.dp) // Adjust padding as needed
+                                                        .padding(
+                                                            top = 4.dp,
+                                                            bottom = 4.dp,
+                                                            end = 4.dp
+                                                        ) // Adjust padding as needed
                                                 ) {
 
 
@@ -502,7 +514,12 @@ class SelectFile : ComponentActivity() {
                                                             painterResource(id = R.drawable.video_icon)
                                                         iconTint = Color(0xFFC54EE6)
                                                         iconBackground = Color(0x22C54EE6)
-                                                    } else {
+                                                    } else if(fileType == "Music"){
+                                                        icon =
+                                                            painterResource(id = R.drawable.music_icon)
+                                                        iconTint = Color(0xFFFF0000)
+                                                        iconBackground = Color(0x22FF0000)
+                                                    }else {
                                                         icon =
                                                             painterResource(id = R.drawable.document_icon)
                                                         iconTint = Color(0xFF4187E6)
@@ -535,13 +552,29 @@ class SelectFile : ComponentActivity() {
                                                         verticalArrangement = Arrangement.SpaceBetween
                                                     ) {
 
+                                                        var expanded by remember{
+                                                            mutableStateOf(false)
+                                                        }
+                                                        // this is to disable the ripple effect
+                                                        val interactionSource = remember {
+                                                            MutableInteractionSource()
+                                                        }
+
                                                         fileNameAndFormat.fileName?.let {
                                                             Text(
-                                                                text = it,
+                                                                text = if(fileNameAndFormat.format != "Document") it else it.substring(0, it.length - 4),
                                                                 fontSize = 15.sp,
 //                                                        style = MaterialTheme.typography.h4,
                                                                 fontWeight = FontWeight.Bold,
                                                                 modifier = Modifier
+                                                                    .animateContentSize()
+                                                                    .clickable(
+                                                                        indication = null,
+                                                                        interactionSource = interactionSource
+                                                                    ) {
+                                                                               expanded = !expanded
+                                                                    },
+                                                                maxLines = if(expanded) 10 else 2
 //                                                            .padding(16.dp) // Adjust padding as needed
                                                             )
 
@@ -602,7 +635,7 @@ class SelectFile : ComponentActivity() {
 
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.weight(1f). background(Color.LightGray))
                         val buttonColor: Color
                         val buttonTextColor: Color
                         if(list.isEmpty()){
@@ -656,7 +689,7 @@ class SelectFile : ComponentActivity() {
                                 text = "Transfer",
                                 style = MaterialTheme.typography.h5,
                                 color = buttonTextColor,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
 
@@ -803,13 +836,15 @@ fun AnimatedPreloader(modifier: Modifier = Modifier, drawable: Int, iterations: 
 
 fun classifyFileType(fileExtension: String): String {
     val photoExtensions = listOf("jpg", "jpeg", "png", "gif", "bmp", "heic")
-    val videoExtensions = listOf("mp4", "mov", "avi", "mkv", "wmv", "flv", "mp3")
+    val videoExtensions = listOf("mp4", "mov", "avi", "mkv", "wmv", "flv")
+    val musicExtentions = listOf("mp3")
     val documentExtensions = listOf("pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt")
 
     return when {
         photoExtensions.contains(fileExtension.toLowerCase()) -> "Photo"
         videoExtensions.contains(fileExtension.toLowerCase()) -> "Video"
         documentExtensions.contains(fileExtension.toLowerCase()) -> "Document"
+        musicExtentions.contains(fileExtension.toLowerCase()) -> "Music"
         else -> "Document"
     }
 }
