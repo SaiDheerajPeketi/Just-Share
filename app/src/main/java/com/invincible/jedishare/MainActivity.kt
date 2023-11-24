@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startActivity
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import com.invincible.jedishare.ui.theme.MyRed
+import com.invincible.jedishare.ui.theme.MyRedSecondary
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -271,7 +272,7 @@ fun Screen1() {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(0.dp, 0.dp, 50.dp, 50.dp))
-                .background(MyRedSecondary)
+                .background( MyRedSecondary)
                 .fillMaxWidth()
                 .height(400.dp)
                     ,
