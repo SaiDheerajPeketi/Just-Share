@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,29 +17,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.invincible.jedishare.ui.theme.JediShareTheme
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.InputStream
 
 class Waiting : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {
-                Screen3()
+                var temp = intent.getStringExtra("Data")
+                Column (
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ){
+                    if(temp == null){
+                        temp = "oh no"
+                    }
+                    if (temp != null) {
+                        Text(
+                            text = temp!!,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
             }
         }
     }
-}
-
-@Composable
-fun Screen3() {
-   Column (
-       modifier = Modifier
-           .fillMaxSize(),
-       verticalArrangement = Arrangement.Center,
-       horizontalAlignment = Alignment.CenterHorizontally
-   ){
-        Text(
-            text = "Waiting",
-            fontSize = 50.sp
-        )
-   }
 }

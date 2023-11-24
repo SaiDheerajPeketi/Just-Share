@@ -49,16 +49,3 @@ fun ChatMessage(
         )
     }
 }
-
-@Preview
-@Composable
-fun ChatMessagePreview() {
-    JediShareTheme {
-        ChatMessage(message = BluetoothMessage(
-            message = "Hello World!",
-            senderName = "Pixel 6",
-            isFromLocalUser = true
-        )
-        )
-    }
-}
