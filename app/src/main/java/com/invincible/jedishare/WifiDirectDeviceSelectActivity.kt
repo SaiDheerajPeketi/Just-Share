@@ -58,6 +58,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     private var actionListener: WifiP2pManager.ActionListener? = null
     var peerListListener: WifiP2pManager.PeerListListener? = null
     var connectionInfoListener: WifiP2pManager.ConnectionInfoListener? = null
+    var fileUriList = emptyList<Uri>()
 
     private val permissionsToRequest = if (Build.VERSION.SDK_INT >= 33) {
         arrayOf(
@@ -84,6 +85,9 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        fileUriList = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList<Uri>()
+        Log.d(TAG, "onCreate: ${fileUriList.toString()}")
 
         initializeWiFiDirect()
 
@@ -121,7 +125,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
         peerListListener = WifiP2pManager.PeerListListener { peerList ->
             peers = emptyList()
-            Log.d(TAG, "onCreate: $peerList")
+//            Log.d(TAG, "onCreate: $peerList")
             var localList = mutableListOf<WifiP2pDevice>()
             peerList.deviceList.forEach { device ->
                 localList.add(device)
@@ -239,7 +243,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                     }
 
                 /*****************************************************************
-                 * UI STARTS HERE *
+                                        * UI STARTS HERE *
                  ******************************************************************/
 
                 Column(
@@ -327,7 +331,10 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                             val i = Intent(applicationContext, CommunicationService::class.java)
                             i.action = communicationService.ACTION_SEND_MSG
                             i.putExtra(communicationService.EXTRAS_MSG_TYPE, 0)
-                            i.putExtra(communicationService.EXTRAS_TEXT_CONTENT, text)
+                            i.putParcelableArrayListExtra(
+                                "urilist",
+                                ArrayList(fileUriList)
+                            )
                             startService(i)
                         }
                     }) {

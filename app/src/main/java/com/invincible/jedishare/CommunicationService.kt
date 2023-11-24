@@ -2,16 +2,25 @@ package com.invincible.jedishare
 
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ContentValues
 import android.content.Intent
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
+import android.net.Uri
+import android.os.*
+import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import com.invincible.jedishare.data.chat.toByteArray
+import com.invincible.jedishare.data.chat.toFileInfo
+import com.invincible.jedishare.domain.chat.FileInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -189,14 +198,92 @@ public class CommunicationService: Service() {
             var size: Long
             var fileTitle: String
 
+            var isFirst: Boolean = true
+            var currSize: Long = -1
+            var fileUri: Uri? = null
+
+            var buffer = ByteArray(CHUCK_FILE_SIZE)
+
             while (true){
 //                msgType = dataInputStream.readInt()
 
-                val line = dataInputStream.readUTF()
-                Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(applicationContext, line, Toast.LENGTH_SHORT).show()
+//                val line = dataInputStream.readUTF()
+//                Handler(Looper.getMainLooper()).post {
+//                    Toast.makeText(applicationContext, line, Toast.LENGTH_SHORT).show()
+//                }
+//                Log.e("HELLOME","hello")
+
+
+
+                if(isFirst){
+                    isFirst = false
+                    currSize = 0
+                    val bytesRead = dataInputStream.read(buffer)
+
+                        var fileInfo = buffer.toFileInfo()
+                        Log.d(TAG, "messageReadingLoop: ${fileInfo.toString()}")
+
+                        // Create a content values to store file information
+                        val values = ContentValues().apply {
+                            if (fileInfo != null) {
+                                put(MediaStore.Files.FileColumns.DISPLAY_NAME, "${fileInfo.fileName}")
+                            }
+                            put(MediaStore.Files.FileColumns.MIME_TYPE, fileInfo?.mimeType)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                when {
+                                    fileInfo?.mimeType?.startsWith("image/") == true -> put(
+                                        MediaStore.Images.Media.RELATIVE_PATH,
+                                        Environment.DIRECTORY_PICTURES
+                                    )
+                                    fileInfo?.mimeType?.startsWith("audio/") == true -> put(
+                                        MediaStore.Audio.Media.RELATIVE_PATH,
+                                        Environment.DIRECTORY_MUSIC
+                                    )
+                                    fileInfo?.mimeType?.startsWith("video/") == true -> put(
+                                        MediaStore.Video.Media.RELATIVE_PATH,
+                                        Environment.DIRECTORY_MOVIES
+                                    )
+                                }
+                            }
+                            Log.d(TAG, "messageReadingLoop: $fileUri")
+                        }
+
+                        // Get the content URI for the new media entry
+                        val contentUri = when {
+                            fileInfo?.mimeType?.startsWith("image/") == true -> MediaStore.Images.Media.getContentUri(
+                                MediaStore.VOLUME_EXTERNAL)
+                            fileInfo?.mimeType?.startsWith("audio/") == true -> MediaStore.Audio.Media.getContentUri(
+                                MediaStore.VOLUME_EXTERNAL)
+                            fileInfo?.mimeType?.startsWith("video/") == true -> MediaStore.Video.Media.getContentUri(
+                                MediaStore.VOLUME_EXTERNAL)
+                            else -> MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                        }
+
+                        fileUri = contentResolver?.insert(contentUri, values)
+
                 }
-                Log.e("HELLOME",line)
+                else{
+                    try{
+                        val bytesRead = dataInputStream.read(buffer)
+                        currSize += bytesRead
+                        Log.d(TAG,"messageReadingLoop: " + buffer.toString()+" $bytesRead")
+                        fileUri?.let {
+                            contentResolver.openOutputStream(it, "wa")?.use { outputStream ->
+                                outputStream.write(buffer.copyOfRange(0,bytesRead))
+                            }
+                        }
+//                        if(bytesRead != CHUCK_FILE_SIZE){
+//                            Handler(Looper.getMainLooper()).post {
+//                                Toast.makeText(applicationContext, "Done Bro Go Check", Toast.LENGTH_SHORT).show()
+//                            }
+//                        }
+                        Log.e(TAG, "Receiver End: $currSize")
+                    }
+                    catch (e: java.lang.Exception){
+                        e.printStackTrace()
+                        Log.e("MYTAG", e.toString())
+                    }
+                }
             }
         }
 
@@ -254,7 +341,40 @@ public class CommunicationService: Service() {
 
     @Throws(IOException::class)
     private fun sendMsg(intent: Intent){
-        val txtMsg = intent.getStringExtra(EXTRAS_TEXT_CONTENT)
-        dataOutputStream!!.writeUTF(txtMsg)
+//        val txtMsg = intent.getStringExtra(EXTRAS_TEXT_CONTENT)
+//        dataOutputStream!!.writeUTF(txtMsg)
+        var fileUriList = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList<Uri>()
+        for(uri in fileUriList){
+            val stream: InputStream? = this.contentResolver.openInputStream(uri)
+            var fileInfo: FileInfo? = null
+
+            // Get file information
+            fileInfo = getFileDetailsFromUri(uri, this.contentResolver)
+            fileInfo.toByteArray()?.let {
+                dataOutputStream!!.write(it)
+            }
+            Log.e(TAG, "sendMsg: ${fileInfo.toString()}")
+
+            stream.use { inputStream ->
+                val buffer = ByteArray(CHUCK_FILE_SIZE)
+                var bytesRead: Int = 0
+                var iterationCount = 0L
+
+                while (inputStream?.read(buffer).also {
+                        if (it != null) {
+                            bytesRead = it
+                        }
+                    } != -1) {
+                    Log.e("MYTAG", "Bytes Read : $iterationCount " + bytesRead.toString())
+                    runBlocking {
+                        launch(Dispatchers.IO){
+                            delay(20)
+                        }
+                    }
+                    dataOutputStream!!.write(buffer.copyOfRange(0,bytesRead))
+                    iterationCount++
+                }
+            }
+        }
     }
 }
