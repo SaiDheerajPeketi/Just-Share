@@ -42,9 +42,11 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     private var communicationService = CommunicationService()
 
     val TAG = "myDebugTag"
+    val SENDING_UPDATE = "com.invincible.jedishare.SENDING_UPDATE"
 
     var peers: List<WifiP2pDevice> = emptyList()
     var connectionText = ""
+
 
     private var isWiFiDirectActive = false
     private var isDiscovering = false
@@ -58,6 +60,8 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     private var actionListener: WifiP2pManager.ActionListener? = null
     var peerListListener: WifiP2pManager.PeerListListener? = null
     var connectionInfoListener: WifiP2pManager.ConnectionInfoListener? = null
+    var fileUriList = emptyList<Uri>()
+    var connectionUpdateReceiver:WiFiDirectServiceBroadcastReceiver? = null
 
     private val permissionsToRequest = if (Build.VERSION.SDK_INT >= 33) {
         arrayOf(
@@ -85,6 +89,9 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        fileUriList = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList<Uri>()
+        Log.d(TAG, "onCreate: ${fileUriList.toString()}")
+
         initializeWiFiDirect()
 
         // Indicates a change in the Wi-Fi Direct status.
@@ -102,7 +109,11 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION)
         intentFilter.addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
 
+
         receiver = WiFiDirectBroadcastReceiver(this)
+        connectionUpdateReceiver = WiFiDirectServiceBroadcastReceiver(this)
+        registerReceiver(connectionUpdateReceiver, IntentFilter(SENDING_UPDATE))
+
 
         actionListener = object : WifiP2pManager.ActionListener {
             override fun onSuccess() {}
@@ -121,7 +132,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
         peerListListener = WifiP2pManager.PeerListListener { peerList ->
             peers = emptyList()
-            Log.d(TAG, "onCreate: $peerList")
+//            Log.d(TAG, "onCreate: $peerList")
             var localList = mutableListOf<WifiP2pDevice>()
             peerList.deviceList.forEach { device ->
                 localList.add(device)
@@ -174,11 +185,12 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
                 LaunchedEffect(key1 = Unit) {
                     while (true) {
-                        delay(1000L)
+                        delay(10L)
                         peerListInternal = peers
                         connectionStatusValue = connectionText
                     }
                 }
+
 
                 val multiplePermissionResultLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -239,7 +251,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                     }
 
                 /*****************************************************************
-                 * UI STARTS HERE *
+                                        * UI STARTS HERE *
                  ******************************************************************/
 
                 Column(
@@ -327,7 +339,10 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                             val i = Intent(applicationContext, CommunicationService::class.java)
                             i.action = communicationService.ACTION_SEND_MSG
                             i.putExtra(communicationService.EXTRAS_MSG_TYPE, 0)
-                            i.putExtra(communicationService.EXTRAS_TEXT_CONTENT, text)
+                            i.putParcelableArrayListExtra(
+                                "urilist",
+                                ArrayList(fileUriList)
+                            )
                             startService(i)
                         }
                     }) {
@@ -439,11 +454,13 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (receiver != null && intentFilter != null) registerReceiver(receiver, intentFilter)
+        registerReceiver(connectionUpdateReceiver, IntentFilter(SENDING_UPDATE))
     }
 
     override fun onPause() {
         super.onPause()
         if (receiver != null && intentFilter != null) unregisterReceiver(receiver)
+        unregisterReceiver(connectionUpdateReceiver)
     }
 
 }
