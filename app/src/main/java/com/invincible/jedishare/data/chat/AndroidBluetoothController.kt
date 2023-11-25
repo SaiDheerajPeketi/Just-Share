@@ -215,6 +215,8 @@ class AndroidBluetoothController(
 
         val uriList = viewModel.getUriList()
 
+        var currFileCount = 1
+
         for(uri in uriList){
 //            delay(500)
             val stream: InputStream? = context.contentResolver.openInputStream(uri)
@@ -225,7 +227,7 @@ class AndroidBluetoothController(
             viewModel.setFileInfo(fileInfo.size?.toLong())
 //            delay(500)
             fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
-            delay(2000)
+            delay(1000)
 
 //            delay(1000)
 
@@ -255,61 +257,21 @@ class AndroidBluetoothController(
 
                 // Add file delimiter after sending the file
 //                dataTransferService?.sendMessage(FILE_DELIMITER.toByteArray())
-                delay(2000)
+                delay(1000)
                 dataTransferService?.sendMessage(repeatedString.toByteArray())
-                delay(5000)
+                delay(1000)
 
 
 //                delay(1000)
+
+                viewModel.setCurrFileCount(currFileCount++)
+                Log.e("MYTAG3", "Update sent to the viewModel")
             }
 
             Log.e("MYTAG", "DELAY")
 //            delay(1000)
 
         }
-
-//        val stream: InputStream? = context.contentResolver.openInputStream(Uri.parse(message))
-//        var fileInfo: FileInfo? = null
-//        var byteArray: ByteArray
-//
-//        // Get file information
-//        fileInfo = getFileDetailsFromUri(Uri.parse(message), context.contentResolver)
-//        viewModel.setFileInfo(fileInfo.size?.toLong())
-//        fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
-//
-//        stream.use { inputStream ->
-//            val outputStream = ByteArrayOutputStream()
-//            val buffer = ByteArray(990)
-//            var bytesRead: Int
-//            bytesRead = 0
-//
-//            var iterationCount = 0L // Declare and initialize iterationCount before the loop
-//
-//            while (inputStream?.read(buffer).also {
-//                    if (it != null) {
-//                        bytesRead = it
-//                        iterationCountFlow.emit(iterationCount) // Emit iteration count
-//                    }
-//                } != -1) {
-////                outputStream.write(buffer, 0, bytesRead)
-//                Log.e("HELLOME", "Bytes Read : " + bytesRead.toString())
-//                dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
-//
-//                iterationCount++
-//            }
-////
-////            byteArray = outputStream.toByteArray()
-////            Log.e("HELLOME", "IN ByteArray = " + byteArray.size.toString())
-//        }
-
-
-
-        // Serialize FileInfo and image data to byte array
-//        val fileData = fileInfo?.let { FileData(it, byteArray) }
-//        Log.e("HELLOME","BYTE ARRAY SIZE: " + byteArray.size.toString())
-//        fileData?.toByteArray()?.let { dataTransferService?.sendMessage(it) }
-//            dataTransferService?.sendMessage(byteArray)
-//        dataTransferService?.sendMessage(bluetoothMessage.toByteArray())
 
         return bluetoothMessage
     }

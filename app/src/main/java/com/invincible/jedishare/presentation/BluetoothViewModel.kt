@@ -98,15 +98,20 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
+    private val _currFileCount = MutableStateFlow<Int>(0)
+    val currFileCount: MutableStateFlow<Int> = _currFileCount
+
+    fun setCurrFileCount(newValue: Int){
+        _currFileCount.value = newValue
+        Log.e("MYTAG3", currFileCount.value.toString())
+    }
 
     // Getting and Setting the UriList
     private val _uriList = mutableStateOf<List<Uri>>(emptyList())
-    val uriList: State<List<Uri>> = _uriList
 
     fun setUriList(uris: List<Uri>) {
         _uriList.value = uris
     }
-
     fun getUriList(): List<Uri> {
         return _uriList.value
     }
@@ -135,7 +140,7 @@ class BluetoothViewModel @Inject constructor(
     private val _statee = MutableStateFlow(BluetoothUiState())
     val statee: StateFlow<BluetoothUiState> get() = _statee
 
-    private fun updateState(newState: BluetoothUiState, ) {
+    private fun updateState(newState: BluetoothUiState) {
         _statee.value = newState
     }
 

@@ -52,6 +52,7 @@ class WelcomeActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(MaterialTheme.colors.background),
                 ) {
+
                     Column (
                         modifier = Modifier
                             .fillMaxSize(),

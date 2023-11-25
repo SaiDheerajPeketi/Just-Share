@@ -117,10 +117,23 @@ class DeviceList : ComponentActivity() {
                                 onDisconnect = viewModel::disconnectFromDevice,
                                 onSendMessage = viewModel::sendMessage,
                                 list,
-                                viewModel
+                                viewModel,
+                                intent,
+                                contentResolver
                             )
                         }
                         else -> {
+                            val list = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList<Uri>()
+
+//                            ChatScreen(
+//                                state = state,
+//                                onDisconnect = viewModel::disconnectFromDevice,
+//                                onSendMessage = viewModel::sendMessage,
+//                                list,
+//                                viewModel,
+//                                intent,
+//                                contentResolver
+//                            )
                             DeviceScreen(
                                 state = state,
                                 onStartScan = viewModel::startScan,

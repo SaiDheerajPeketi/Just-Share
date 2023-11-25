@@ -14,8 +14,8 @@ class WiFiDirectServiceBroadcastReceiver(
                 activity.SENDING_UPDATE -> {
                     val progress = intent.getIntExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", 100)
                     val fileName = intent.getStringExtra("com.invincible.jedishare.EXTRAS_FILE_NAME")
-                    val filesize = intent.getStringExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE")
-                    activity.connectionText = progress.toString()
+                    val filesize = intent.getLongExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE",0)
+                    activity.connectionText = progress.toString() + " $fileName + $filesize"
                     Log.d(activity.TAG, "onReceive: $progress")
                 }
             }

@@ -58,7 +58,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -68,7 +67,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.startActivity
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import com.invincible.jedishare.ui.theme.MyRed
 import com.invincible.jedishare.ui.theme.MyRedSecondary
@@ -134,7 +132,7 @@ class MainActivity : ComponentActivity() {
                     contentAlignment = androidx.compose.ui.Alignment.BottomCenter,
                 ) {
                     Screen1()
-                    NavBar()
+                    NavBar("MainActivity")
                 }
             }
         }
@@ -436,7 +434,7 @@ fun Screen1() {
 }
 
 @Composable
-fun NavBar() {
+fun NavBar(isMainActivity: String? = null) {
 
     val iconColor = Color(0xFF555555)
 
@@ -502,9 +500,11 @@ fun NavBar() {
             label = { Text(text = "Home") },
             selected = false,
             onClick = {
-                context?.finish()
-                val intent = Intent(context, MainActivity::class.java)
-                context?.startActivity(intent)
+                if(isMainActivity != "MainActivity"){
+                    context?.finish()
+                    val intent = Intent(context, MainActivity::class.java)
+                    context?.startActivity(intent)
+                }
             },
             alwaysShowLabel = true,
             selectedContentColor = Color.Black,
