@@ -22,75 +22,57 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.invincible.jedishare.ui.theme.MyRed
 import com.invincible.jedishare.ui.theme.MyRedSecondary
+import com.invincible.jedishare.ui.theme.Roboto
+import com.invincible.jedishare.ui.theme.White
 import com.invincible.jedishare.ui.theme.ui.theme.JediShareTheme
 import java.util.Vector
 
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             JediShareTheme {
                 Scaffold(
                     topBar = {
+
                         SettingsTopBar()
                     },
                     content = {
                         SettingsList()
+                    } ,
+                    bottomBar = {
+                        NavBar()
                     }
                 )
+
             }
+
         }
+
     }
 }
 
 @Composable
 fun SettingsTopBar() {
     val context = LocalContext.current
-    Row() {
-        Box(
+    JediShareTheme() {
+
+        TopAppBar(
+            backgroundColor = Color.White,
+            title = {
+                Box(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("Settings", fontSize = 25.sp)
+                    Text("Settings", fontWeight = FontWeight.Bold, fontFamily = Roboto, fontSize =  25.sp)
                 }
-    }
-    Row() {
-        val intent = Intent(context, MainActivity::class.java)
-        Box(
-            modifier = Modifier
-                .clickable(  onClick = { context.startActivity(intent) })
-        ) {
-            Box(){
-            Column() {
-                    Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back" )
-            }}
-            Box() {
-                Column() {
-                Text(text = "Home", fontSize = 25.sp)
-            }}
-        }
-    }
-    Divider(modifier = Modifier
-        .fillMaxWidth()
-        .padding(bottom = 2.dp)
-    )
-
-//        TopAppBar(
-
-//            title = {
-//                Box(
-//                    modifier = Modifier.fillMaxWidth(),
-//                    contentAlignment = Alignment.Center
-//                ) {
-//                    Text("Settings")
-//                }
-//            },
+            },
 //            navigationIcon = {
 //                IconButton(onClick = {
 //                    val intent = Intent(context, MainActivity::class.java)
@@ -111,8 +93,10 @@ fun SettingsTopBar() {
 //                    }
 //                    }
 //            }
-//        )
+        )
+    }
 }
+
 
 
 @Composable
@@ -122,6 +106,34 @@ fun SettingsList() {
         android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
         Uri.parse("package:${context.packageName}")
     )
+    // State to manage whether the dialog is shown or not
+    var showDialog by remember { mutableStateOf(false) }
+
+    // Function to show or hide the dialog
+    fun toggleDialog(show: Boolean) {
+        showDialog = show
+    }
+
+    // Function to create the dialog content
+    @Composable
+    fun DialogContent() {
+        AlertDialog(
+            onDismissRequest = { toggleDialog(false) },
+            title = {
+                Text("About Us")
+            },
+            text = {
+                Text("Welcome to Just Share! An app made to make your sharing process the easiest and fastest.\nThis app has been developed by Team 176, Cerberus")
+            },
+            confirmButton = {
+                Button(onClick = { toggleDialog(false) },colors = ButtonDefaults.buttonColors(backgroundColor = MyRedSecondary)) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+
 
     Column(
         modifier = Modifier
@@ -129,24 +141,16 @@ fun SettingsList() {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        Box(){
-            var isChecked by remember { mutableStateOf(false) }
-            Row() {
-                Text(text = "Enable Dark Mode")
-                Switch(checked = isChecked, onCheckedChange = {isChecked=it})
-            }
-        }
-        Divider(modifier = Modifier.fillMaxWidth())
+
         Box(modifier = Modifier
             .fillMaxWidth()
-            .clickable { /*TODO*/ }
+            .clickable { showDialog = true }
             .padding(16.dp)
         ){
             Row() {
                 Text(text = "About Us ", fontSize = 20.sp)
                 Icon(imageVector = Icons.Outlined.Info, contentDescription ="Info", modifier = Modifier.align(Alignment.CenterVertically))
             }
-
         }
         Divider(modifier = Modifier.fillMaxWidth())
         Box(
@@ -165,7 +169,9 @@ fun SettingsList() {
                 Icon(painter = icon, contentDescription = "App Settings")
             }
         }
-
+        if (showDialog) {
+            DialogContent()
+        }
     }
 }
 
