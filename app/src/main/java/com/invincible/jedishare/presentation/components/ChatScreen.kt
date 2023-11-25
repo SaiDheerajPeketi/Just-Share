@@ -203,7 +203,6 @@ fun DisplayFileswithProgressBar(list: List<Uri>, contentResolver: ContentResolve
     Log.e("hhh",list.size.toString())
     Box(
         modifier = Modifier
-//                                    .height(300.dp)
             .padding(bottom = 20.dp, start = 20.dp, end = 20.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(MyRedSecondaryLight)
