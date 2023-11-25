@@ -203,23 +203,13 @@ public class CommunicationService(): Service() {
             val i = Intent("com.invincible.jedishare.SENDING_UPDATE")
 
             while (true){
-//                msgType = dataInputStream.readInt()
-
-//                val line = dataInputStream.readUTF()
-//                Handler(Looper.getMainLooper()).post {
-//                    Toast.makeText(applicationContext, line, Toast.LENGTH_SHORT).show()
-//                }
-//                Log.e("HELLOME","hello")
-
-
-
                 if(isFirst){
                     isFirst = false
                     currSize = 0
                     val bytesRead = dataInputStream.read(buffer)
 
-                        var fileInfo = buffer.toFileInfo()
-                        Log.d(TAG, "messageReadingLoop: ${fileInfo.toString()}")
+                    var fileInfo = buffer.toFileInfo()
+                    Log.e(TAG, "START messageReadingLoop: ${fileInfo.toString()}")
                     if (fileInfo != null) {
                         size = fileInfo.size?.toLong() ?: 0
                     }
@@ -275,32 +265,37 @@ public class CommunicationService(): Service() {
 
                 }
                 else{
-                    try{
-                        val bytesRead = dataInputStream.read(buffer)
-                        currSize += bytesRead
-                        Log.d(TAG,"messageReadingLoop: " + buffer.toString()+" $bytesRead")
-                        progress = (currSize.toFloat() / (size.toFloat() ?: currSize.toFloat()) * 100).toInt()
-                        Log.e(TAG, "sendMsg: $progress", )
-                        i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", progress)
-                        i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileTitle)
-                        i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", size)
-                        sendBroadcast(i)
+                    while(currSize < size || progress!=100) {
+                        try{
+                            val bytesRead = dataInputStream.read(buffer)
+                            currSize += bytesRead
+                            Log.d(TAG,"messageReadingLoop: " + buffer.toString()+" $bytesRead")
+                            progress = (currSize.toFloat() / (size.toFloat() ?: currSize.toFloat()) * 100).toInt()
+                            Log.e(TAG, "sendMsg: $progress", )
+                            i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", progress)
+                            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileTitle)
+                            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", size)
+                            sendBroadcast(i)
 
-                        fileUri?.let {
-                            contentResolver.openOutputStream(it, "wa")?.use { outputStream ->
-                                outputStream.write(buffer.copyOfRange(0,bytesRead))
+                            fileUri?.let {
+                                contentResolver.openOutputStream(it, "wa")?.use { outputStream ->
+                                    outputStream.write(buffer.copyOfRange(0,bytesRead))
+                                }
                             }
+                            Log.e(TAG, "Receiver End: $currSize")
                         }
-//                        if(bytesRead != CHUCK_FILE_SIZE){
-//                            Handler(Looper.getMainLooper()).post {
-//                                Toast.makeText(applicationContext, "Done Bro Go Check", Toast.LENGTH_SHORT).show()
-//                            }
-//                        }
-                        Log.e(TAG, "Receiver End: $currSize")
+                        catch (e: java.lang.Exception){
+                            e.printStackTrace()
+                            Log.e("MYTAG", e.toString())
+                        }
                     }
-                    catch (e: java.lang.Exception){
-                        e.printStackTrace()
-                        Log.e("MYTAG", e.toString())
+
+                    runBlocking {
+                        launch(Dispatchers.IO){
+                            isFirst = true
+                            currSize = -1
+                            delay(1000)
+                        }
                     }
                 }
             }
@@ -367,17 +362,23 @@ public class CommunicationService(): Service() {
             val stream: InputStream? = this.contentResolver.openInputStream(uri)
             var fileInfo: FileInfo? = null
 
+            runBlocking {
+                launch(Dispatchers.IO){
+                    delay(5000)
+                }
+            }
+
             // Get file information
             fileInfo = getFileDetailsFromUri(uri, this.contentResolver)
             fileInfo.toByteArray()?.let {
                 dataOutputStream!!.write(it)
             }
-            Log.e(TAG, "sendMsg: ${fileInfo.toString()}")
+            Log.e(TAG, "START sendMsg: ${fileInfo.toString()}")
 
             val i = Intent("com.invincible.jedishare.SENDING_UPDATE")
             i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", 0)
             i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileInfo.fileName)
-            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", fileInfo.size)
+            fileInfo.size?.let { i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", it.toLong()) }
             sendBroadcast(i)
 //            LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(i)
 
@@ -401,7 +402,7 @@ public class CommunicationService(): Service() {
                             Log.e(TAG, "sendMsg: $progress", )
                             i.putExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", progress)
                             i.putExtra("com.invincible.jedishare.EXTRAS_FILE_NAME", fileInfo.fileName)
-                            i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", fileInfo.size)
+                            fileInfo.size?.let { i.putExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE", it.toLong()) }
                             sendBroadcast(i)
                             delay(20)
                         }
