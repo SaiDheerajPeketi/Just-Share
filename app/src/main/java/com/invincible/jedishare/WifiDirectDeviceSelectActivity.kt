@@ -20,21 +20,36 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.Divider
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.invincible.jedishare.domain.chat.BluetoothDevice
+import com.invincible.jedishare.presentation.components.BluetoothDeviceList
 import com.invincible.jedishare.presentation.ui.theme.JediShareTheme
+import com.invincible.jedishare.ui.theme.MyRedSecondaryLight
+import com.invincible.jedishare.ui.theme.Roboto
 import kotlinx.coroutines.delay
 
 class WifiDirectDeviceSelectActivity : ComponentActivity() {
@@ -142,9 +157,10 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
         connectionInfoListener = WifiP2pManager.ConnectionInfoListener { wifiP2pInfo ->
             Log.d("TAG", "onConnectionInfoAvailable : " + wifiP2pInfo.toString())
-            connectionText = wifiP2pInfo.toString()
+//            connectionText = wifiP2pInfo.toString()
 
             if (wifiP2pInfo.groupFormed) {
+                connectionText = "connected"
                 Log.d(TAG, "connectionInfoListener")
                 var role: Int
                 if (wifiP2pInfo.isGroupOwner) {
@@ -181,13 +197,35 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                 val permissionViewModel = viewModel<PermissionViewModel>()
                 val dialogQueue = permissionViewModel.visiblePermissionDialogQueue
                 var peerListInternal by remember { mutableStateOf<List<WifiP2pDevice>>(emptyList()) }
-                var connectionStatusValue by remember { mutableStateOf("Connection Status: ") }
+                var connectionStatusValue by remember { mutableStateOf("") }
+
+                var connected = false
 
                 LaunchedEffect(key1 = Unit) {
                     while (true) {
                         delay(10L)
                         peerListInternal = peers
                         connectionStatusValue = connectionText
+                        if(connectionStatusValue == "connected" && !connected){
+                            connected = true
+
+                            val i = Intent(applicationContext, CommunicationService::class.java)
+                            i.action = communicationService.ACTION_SEND_MSG
+                            i.putExtra(communicationService.EXTRAS_MSG_TYPE, 0)
+                            i.putParcelableArrayListExtra(
+                                "urilist",
+                                ArrayList(fileUriList)
+                            )
+                            startService(i)
+                            Log.e("MYTAG4", "Connected")
+                            val intent = Intent(this@WifiDirectDeviceSelectActivity, Progress::class.java)
+                            intent.putExtra("transferMethod", "Wifi-Direct")
+                            intent.putParcelableArrayListExtra(
+                                "urilist", ArrayList(fileUriList)
+                            )
+                            startActivity(intent)
+                            break
+                        }
                     }
                 }
 
@@ -254,100 +292,244 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
                                         * UI STARTS HERE *
                  ******************************************************************/
 
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Button(onClick = {
-                        val wifiManager: WifiManager =
-                            getSystemService<WifiManager>(WifiManager::class.java)
-                        if (wifiManager.isWifiEnabled) {
-                            Toast.makeText(this@WifiDirectDeviceSelectActivity, "Its On", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(this@WifiDirectDeviceSelectActivity, "Turn Wifi ON", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                    }) {
-                        Text(text = "Turn Wifi On")
-                    }
-                    Button(onClick = {
-                        startDiscovery()
-                    }) {
-                        Text(text = "Discover Peers")
-                    }
-                    Text(text = "read_msg_box")
-                    Text(text = connectionStatusValue)
 
-                    LazyColumn(
-                        modifier = Modifier.defaultMinSize(minHeight = 100.dp)
+                val isFromReceiver = intent.getStringExtra("source2")
+                if(isFromReceiver == "1"){
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.background)
+                        ,
+                        contentAlignment = Alignment.Center
                     ) {
-                        //To be completed
-                        items(peerListInternal) { peer ->
+                        AnimatedPreloader(modifier = Modifier.size(400.dp), R.raw.connecting_animation)
+                        AnimatedPreloader(modifier = Modifier.size(300.dp).offset(y = 150.dp), R.raw.connecting_text_animation, 1)
+                    }
+                }else {
+
+
+
+
+
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colors.background),
+                    ) {
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Top
+                        ) {
+
+                            Spacer(modifier = Modifier.size(16.dp))
+
                             Text(
-                                text = peer.deviceName, modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (peer.status == WifiP2pDevice.CONNECTED && connectionInfoAvailable) {
-                                            // here
-                                            Log.d(TAG, "CASE 1")
-                                        } else if (peer.status == WifiP2pDevice.CONNECTED) {
-                                            // here
-                                            Log.d(TAG, "CASE 2")
-                                        } else if (peer.status == WifiP2pDevice.AVAILABLE) {
-                                            Log.d(TAG, "CASE 3")
-                                            val connectedDeviceName: String? = peer.deviceName
-                                            if (connectedDeviceName != null) {
-                                                var config: WifiP2pConfig = WifiP2pConfig()
-                                                config.deviceAddress = peer.deviceAddress
-                                                wifiP2pManager?.connect(
-                                                    wifiP2pChannel,
-                                                    config,
-                                                    actionListener
-                                                )
-                                            } else {
-                                                Log.d(TAG, "CASE 4")
-                                                Toast
-                                                    .makeText(
-                                                        this@WifiDirectDeviceSelectActivity,
-                                                        "You are already connected to another device. Disconnect to start another communication",
-                                                        Toast.LENGTH_SHORT
-                                                    )
-                                                    .show()
-                                            }
-                                        } else if (peer.status == WifiP2pDevice.INVITED) {
-                                            if (wifiP2pManager != null && wifiP2pChannel != null) {
-                                                disconnectP2P()
-                                            }
-                                        }
-                                    }, fontSize = 24.sp, textAlign = TextAlign.Center
+                                text = "Device Select",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 24.sp,
+                                fontFamily = Roboto
                             )
+
+                            Divider(
+                                color = Color.LightGray,
+                                thickness = 2.dp,
+                                modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .padding(20.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(MyRedSecondaryLight)
+                                    .fillMaxSize()
+                                    .heightIn(max = 700.dp)
+                                    .animateContentSize(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    ),
+//                                contentAlignment = Alignment.Top,
+                            ) {
+                                Text(
+                                    text = "Peers",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp,
+                                    fontFamily = Roboto,
+                                    modifier = Modifier.padding(16.dp).align(Alignment.TopStart),
+                                    textDecoration = TextDecoration.Underline
+                                )
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .heightIn(max = 300.dp)
+                                        .padding(top = 55.dp),
+                                    verticalArrangement = Arrangement.Top
+                                ) {
+                                    items(peerListInternal) { peer ->
+                                        Text(
+                                            text = peer.deviceName,
+                                            modifier = Modifier
+                                                .padding(16.dp)
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    if (peer.status == WifiP2pDevice.CONNECTED && connectionInfoAvailable) {
+                                                        // here
+                                                        Log.d(TAG, "CASE 1")
+                                                    } else if (peer.status == WifiP2pDevice.CONNECTED) {
+                                                        // here
+                                                        Log.d(TAG, "CASE 2")
+                                                    } else if (peer.status == WifiP2pDevice.AVAILABLE) {
+                                                        Log.d(TAG, "CASE 3")
+                                                        val connectedDeviceName: String? = peer.deviceName
+                                                        if (connectedDeviceName != null) {
+                                                            var config: WifiP2pConfig = WifiP2pConfig()
+                                                            config.deviceAddress = peer.deviceAddress
+                                                            wifiP2pManager?.connect(
+                                                                wifiP2pChannel,
+                                                                config,
+                                                                actionListener
+                                                            )
+                                                        } else {
+                                                            Log.d(TAG, "CASE 4")
+                                                            Toast
+                                                                .makeText(
+                                                                    this@WifiDirectDeviceSelectActivity,
+                                                                    "You are already connected to another device. Disconnect to start another communication",
+                                                                    Toast.LENGTH_SHORT
+                                                                )
+                                                                .show()
+                                                        }
+                                                    } else if (peer.status == WifiP2pDevice.INVITED) {
+                                                        if (wifiP2pManager != null && wifiP2pChannel != null) {
+                                                            disconnectP2P()
+                                                        }
+                                                    }
+                                                },
+                                            fontSize = 18.sp,
+                                            fontFamily = Roboto,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    var text by remember { mutableStateOf("Hello") }
-                    TextField(
-                        value = text,
-                        onValueChange = { newText -> text = newText },
-                        label = { Text("Enter text") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                    )
-                    Button(onClick = {
-                        if (!text.trim { it <= ' ' }.isEmpty()) {
-                            val i = Intent(applicationContext, CommunicationService::class.java)
-                            i.action = communicationService.ACTION_SEND_MSG
-                            i.putExtra(communicationService.EXTRAS_MSG_TYPE, 0)
-                            i.putParcelableArrayListExtra(
-                                "urilist",
-                                ArrayList(fileUriList)
-                            )
-                            startService(i)
-                        }
-                    }) {
-                        Text(text = "Send")
-                    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+//                    Column(
+//                        modifier = Modifier.fillMaxSize(),
+//                        verticalArrangement = Arrangement.SpaceEvenly,
+//                        horizontalAlignment = Alignment.CenterHorizontally
+//                    ) {
+//                        Button(onClick = {
+//                            val wifiManager: WifiManager =
+//                                getSystemService<WifiManager>(WifiManager::class.java)
+//                            if (wifiManager.isWifiEnabled) {
+//                                Toast.makeText(
+//                                    this@WifiDirectDeviceSelectActivity,
+//                                    "Its On",
+//                                    Toast.LENGTH_SHORT
+//                                ).show()
+//                            } else {
+//                                Toast.makeText(
+//                                    this@WifiDirectDeviceSelectActivity,
+//                                    "Turn Wifi ON",
+//                                    Toast.LENGTH_SHORT
+//                                )
+//                                    .show()
+//                            }
+//                        }) {
+//                            Text(text = "Turn Wifi On")
+//                        }
+//                        Button(onClick = {
+//                            startDiscovery()
+//                        }) {
+//                            Text(text = "Discover Peers")
+//                        }
+//                        Text(text = "read_msg_box")
+//                        Text(text = connectionStatusValue)
+//
+//                        LazyColumn(
+//                            modifier = Modifier.defaultMinSize(minHeight = 100.dp)
+//                        ) {
+//                            //To be completed
+//                            items(peerListInternal) { peer ->
+//                                Text(
+//                                    text = peer.deviceName, modifier = Modifier
+//                                        .fillMaxWidth()
+//                                        .clickable {
+//                                            if (peer.status == WifiP2pDevice.CONNECTED && connectionInfoAvailable) {
+//                                                // here
+//                                                Log.d(TAG, "CASE 1")
+//                                            } else if (peer.status == WifiP2pDevice.CONNECTED) {
+//                                                // here
+//                                                Log.d(TAG, "CASE 2")
+//                                            } else if (peer.status == WifiP2pDevice.AVAILABLE) {
+//                                                Log.d(TAG, "CASE 3")
+//                                                val connectedDeviceName: String? = peer.deviceName
+//                                                if (connectedDeviceName != null) {
+//                                                    var config: WifiP2pConfig = WifiP2pConfig()
+//                                                    config.deviceAddress = peer.deviceAddress
+//                                                    wifiP2pManager?.connect(
+//                                                        wifiP2pChannel,
+//                                                        config,
+//                                                        actionListener
+//                                                    )
+//                                                } else {
+//                                                    Log.d(TAG, "CASE 4")
+//                                                    Toast
+//                                                        .makeText(
+//                                                            this@WifiDirectDeviceSelectActivity,
+//                                                            "You are already connected to another device. Disconnect to start another communication",
+//                                                            Toast.LENGTH_SHORT
+//                                                        )
+//                                                        .show()
+//                                                }
+//                                            } else if (peer.status == WifiP2pDevice.INVITED) {
+//                                                if (wifiP2pManager != null && wifiP2pChannel != null) {
+//                                                    disconnectP2P()
+//                                                }
+//                                            }
+//                                        }, fontSize = 24.sp, textAlign = TextAlign.Center
+//                                )
+//                            }
+//                        }
+
+//                        var text by remember { mutableStateOf("Hello") }
+//                        TextField(
+//                            value = text,
+//                            onValueChange = { newText -> text = newText },
+//                            label = { Text("Enter text") },
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .padding(8.dp)
+//                        )
+//                        Button(onClick = {
+//                                val i = Intent(applicationContext, CommunicationService::class.java)
+//                                i.action = communicationService.ACTION_SEND_MSG
+//                                i.putExtra(communicationService.EXTRAS_MSG_TYPE, 0)
+//                                i.putParcelableArrayListExtra(
+//                                    "urilist",
+//                                    ArrayList(fileUriList)
+//                                )
+//                                startService(i)
+//                        }) {
+//                            Text(text = "Send")
+//                        }
+//                    }
                 }
             }
         }

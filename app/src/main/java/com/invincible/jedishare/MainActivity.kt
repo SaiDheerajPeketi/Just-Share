@@ -338,10 +338,13 @@ fun CustomSwitch(
             val intent: Intent
             if(!switchOn){
                 intent = Intent(context, WifiDirectDeviceSelectActivity::class.java)
+                intent.putExtra("transferMethod", "Wifi-Direct")
             }else{
                 intent = Intent(context, DeviceList::class.java)
+                intent.putExtra("transferMethod", "Bluetooth")
             }
             intent.putExtra("source", true)
+            intent.putExtra("source2", "1")
 //            context?.finish()
             context.startActivity(intent)
         },

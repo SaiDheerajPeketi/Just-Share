@@ -102,10 +102,6 @@ fun BluetoothDeviceList(
     modifier: Modifier = Modifier
 ) {
 
-
-    val density = LocalDensity.current.density
-    val screenHeight = (LocalContext.current.resources.displayMetrics.heightPixels / density).dp / 2
-
     Box(
         modifier = Modifier
 //                                    .height(300.dp)

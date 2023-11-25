@@ -643,6 +643,7 @@ class SelectFile : ComponentActivity() {
                                             this@SelectFile,
                                             WifiDirectDeviceSelectActivity::class.java
                                         )
+                                        intent.putExtra("transferMethod", "Bluetooth")
                                     } else {
                                         intent = Intent(this@SelectFile, DeviceList::class.java)
                                     }

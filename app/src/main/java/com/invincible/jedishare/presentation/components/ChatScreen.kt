@@ -73,13 +73,14 @@ import javax.security.auth.login.LoginException
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ChatScreen(
-    state: BluetoothUiState,
+    state: BluetoothUiState? = null,
     onDisconnect: () -> Unit,
     onSendMessage: (String) -> Unit,
-    uriList: List<Uri>,
-    viewModel: BluetoothViewModel,
-    intent: Intent,
-    contentResolver: ContentResolver
+    uriList: List<Uri>? = null,
+    viewModel: BluetoothViewModel? = null,
+    intent: Intent? = null,
+    contentResolver: ContentResolver? = null,
+    isFromWifi: Boolean = false
 ){
 
     Box(
@@ -87,7 +88,7 @@ fun ChatScreen(
             .fillMaxSize()
             .background(MaterialTheme.colors.background),
     ) {
-        val list: ArrayList<Uri>? = intent.getParcelableArrayListExtra("urilist")
+        val list: ArrayList<Uri>? = intent?.getParcelableArrayListExtra("urilist")
         Column (
             verticalArrangement = Arrangement.Top
         ){
@@ -118,18 +119,26 @@ fun ChatScreen(
             AnimatedPreloader(modifier = Modifier.size(400.dp), R.raw.file_transfer_animation)
 
             if (list != null) {
-                DisplayFileswithProgressBar(list, contentResolver, viewModel)
-            }
-
-            while(true){
-                try{
-                    viewModel.setUriList(uriList)
-                    onSendMessage(uriList[0].toString())
-                    break
-                }catch (e: Exception){
-
+                if (contentResolver != null) {
+                    if (viewModel != null) {
+                        (if(!isFromWifi) list else uriList)?.let { DisplayFileswithProgressBar(it, contentResolver, viewModel) }
+                    }
                 }
             }
+
+//            while(true){
+//                try{
+//                    if (uriList != null) {
+//                        if (viewModel != null) {
+//                            viewModel.setUriList(uriList)
+//                        }
+//                    }
+//                    uriList?.get(0)?.let { onSendMessage(it.toString()) }
+//                    break
+//                }catch (e: Exception){
+//
+//                }
+//            }
         }
     }
 
@@ -167,11 +176,15 @@ fun ChatScreen(
         ) {
             IconButton(onClick = {
 
-                viewModel.setUriList(uriList)
-//                onSendMessage(uriList[0].toString())
-//
-//                message.value = ""
-//                keyboardController?.hide()
+                if (uriList != null) {
+                    if (viewModel != null) {
+                        viewModel.setUriList(uriList)
+                    }
+                }
+                uriList?.get(0)?.let { onSendMessage(it.toString()) }
+
+                message.value = ""
+                keyboardController?.hide()
             }) {
                 Icon(
                     imageVector = Icons.Default.Send,
@@ -186,6 +199,8 @@ fun ChatScreen(
 
 @Composable
 fun DisplayFileswithProgressBar(list: List<Uri>, contentResolver: ContentResolver, viewModel: BluetoothViewModel) {
+
+    Log.e("hhh",list.size.toString())
     Box(
         modifier = Modifier
 //                                    .height(300.dp)

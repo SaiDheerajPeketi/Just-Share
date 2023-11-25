@@ -1,6 +1,8 @@
 package com.invincible.jedishare
 
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.invincible.jedishare.presentation.components.ChatScreen
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -37,104 +40,19 @@ class Progress : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {
-                Column (
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ){
-                    Screen5()
-                    ProgressBar(progress = 0.5f)
+
+                val data = intent.getStringExtra("transferMethod")
+                if (data != null) {
+                    Log.e("hhh",data)
                 }
+
+                ChatScreen(
+                    onDisconnect = { /*TODO*/ },
+                    onSendMessage = {},
+                    uriList = intent?.getParcelableArrayListExtra<Uri>("urilist") ?: emptyList<Uri>(),
+                    isFromWifi = if(data == "Wifi-Direct") true else false
+                )
             }
         }
-    }
-}
-
-@Composable
-fun Screen5() {
-    Column (
-        modifier = Modifier
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        Text(
-            text = "Device Name",
-            fontSize = 24.sp
-        )
-        Text(
-            text = "File(s) Name",
-            fontSize = 24.sp
-        )
-        Text(
-            text = "Device Name",
-            fontSize = 24.sp
-        )
-        Spacer(modifier = Modifier.size(64.dp))
-        ProgressBar(progress = 0.5f)
-        LinearDeterminateIndicator()
-    }
-}
-
-@Composable
-fun LinearDeterminateIndicator() {
-    var currentProgress by remember { mutableStateOf(0f) }
-    var loading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope() // Create a coroutine scope
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Button(onClick = {
-            loading = true
-            scope.launch {
-                loadProgress { progress ->
-                    currentProgress = progress
-                }
-                loading = false // Reset loading when the coroutine finishes
-            }
-        }, enabled = !loading) {
-            Text("Start loading")
-        }
-
-        if (loading) {
-            LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth(),
-                progress = currentProgress
-            )
-        }
-    }
-}
-/** Iterate the progress value */
-suspend fun loadProgress(updateProgress: (Float) -> Unit) {
-    for (i in 1..100) {
-        updateProgress(i.toFloat() / 100)
-        delay(100)
-    }
-}
-
-@Composable
-fun ProgressBar(progress: Float) {
-    // LinearProgressIndicator takes a progress parameter, which should be a float between 0f and 1f.
-    // 0f means 0% progress, and 1f means 100% progress.
-    LinearProgressIndicator(
-        progress = progress,
-        //modifier = Modifier.fillMaxSize(),
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProgressBarPreview() {
-    Column (
-        modifier = Modifier
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        Screen5()
     }
 }
