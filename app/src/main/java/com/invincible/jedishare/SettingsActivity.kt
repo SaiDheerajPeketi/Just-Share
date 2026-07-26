@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,8 +47,8 @@ class SettingsActivity : ComponentActivity() {
 
 @Composable
 private fun SettingsScreen(viewModel: SettingsViewModel) {
-    val isDarkMode by viewModel.isDarkMode.collectAsState()
-    val defaultMethod by viewModel.defaultTransferMethod.collectAsState()
+    val isDarkMode by viewModel.isDarkMode.collectAsStateWithLifecycle()
+    val defaultMethod by viewModel.defaultTransferMethod.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -175,4 +174,4 @@ private fun SettingRow(
         }
         trailing()
     }
-}
+import dagger.hilt.android.AndroidEntryPoint

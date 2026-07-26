@@ -151,29 +151,57 @@ class AndroidBluetoothController(
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
             throw SecurityException("No BLUETOOTH_CONNECT permission")
         }
-        currentClientSocket = bluetoothAdapter
-            ?.getRemoteDevice(device.address)
-            ?.createRfcommSocketToServiceRecord(UUID.fromString(SERVICE_UUID))
+        val remoteDevice = bluetoothAdapter?.getRemoteDevice(device.address)
         stopDiscovery()
 
-        currentClientSocket?.let { socket ->
-            try {
-                socket.connect()
-                emit(ConnectionResult.ConnectionEstablished)
-                val service = BluetoothDataTransferService(socket)
-                dataTransferService = service
-                emitAll(
-                    service.listenForIncomingMessages().map { incomingData ->
-                        incomingData.toConnectionResult()
-                    }
-                )
-            } catch (e: IOException) {
-                socket.close()
-                currentClientSocket = null
-                emit(ConnectionResult.Error("Connection was interrupted: ${e.message}"))
-            }
+        // Try secure connection first; fall back to insecure on failure (TODO-17)
+        var socket: android.bluetooth.BluetoothSocket? = try {
+            remoteDevice?.createRfcommSocketToServiceRecord(UUID.fromString(SERVICE_UUID))
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to create secure RFCOMM socket", e)
+            null
         }
+        currentClientSocket = socket
+
+        socket?.let { secureSocket ->
+            try {
+                secureSocket.connect()
+                emit(ConnectionResult.ConnectionEstablished)
+                val service = BluetoothDataTransferService(secureSocket)
+                dataTransferService = service
+                emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
+            } catch (secureEx: IOException) {
+                Log.w(TAG, "Secure connect failed, trying insecure fallback: ${secureEx.message}")
+                secureSocket.close()
+
+                // Insecure fallback
+                val insecureSocket = try {
+                    remoteDevice?.createInsecureRfcommSocketToServiceRecord(UUID.fromString(SERVICE_UUID))
+                } catch (e: IOException) {
+                    Log.e(TAG, "Failed to create insecure RFCOMM socket", e)
+                    null
+                }
+                currentClientSocket = insecureSocket
+
+                if (insecureSocket != null) {
+                    try {
+                        insecureSocket.connect()
+                        emit(ConnectionResult.ConnectionEstablished)
+                        val service = BluetoothDataTransferService(insecureSocket)
+                        dataTransferService = service
+                        emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
+                    } catch (insecureEx: IOException) {
+                        insecureSocket.close()
+                        currentClientSocket = null
+                        emit(ConnectionResult.Error("Connection failed (secure + insecure): ${insecureEx.message}"))
+                    }
+                } else {
+                    emit(ConnectionResult.Error("Could not create Bluetooth socket"))
+                }
+            }
+        } ?: emit(ConnectionResult.Error("Remote device not found"))
     }.onCompletion { closeConnection() }.flowOn(Dispatchers.IO)
+
 
     // ── Sending ───────────────────────────────────────────────────────────────
 

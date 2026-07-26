@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.data.chat.toBluetoothMessage
 import com.invincible.jedishare.data.chat.toFileInfo
+import com.invincible.jedishare.data.db.TransferHistoryEntity
 import com.invincible.jedishare.data.repository.FileTransferRepository
+import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.ConnectionResult
@@ -24,11 +26,13 @@ import javax.inject.Inject
  * - File I/O is fully delegated to [FileTransferRepository].
  * - [BluetoothController] has no ViewModel reference; the ViewModel subscribes to its Flows.
  * - [viewModelScope] is the only coroutine scope used; lifecycle is automatically handled.
+ * - On [ConnectionResult.EndOfFile], a [TransferHistoryEntity] is inserted automatically (TODO-15).
  */
 @HiltViewModel
 class BluetoothViewModel @Inject constructor(
     private val bluetoothController: BluetoothController,
-    private val fileTransferRepository: FileTransferRepository
+    private val fileTransferRepository: FileTransferRepository,
+    private val historyRepository: TransferHistoryRepository
 ) : ViewModel() {
 
     // ── Core Connection State ──────────────────────────────────────────────────
@@ -85,13 +89,20 @@ class BluetoothViewModel @Inject constructor(
     fun setUriList(uris: List<Uri>) { _uriList.value = uris }
     fun getUriList(): List<Uri> = _uriList.value
 
+    // ── Tracks current incoming file metadata (for history logging) ────────────
+    private var _incomingFileName: String? = null
+    private var _incomingMimeType: String? = null
+    private var _incomingFileSize: Long = 0L
+    private var _connectedDeviceName: String? = null
+
     // ── Actions ────────────────────────────────────────────────────────────────
 
     fun connectToDevice(device: BluetoothDeviceDomain) {
+        _connectedDeviceName = device.name
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
             .connectToDevice(device)
-            .listenForResults()
+            .listenForResults(isSender = false)
     }
 
     fun disconnectFromDevice() {
@@ -104,7 +115,7 @@ class BluetoothViewModel @Inject constructor(
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
             .startBluetoothServer()
-            .listenForResults()
+            .listenForResults(isSender = false)
     }
 
     fun startScan() = bluetoothController.startDiscovery()
@@ -136,10 +147,13 @@ class BluetoothViewModel @Inject constructor(
 
     /**
      * Collects a [ConnectionResult] Flow, routing results to state and I/O repository.
-     * Handles multi-file transfers: [ConnectionResult.EndOfFile] triggers a new file slot.
+     * Handles multi-file transfers: [ConnectionResult.EndOfFile] triggers a new file slot
+     * and writes a [TransferHistoryEntity] entry for the completed file (TODO-15).
+     *
+     * @param isSender True if this device is sending files (for history record).
      */
-    private fun Flow<ConnectionResult>.listenForResults(): Job {
-        var fileUri: android.net.Uri? = null
+    private fun Flow<ConnectionResult>.listenForResults(isSender: Boolean): Job {
+        var fileUri: Uri? = null
         var isFirstChunk = true
 
         return onEach { result ->
@@ -160,7 +174,10 @@ class BluetoothViewModel @Inject constructor(
                         val fileInfo = result.message.toFileInfo()
                         Log.d("BluetoothViewModel", "Incoming file metadata: $fileInfo")
                         if (fileInfo != null) {
-                            _currentFileSize.value = fileInfo.size?.toLong() ?: 1L
+                            _incomingFileName = fileInfo.fileName
+                            _incomingMimeType = fileInfo.mimeType
+                            _incomingFileSize = fileInfo.size?.toLong() ?: 0L
+                            _currentFileSize.value = _incomingFileSize
                             viewModelScope.launch {
                                 fileUri = fileTransferRepository.createMediaStoreEntry(fileInfo)
                                 Log.d("BluetoothViewModel", "MediaStore entry created: $fileUri")
@@ -178,15 +195,35 @@ class BluetoothViewModel @Inject constructor(
                 }
 
                 is ConnectionResult.EndOfFile -> {
+                    // TODO-15: Log completed transfer to history DB
+                    val fileName = _incomingFileName ?: "Unknown"
+                    val fileSize = _incomingFileSize
+                    val mimeType = _incomingMimeType
+                    val deviceName = _connectedDeviceName
+                    viewModelScope.launch {
+                        historyRepository.addEntry(
+                            TransferHistoryEntity(
+                                fileName        = fileName,
+                                mimeType        = mimeType,
+                                fileSizeBytes   = fileSize,
+                                isSender        = isSender,
+                                transferMethod  = "Bluetooth",
+                                remoteDeviceName = deviceName
+                            )
+                        )
+                        Log.d("BluetoothViewModel", "History entry saved: $fileName")
+                    }
+
                     // Prepare for next file in multi-file transfer
                     Log.d("BluetoothViewModel", "End of file received; ready for next file")
                     isFirstChunk = true
                     fileUri = null
+                    _incomingFileName = null
+                    _incomingMimeType = null
+                    _incomingFileSize = 0L
                     val newCount = _currFileCount.value + 1
                     _currFileCount.value = newCount
-                    _transferProgress.update {
-                        it.copy(bytesReceived = 0L, totalBytes = 1L)
-                    }
+                    _transferProgress.update { it.copy(bytesReceived = 0L, totalBytes = 1L) }
                 }
 
                 is ConnectionResult.Error -> {
@@ -220,6 +257,6 @@ data class TransferProgressState(
 }
 
 /** Models for SelectFile screen — kept here to avoid extra files for small data classes. */
-data class Image(val id: Long, val name: String, val uri: android.net.Uri)
-data class Video(val id: Long, val name: String, val uri: android.net.Uri)
-data class Audio(val id: Long, val name: String, val uri: android.net.Uri)
+data class Image(val id: Long, val name: String, val uri: Uri)
+data class Video(val id: Long, val name: String, val uri: Uri)
+data class Audio(val id: Long, val name: String, val uri: Uri)

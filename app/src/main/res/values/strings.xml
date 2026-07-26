@@ -8,6 +8,11 @@
     <string name="title_activity_welcome">Just Share</string>
     <string name="title_activity_settings">SettingsActivity</string>
     <string name="title_activity_history">HistoryActivity</string>
-
     <string name="title_activity_wifi_direct_device_select">WifiDirectDeviceSelectActivity</string>
+
+    <!-- Foreground service notification (CommunicationService) -->
+    <string name="notif_channel_transfer_name">File Transfer</string>
+    <string name="notif_channel_transfer_desc">Shows progress while transferring files via Wi-Fi Direct</string>
+    <string name="notif_transfer_title">Just Share</string>
+    <string name="notif_transfer_text">Transferring files…</string>
 </resources>

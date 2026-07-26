@@ -12,7 +12,6 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +53,7 @@ class HistoryActivity : ComponentActivity() {
 
 @Composable
 private fun HistoryScreen(viewModel: HistoryViewModel) {
-    val historyList by viewModel.history.collectAsState()
+    val historyList by viewModel.history.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -189,4 +188,4 @@ private fun HistoryItem(
             }
         }
     }
-}
+import java.util.Locale

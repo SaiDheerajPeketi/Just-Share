@@ -172,7 +172,7 @@ fun DisplayFileswithProgressBar(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 items(list) { item ->
-                    val currFileCount by viewModel.currFileCount.collectAsState()
+                    val currFileCount by viewModel.currFileCount.collectAsStateWithLifecycle()
                     val index = list.indexOf(item)
 
                     Column(
@@ -277,9 +277,9 @@ fun DisplayFileswithProgressBar(
                                         )
                                     }
                                     currFileCount == index -> {
-                                        val progress by viewModel.transferProgress.collectAsState()
+                                        val progress by viewModel.transferProgress.collectAsStateWithLifecycle()
                                         val iterCount by viewModel.getIterationCountFlow().collectAsState(0L)
-                                        val fileSize by viewModel.fileInfoState.collectAsState()
+                                        val fileSize by viewModel.fileInfoState.collectAsStateWithLifecycle()
                                         val receiverPct = if (fileSize > 0) (iterCount * 8192 * 100 / fileSize).toInt() else 0
                                         val sentPct = progress.sentPercent
 
@@ -319,9 +319,9 @@ fun CustomProgressIndicator(
     viewModel: BluetoothViewModel
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val progress by viewModel.transferProgress.collectAsState()
+    val progress by viewModel.transferProgress.collectAsStateWithLifecycle()
     val iterCount by viewModel.getIterationCountFlow().collectAsState(0L)
-    val fileSize by viewModel.fileInfoState.collectAsState()
+    val fileSize by viewModel.fileInfoState.collectAsStateWithLifecycle()
     val receiverPct = if (fileSize > 0) (iterCount * 8192 * 100 / fileSize).toInt() else 0
     val progressValue = maxOf(receiverPct, progress.sentPercent).coerceIn(0, 100)
     val indColor = if (progressValue >= 100) MyRed else Color.Black
@@ -365,4 +365,4 @@ fun CustomProgressIndicator(
 private fun animateAlignmentAsState(targetBiasValue: Float): State<BiasAlignment> {
     val bias by animateFloatAsState(targetBiasValue)
     return derivedStateOf { BiasAlignment(horizontalBias = bias, verticalBias = 0f) }
-}
+import com.invincible.jedishare.ui.theme.Roboto
