@@ -1,0 +1,56 @@
+package com.invincible.jedishare.data
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "jedi_share_prefs")
+
+/**
+ * Manages user preferences via Jetpack DataStore.
+ *
+ * Replaces the previous empty SettingsActivity with persisted key-value storage.
+ */
+@Singleton
+class UserPreferencesDataStore @Inject constructor(
+    private val context: Context
+) {
+    companion object {
+        val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
+        val KEY_DEFAULT_TRANSFER_METHOD = stringPreferencesKey("default_transfer_method")
+        val KEY_CHUNK_SIZE_KB = intPreferencesKey("chunk_size_kb")
+    }
+
+    val isDarkModeEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_DARK_MODE] ?: false
+    }
+
+    val defaultTransferMethod: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[KEY_DEFAULT_TRANSFER_METHOD] ?: "Bluetooth"
+    }
+
+    val chunkSizeKb: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[KEY_CHUNK_SIZE_KB] ?: 8
+    }
+
+    suspend fun setDarkMode(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[KEY_DARK_MODE] = enabled }
+    }
+
+    suspend fun setDefaultTransferMethod(method: String) {
+        context.dataStore.edit { prefs -> prefs[KEY_DEFAULT_TRANSFER_METHOD] = method }
+    }
+
+    suspend fun setChunkSizeKb(sizeKb: Int) {
+        context.dataStore.edit { prefs -> prefs[KEY_CHUNK_SIZE_KB] = sizeKb }
+    }
+}

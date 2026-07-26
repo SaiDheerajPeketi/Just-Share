@@ -2,9 +2,14 @@ package com.invincible.jedishare.di
 
 import android.content.ContentResolver
 import android.content.Context
+import androidx.room.Room
+import com.invincible.jedishare.data.UserPreferencesDataStore
 import com.invincible.jedishare.data.chat.AndroidBluetoothController
+import com.invincible.jedishare.data.db.JediShareDatabase
+import com.invincible.jedishare.data.db.TransferHistoryDao
 import com.invincible.jedishare.data.repository.FileTransferRepository
 import com.invincible.jedishare.data.repository.MediaRepository
+import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.chat.BluetoothController
 import dagger.Module
 import dagger.Provides
@@ -17,27 +22,57 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    @Provides
-    @Singleton
-    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver {
-        return context.contentResolver
-    }
+    // ── System Services ────────────────────────────────────────────────────────
 
     @Provides
     @Singleton
-    fun provideBluetoothController(@ApplicationContext context: Context): BluetoothController {
-        return AndroidBluetoothController(context)
-    }
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =
+        context.contentResolver
+
+    // ── Bluetooth ──────────────────────────────────────────────────────────────
 
     @Provides
     @Singleton
-    fun provideMediaRepository(contentResolver: ContentResolver): MediaRepository {
-        return MediaRepository(contentResolver)
-    }
+    fun provideBluetoothController(@ApplicationContext context: Context): BluetoothController =
+        AndroidBluetoothController(context)
+
+    // ── Media Repositories ─────────────────────────────────────────────────────
 
     @Provides
     @Singleton
-    fun provideFileTransferRepository(contentResolver: ContentResolver): FileTransferRepository {
-        return FileTransferRepository(contentResolver)
-    }
+    fun provideMediaRepository(contentResolver: ContentResolver): MediaRepository =
+        MediaRepository(contentResolver)
+
+    @Provides
+    @Singleton
+    fun provideFileTransferRepository(contentResolver: ContentResolver): FileTransferRepository =
+        FileTransferRepository(contentResolver)
+
+    // ── Room Database ──────────────────────────────────────────────────────────
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): JediShareDatabase =
+        Room.databaseBuilder(
+            context,
+            JediShareDatabase::class.java,
+            JediShareDatabase.DATABASE_NAME
+        ).build()
+
+    @Provides
+    @Singleton
+    fun provideTransferHistoryDao(database: JediShareDatabase): TransferHistoryDao =
+        database.transferHistoryDao()
+
+    @Provides
+    @Singleton
+    fun provideTransferHistoryRepository(dao: TransferHistoryDao): TransferHistoryRepository =
+        TransferHistoryRepository(dao)
+
+    // ── DataStore ──────────────────────────────────────────────────────────────
+
+    @Provides
+    @Singleton
+    fun provideUserPreferencesDataStore(@ApplicationContext context: Context): UserPreferencesDataStore =
+        UserPreferencesDataStore(context)
 }
