@@ -1,5 +1,8 @@
 package com.invincible.jedishare
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.ContentValues
 import android.content.Intent
@@ -9,9 +12,13 @@ import android.os.Environment
 import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.invincible.jedishare.data.chat.toByteArray
 import com.invincible.jedishare.data.chat.toFileInfo
+import com.invincible.jedishare.data.db.TransferHistoryEntity
+import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.chat.FileInfo
+import dagger.hilt.android.AndroidEntryPoint
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -22,11 +29,12 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import javax.inject.Inject
 
 /**
  * Android Service for WiFi-Direct file transfer over raw TCP sockets.
+ * Runs as a foreground service (required on API 34+ with foregroundServiceType=dataSync).
  *
  * Fixes applied (TODO-07):
  * - Removed all runBlocking{} + delay() calls that were blocking executor threads.
@@ -38,7 +46,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * - All dead commented-out code removed.
  * - Added proper null-safety throughout.
  */
+@AndroidEntryPoint
 class CommunicationService : Service() {
+
+    @Inject
+    lateinit var historyRepository: TransferHistoryRepository
 
     companion object {
         private const val TAG = "CommService"
@@ -46,7 +58,7 @@ class CommunicationService : Service() {
         const val CLIENT_ROLE = 1
         const val CHUNK_SIZE = 8192 // 8 KB — matches BluetoothDataTransferService
 
-        const val ACTION_SEND_MSG           = "com.invincible.jedishare.ACTION_SEND_MSG"
+        const val ACTION_SEND_MSG            = "com.invincible.jedishare.ACTION_SEND_MSG"
         const val ACTION_START_COMMUNICATION = "com.invincible.jedishare.ACTION_START_COMMUNICATION"
         const val ACTION_STOP_COMMUNICATION  = "com.invincible.jedishare.STOP_COMMUNICATION"
 
@@ -58,6 +70,9 @@ class CommunicationService : Service() {
         const val EXTRAS_FILE_NAME           = "com.invincible.jedishare.EXTRAS_FILE_NAME"
         const val EXTRAS_FILE_SIZE           = "com.invincible.jedishare.EXTRAS_FILE_SIZE"
         const val BROADCAST_SENDING_UPDATE   = "com.invincible.jedishare.SENDING_UPDATE"
+
+        private const val NOTIF_CHANNEL_ID = "jedishare_transfer"
+        private const val NOTIF_ID = 42
 
         private const val CONNECTED     = 0
         private const val NOT_CONNECTED = 1
@@ -71,9 +86,52 @@ class CommunicationService : Service() {
     private var serverSocket: ServerSocket?       = null
     private var dataOutputStream: DataOutputStream? = null
 
+    // Tracks remote device name for history logging
+    private var remoteDeviceName: String? = null
+
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
         Log.d(TAG, "Service created")
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                NOTIF_CHANNEL_ID,
+                getString(R.string.notif_channel_transfer_name),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = getString(R.string.notif_channel_transfer_desc)
+                setShowBadge(false)
+            }
+            val mgr = getSystemService(NotificationManager::class.java)
+            mgr?.createNotificationChannel(channel)
+        }
+    }
+
+    private fun startForegroundNotification() {
+        val openAppIntent = PendingIntent.getActivity(
+            this, 0,
+            packageManager.getLaunchIntentForPackage(packageName),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val notification = NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(getString(R.string.notif_transfer_title))
+            .setContentText(getString(R.string.notif_transfer_text))
+            .setContentIntent(openAppIntent)
+            .setOngoing(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTIF_ID, notification)
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -134,6 +192,7 @@ class CommunicationService : Service() {
             serverSocket = null
         }
         Log.d(TAG, "Server: client connected")
+        startForegroundNotification()   // Required for API 34+ dataSync foreground service
         messageReadingLoop(deviceName)
     }
 
@@ -150,6 +209,7 @@ class CommunicationService : Service() {
             return
         }
         Log.d(TAG, "Client: connected")
+        startForegroundNotification()   // Required for API 34+ dataSync foreground service
         messageReadingLoop(deviceName)
     }
 
@@ -172,6 +232,7 @@ class CommunicationService : Service() {
 
         DataInputStream(socket.getInputStream()).use { dataInput ->
             val remoteDevice = dataInput.readUTF()
+            remoteDeviceName = remoteDevice
             Log.d(TAG, "Connected to: $remoteDevice")
             serviceState.set(CONNECTED)
 
@@ -197,6 +258,28 @@ class CommunicationService : Service() {
                     // EOF sentinel: full chunk of 0xFF
                     bytesRead == CHUNK_SIZE && chunk.all { it == 0xFF.toByte() } -> {
                         Log.d(TAG, "EOF sentinel — file '$fileName' complete")
+                        // TODO-15: Log completed WiFi Direct transfer to history DB
+                        val snap_fileName = fileName
+                        val snap_fileSize = fileSize
+                        val snap_mimeType = fileUri?.let {
+                            contentResolver.getType(it)
+                        }
+                        try {
+                            kotlinx.coroutines.runBlocking {
+                                historyRepository.addEntry(
+                                    TransferHistoryEntity(
+                                        fileName         = snap_fileName,
+                                        mimeType         = snap_mimeType,
+                                        fileSizeBytes    = snap_fileSize,
+                                        isSender         = false,
+                                        transferMethod   = "WiFi-Direct",
+                                        remoteDeviceName = remoteDeviceName
+                                    )
+                                )
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to save history entry", e)
+                        }
                         // Broadcast 100% completion
                         progressIntent.apply {
                             putExtra(EXTRAS_PROGRESS_STATE, 100)
@@ -348,6 +431,8 @@ class CommunicationService : Service() {
         dataOutputStream = null
         executorService.shutdownNow()
         serviceState.set(NOT_CONNECTED)
+        @Suppress("DEPRECATION")
+        stopForeground(true)
         stopSelf()
     }
 

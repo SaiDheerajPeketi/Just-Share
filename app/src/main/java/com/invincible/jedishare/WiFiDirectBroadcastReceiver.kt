@@ -9,78 +9,74 @@ import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.util.Log
 import androidx.core.location.LocationManagerCompat
+import com.invincible.jedishare.presentation.WifiDirectViewModel
 
+/**
+ * Handles WiFi Direct system broadcasts and delegates to [WifiDirectViewModel].
+ *
+ * Fix (TODO-18): Previously called Activity methods directly (e.g. activity.setWiFiDirectActive()).
+ * Now delegates to ViewModel methods to respect the MVVM boundary.
+ */
 class WiFiDirectBroadcastReceiver(
-    private val activity: WifiDirectDeviceSelectActivity
-): BroadcastReceiver() {
+    private val activity: WifiDirectDeviceSelectActivity,
+    private val viewModel: WifiDirectViewModel
+) : BroadcastReceiver() {
 
+    private val TAG = "WifiDirectReceiver"
+
+    @Suppress("DEPRECATION") // EXTRA_NETWORK_INFO deprecated in API 29 but needed for P2P
     override fun onReceive(context: Context?, intent: Intent?) {
-        if(intent != null){
-            when(intent.action){
-                WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
-                    val state = intent.getIntExtra(
-                        WifiP2pManager.EXTRA_WIFI_STATE,
-                        WifiP2pManager.WIFI_P2P_STATE_DISABLED
-                    )
-                    if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
-                        Log.d(activity.TAG, "Wi-Fi P2P enabled")
-                        activity.setWiFiDirectActive(true)
-                    } else {
-                        Log.d(activity.TAG, "Wi-Fi P2P disabled")
-                        activity.setWiFiDirectActive(false)
-                    }
-                }
+        when (intent?.action) {
+            WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
+                val state = intent.getIntExtra(
+                    WifiP2pManager.EXTRA_WIFI_STATE,
+                    WifiP2pManager.WIFI_P2P_STATE_DISABLED
+                )
+                val enabled = state == WifiP2pManager.WIFI_P2P_STATE_ENABLED
+                Log.d(TAG, "Wi-Fi P2P state: ${if (enabled) "enabled" else "disabled"}")
+                viewModel.onWifiDirectEnabled(enabled)
+            }
 
-                WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
-                    Log.d(activity.TAG, "Peer list changed")
-                    activity.requestPeerList()
-                }
+            WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
+                Log.d(TAG, "Peer list changed")
+                viewModel.onPeersChanged()
+            }
 
-                WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
-                    if(isInitialStickyBroadcast){
-                        return
-                    }
-                    var networkInfo: NetworkInfo? = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO)
-                    if(networkInfo?.isConnected == true){
-                        Log.d(activity.TAG, "Wi-fi direct new connection")
-                        activity.newWiFiDirectConnection()
-                    }
-                    else{
-                        Log.d(activity.TAG, "Wi-fi direct disconnected")
-                        activity.disconnectP2P()
-                    }
+            WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
+                if (isInitialStickyBroadcast) return
+                val networkInfo: NetworkInfo? =
+                    intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO)
+                if (networkInfo?.isConnected == true) {
+                    Log.d(TAG, "Wi-Fi Direct connected")
+                    viewModel.onConnectionChanged()
+                } else {
+                    Log.d(TAG, "Wi-Fi Direct disconnected")
+                    viewModel.disconnectP2P()
                 }
-                WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION -> {
-                    var device: WifiP2pDevice? = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)
-                    if (device != null) {
-                        activity.setWifiP2PdeviceName(device.deviceName)
-                    }
-                }
-                WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION -> {
-                    val state = intent.getIntExtra(WifiP2pManager.EXTRA_DISCOVERY_STATE, 10000)
-                    if (state == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED) {
-                        Log.d(activity.TAG, "Wi-Fi P2P discovery started")
-                        activity.setIsDiscovering(true)
-                    } else if (state == WifiP2pManager.WIFI_P2P_DISCOVERY_STOPPED) {
-                        Log.d(activity.TAG, "Wi-Fi P2P discovery stopped")
-                        activity.setIsDiscovering(false)
-                    } else {
-                        Log.d(activity.TAG, "onReceive: $state")
-                    }
-                }
-                LocationManager.PROVIDERS_CHANGED_ACTION -> {
+            }
 
-                    Log.d(activity.TAG, "Location state change")
-                    val locationManager =
-                        context!!.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-                    activity.setLocationState(
-                        LocationManagerCompat.isLocationEnabled(
-                            locationManager
-                        )
-                    )
-                }
+            WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION -> {
+                val device: WifiP2pDevice? =
+                    intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)
+                viewModel.onThisDeviceChanged(device?.deviceName)
+            }
+
+            WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION -> {
+                val state = intent.getIntExtra(WifiP2pManager.EXTRA_DISCOVERY_STATE, -1)
+                val discovering = state == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED
+                Log.d(TAG, "Discovery: ${if (discovering) "started" else "stopped"}")
+                viewModel.onDiscoveryStateChanged(discovering)
+            }
+
+            LocationManager.PROVIDERS_CHANGED_ACTION -> {
+                val locationManager =
+                    context?.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+                val locationEnabled = locationManager?.let {
+                    LocationManagerCompat.isLocationEnabled(it)
+                } ?: true
+                Log.d(TAG, "Location state: $locationEnabled")
+                if (!locationEnabled) viewModel.onLocationDisabled()
             }
         }
     }
-
 }

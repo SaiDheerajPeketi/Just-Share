@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +53,7 @@ class DeviceList : ComponentActivity() {
         setContent {
             JediShareTheme {
                 val viewModel = hiltViewModel<BluetoothViewModel>()
-                val state by viewModel.state.collectAsState()
+                val state by viewModel.state.collectAsStateWithLifecycle()
 
                 LaunchedEffect(state.errorMessage) {
                     state.errorMessage?.let { message ->
@@ -126,4 +125,4 @@ class DeviceList : ComponentActivity() {
             }
         }
     }
-}
+import dagger.hilt.android.AndroidEntryPoint

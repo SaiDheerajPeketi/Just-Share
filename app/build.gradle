@@ -109,4 +109,8 @@ dependencies {
 // Allow references to generated code
 kapt {
     correctErrorTypes true
+    arguments {
+        // Room schema export path — enables MigrationTestHelper in tests (TODO-20)
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 }
