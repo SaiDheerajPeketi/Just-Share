@@ -88,119 +88,50 @@ class MainActivity : ComponentActivity() {
     private val isBluetoothEnabled: Boolean
         get() = bluetoothAdapter?.isEnabled == true
 
-    private val permissionsToRequest = if (Build.VERSION.SDK_INT >= 33) {
-        arrayOf(
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.CHANGE_WIFI_STATE,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.CHANGE_NETWORK_STATE,
-            Manifest.permission.INTERNET,
-            Manifest.permission.FOREGROUND_SERVICE,
-            Manifest.permission.NEARBY_WIFI_DEVICES,
-            Manifest.permission.READ_MEDIA_AUDIO,
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.MANAGE_EXTERNAL_STORAGE,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT
+    private val permissionsToRequest: Array<String> = buildList {
+        // Network / WiFi Direct (all API levels)
+        add(Manifest.permission.ACCESS_WIFI_STATE)
+        add(Manifest.permission.CHANGE_WIFI_STATE)
+        add(Manifest.permission.ACCESS_NETWORK_STATE)
+        add(Manifest.permission.CHANGE_NETWORK_STATE)
+        add(Manifest.permission.INTERNET)
+        add(Manifest.permission.FOREGROUND_SERVICE)
 
-        )
-    } else if(Build.VERSION.SDK_INT >= 29) {
-        arrayOf(
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.CHANGE_WIFI_STATE,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.CHANGE_NETWORK_STATE,
-            Manifest.permission.INTERNET,
-            Manifest.permission.FOREGROUND_SERVICE,
-            Manifest.permission.READ_MEDIA_AUDIO,
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.MANAGE_EXTERNAL_STORAGE,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT
-        )
-    }
-    else{
-        arrayOf(  Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.CHANGE_WIFI_STATE,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.CHANGE_NETWORK_STATE,
-            Manifest.permission.INTERNET,
-            Manifest.permission.READ_MEDIA_AUDIO,
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.MANAGE_EXTERNAL_STORAGE,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT
-        )
-    }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
+            // Granular media permissions replace READ_EXTERNAL_STORAGE on API 33+
+            add(Manifest.permission.READ_MEDIA_IMAGES)
+            add(Manifest.permission.READ_MEDIA_VIDEO)
+            add(Manifest.permission.READ_MEDIA_AUDIO)
+            // NEARBY_WIFI_DEVICES replaces location for WiFi Direct on API 33+
+            add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            // Bluetooth permissions (API 31+)
+            add(Manifest.permission.BLUETOOTH_SCAN)
+            add(Manifest.permission.BLUETOOTH_CONNECT)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // API 31-32
+            add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            add(Manifest.permission.BLUETOOTH_SCAN)
+            add(Manifest.permission.BLUETOOTH_CONNECT)
+        } else { // API 24-30
+            add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+    }.toTypedArray()
 
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestMultiplePermissions.launch(
-            permissionsToRequest
-        )
+
         val enableBluetoothLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
-        ) { /* Not needed */ }
+        ) { /* Bluetooth enable result handled implicitly via BluetoothController */ }
 
-
-        val permissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
-        ) { perms ->
-            val canEnableBluetooth = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                perms[Manifest.permission.BLUETOOTH_CONNECT] == true
-            } else true
-
-            if(canEnableBluetooth && !isBluetoothEnabled) {
-                enableBluetoothLauncher.launch(
-                    Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                )
-            }
-        }
-
-//        // Check if BLUETOOTH_CONNECT permission is already granted
-//        val isBluetoothConnectPermissionGranted = ContextCompat.checkSelfPermission(
-//            this,
-//            Manifest.permission.BLUETOOTH_CONNECT
-//        ) == PackageManager.PERMISSION_GRANTED
-//        if(isBluetoothConnectPermissionGranted){
-//            Log.e("MYTAG", "permission hai bro")
-//        }else{
-//            Log.e("MYTAG", "no permission hai bro")
-//        }
-//
-//        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-//            permissionLauncher.launch(
-//                arrayOf(
-//                    Manifest.permission.BLUETOOTH_SCAN,
-//                    Manifest.permission.BLUETOOTH_CONNECT,
-//                )
-//            )
-//        }
-
-        requestMultiplePermissions.launch(
-            permissionsToRequest
-        )
+        // Request all required runtime permissions in one shot
+        requestMultiplePermissions.launch(permissionsToRequest)
 
 
         setContent {

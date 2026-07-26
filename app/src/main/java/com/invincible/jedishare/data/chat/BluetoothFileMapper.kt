@@ -1,43 +1,40 @@
 package com.invincible.jedishare.data.chat
 
-import com.invincible.jedishare.domain.chat.FileData
+import android.util.Log
 import com.invincible.jedishare.domain.chat.FileInfo
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
+import org.json.JSONObject
 
-fun FileData.toByteArray(): ByteArray? {
-    val byteArrayOutputStream = ByteArrayOutputStream()
-    val objectOutputStream = ObjectOutputStream(byteArrayOutputStream)
-    objectOutputStream.writeObject(this)
-    objectOutputStream.close()
-    return byteArrayOutputStream.toByteArray()
-}
+/**
+ * Extension functions for serializing [FileInfo] over the wire.
+ *
+ * Fix (TODO-03): Replaced Java [ObjectInputStream]/[ObjectOutputStream] serialization
+ * with JSON encoding via Android's built-in [org.json.JSONObject].
+ *
+ * Rationale:
+ *  - Java serialization is unsafe (gadget chain attacks, class version mismatches).
+ *  - JSONObject is available on all Android API levels without added dependencies.
+ *  - The wire format is now human-readable and debuggable.
+ */
 
-fun FileInfo.toByteArray(): ByteArray?{
-    val byteArrayOutputStream = ByteArrayOutputStream()
-    val objectOutputStream = ObjectOutputStream(byteArrayOutputStream)
-    objectOutputStream.writeObject(this)
-    objectOutputStream.close()
-    return byteArrayOutputStream.toByteArray()
-}
+private const val TAG = "BluetoothFileMapper"
 
-fun ByteArray.toFileInfo(): FileInfo?{
-    val byteArrayInputStream = ByteArrayInputStream(this)
-    val objectInputStream = ObjectInputStream(byteArrayInputStream)
-    val obj = objectInputStream.readObject() as? FileInfo
-    objectInputStream.close()
-    return obj
-}
+/** Serializes this [FileInfo] to a compact JSON UTF-8 byte array. */
+fun FileInfo.toByteArray(): ByteArray? = runCatching {
+    JSONObject().apply {
+        put("fileName", fileName ?: JSONObject.NULL)
+        put("format",   format   ?: JSONObject.NULL)
+        put("size",     size     ?: JSONObject.NULL)
+        put("mimeType", mimeType ?: JSONObject.NULL)
+    }.toString().encodeToByteArray()
+}.onFailure { Log.e(TAG, "FileInfo serialization failed", it) }.getOrNull()
 
-fun ByteArray.toFileData(isFromLocalUser: Boolean): FileData? {
-    val byteArrayInputStream = ByteArrayInputStream(this)
-    val objectInputStream = ObjectInputStream(byteArrayInputStream)
-    val obj = objectInputStream.readObject() as? FileData
-    if (obj != null) {
-        obj.isFromLocalUser = isFromLocalUser
-    }
-    objectInputStream.close()
-    return obj
-}
+/** Deserializes a UTF-8 JSON byte array back to [FileInfo], or null on error. */
+fun ByteArray.toFileInfo(): FileInfo? = runCatching {
+    val json = JSONObject(this.decodeToString())
+    FileInfo(
+        fileName = json.optString("fileName").takeIf { it.isNotEmpty() },
+        format   = json.optString("format").takeIf   { it.isNotEmpty() },
+        size     = json.optString("size").takeIf     { it.isNotEmpty() },
+        mimeType = json.optString("mimeType").takeIf { it.isNotEmpty() }
+    )
+}.onFailure { Log.e(TAG, "FileInfo deserialization failed", it) }.getOrNull()
