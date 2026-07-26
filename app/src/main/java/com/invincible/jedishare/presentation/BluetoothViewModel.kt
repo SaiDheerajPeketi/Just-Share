@@ -1,52 +1,49 @@
 package com.invincible.jedishare.presentation
 
-import android.content.ContentResolver
-import android.content.ContentValues
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.invincible.jedishare.MainActivity
-import com.invincible.jedishare.SharingApp
 import com.invincible.jedishare.data.chat.toBluetoothMessage
 import com.invincible.jedishare.data.chat.toFileInfo
+import com.invincible.jedishare.data.repository.FileTransferRepository
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.ConnectionResult
-import com.invincible.jedishare.getFileDetailsFromUri
-import com.invincible.jedishare.presentation.components.CustomProgressIndicator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.io.IOException
 import javax.inject.Inject
 
+/**
+ * ViewModel for the Bluetooth transfer flow.
+ *
+ * MVVM architecture:
+ * - All state is exposed as [StateFlow] / [SharedFlow] — no raw mutable public fields.
+ * - File I/O is fully delegated to [FileTransferRepository].
+ * - [BluetoothController] has no ViewModel reference; the ViewModel subscribes to its Flows.
+ * - [viewModelScope] is the only coroutine scope used; lifecycle is automatically handled.
+ */
 @HiltViewModel
 class BluetoothViewModel @Inject constructor(
-    private val bluetoothController: BluetoothController
-): ViewModel() {
+    private val bluetoothController: BluetoothController,
+    private val fileTransferRepository: FileTransferRepository
+) : ViewModel() {
+
+    // ── Core Connection State ──────────────────────────────────────────────────
 
     private val _state = MutableStateFlow(BluetoothUiState())
-    var contentResolver: ContentResolver? = null
-    val state = combine(
+
+    /** Main combined state: pairs BT controller device lists with UI state. */
+    val state: StateFlow<BluetoothUiState> = combine(
         bluetoothController.scannedDevices,
         bluetoothController.pairedDevices,
         _state
     ) { scannedDevices, pairedDevices, state ->
         state.copy(
             scannedDevices = scannedDevices,
-            pairedDevices = pairedDevices,
-            messages = if(state.isConnected) state.messages else emptyList()
+            pairedDevices = pairedDevices
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _state.value)
 
@@ -58,213 +55,152 @@ class BluetoothViewModel @Inject constructor(
         }.launchIn(viewModelScope)
 
         bluetoothController.errors.onEach { error ->
-            _state.update { it.copy(
-                errorMessage = error
-            ) }
+            _state.update { it.copy(errorMessage = error) }
         }.launchIn(viewModelScope)
     }
+
+    // ── Transfer Progress State ────────────────────────────────────────────────
+
+    /** Progress state for sender + receiver sides. */
+    private val _transferProgress = MutableStateFlow(TransferProgressState())
+    val transferProgress: StateFlow<TransferProgressState> = _transferProgress.asStateFlow()
+
+    /** Which file index is currently being transferred (0-based). */
+    private val _currFileCount = MutableStateFlow(0)
+    val currFileCount: StateFlow<Int> = _currFileCount.asStateFlow()
+
+    /** Total size of the current file (bytes), used to compute receiver progress %. */
+    private val _currentFileSize = MutableStateFlow(1L)
+    val fileInfoState: StateFlow<Long> = _currentFileSize.asStateFlow()
+
+    /** Emits the chunk iteration count (sender side) for the progress bar. */
+    private val _iterationCountFlow = MutableSharedFlow<Long>()
+    fun getIterationCountFlow(): SharedFlow<Long> = _iterationCountFlow.asSharedFlow()
+
+    // ── URI List ───────────────────────────────────────────────────────────────
+
+    private val _uriList = MutableStateFlow<List<Uri>>(emptyList())
+    val uriList: StateFlow<List<Uri>> = _uriList.asStateFlow()
+
+    fun setUriList(uris: List<Uri>) { _uriList.value = uris }
+    fun getUriList(): List<Uri> = _uriList.value
+
+    // ── Actions ────────────────────────────────────────────────────────────────
 
     fun connectToDevice(device: BluetoothDeviceDomain) {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .connectToDevice(device, this@BluetoothViewModel)
-            .listen()
+            .connectToDevice(device)
+            .listenForResults()
     }
 
     fun disconnectFromDevice() {
         deviceConnectionJob?.cancel()
         bluetoothController.closeConnection()
-        _state.update { it.copy(
-            isConnecting = false,
-            isConnected = false
-        ) }
+        _state.update { it.copy(isConnecting = false, isConnected = false) }
     }
 
     fun waitForIncomingConnections() {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
-            .startBluetoothServer(this@BluetoothViewModel)
-            .listen()
+            .startBluetoothServer()
+            .listenForResults()
     }
 
-    private val _iterationCountFlow = MutableSharedFlow<Long>()
-    fun getIterationCountFlow(): MutableSharedFlow<Long> = _iterationCountFlow
+    fun startScan() = bluetoothController.startDiscovery()
+    fun stopScan() = bluetoothController.stopDiscovery()
 
-    private val _fileSizeState = MutableStateFlow<Long>(1)
-    val fileInfoState: StateFlow<Long> = _fileSizeState
-    fun setFileInfo(fileSize: Long?) {
-        if (fileSize != null) {
-            _fileSizeState.value = fileSize
-        }
-    }
-
-    private val _currFileCount = MutableStateFlow<Int>(0)
-    val currFileCount: MutableStateFlow<Int> = _currFileCount
-
-    fun setCurrFileCount(newValue: Int){
-        _currFileCount.value = newValue
-        Log.e("MYTAG3", currFileCount.value.toString())
-    }
-
-    // Getting and Setting the UriList
-    private val _uriList = mutableStateOf<List<Uri>>(emptyList())
-
-    fun setUriList(uris: List<Uri>) {
-        _uriList.value = uris
-    }
-    fun getUriList(): List<Uri> {
-        return _uriList.value
-    }
-
-    fun sendMessage(message: String){
+    fun sendMessage(message: String) {
         viewModelScope.launch {
-            val iterationCountFlow = getIterationCountFlow() // Get the SharedFlow from the ViewModel
-            val bluetoothMessage = bluetoothController.trySendMessage(message, iterationCountFlow, this@BluetoothViewModel)
-            if(bluetoothMessage != null){
-                _state.update { it.copy(
-                    messages = it.messages + bluetoothMessage
-                ) }
+            val uris = _uriList.value
+            if (uris.isEmpty()) {
+                Log.w("BluetoothViewModel", "sendMessage called with empty URI list")
+                return@launch
+            }
+            val bluetoothMessage = bluetoothController.trySendMessage(
+                uriList = uris,
+                iterationCountFlow = _iterationCountFlow,
+                onFileSizeResolved = { size -> _currentFileSize.value = size },
+                onFileCountUpdated = { count -> _currFileCount.value = count }
+            )
+            if (bluetoothMessage != null) {
+                _state.update { it.copy(messages = it.messages + bluetoothMessage) }
             }
         }
     }
 
-    fun startScan() {
-        bluetoothController.startDiscovery()
-    }
+    /** Exposes for legacy UI compat. Use [transferProgress] for new UI. */
+    val statee: StateFlow<BluetoothUiState> get() = _state.asStateFlow()
 
-    fun stopScan() {
-        bluetoothController.stopDiscovery()
-    }
+    // ── Internal: Flow Listener ────────────────────────────────────────────────
 
-    // Functions to send currSize to the progressIndicator
-    private val _statee = MutableStateFlow(BluetoothUiState())
-    val statee: StateFlow<BluetoothUiState> get() = _statee
+    /**
+     * Collects a [ConnectionResult] Flow, routing results to state and I/O repository.
+     * Handles multi-file transfers: [ConnectionResult.EndOfFile] triggers a new file slot.
+     */
+    private fun Flow<ConnectionResult>.listenForResults(): Job {
+        var fileUri: android.net.Uri? = null
+        var isFirstChunk = true
 
-    private fun updateState(newState: BluetoothUiState) {
-        _statee.value = newState
-    }
-
-    private fun setGlobalSize(newCurrSize: Long, globalsize: Long?) {
-        globalsize?.let { _statee.value.copy(currSize = newCurrSize, globalSize = it) }
-            ?.let { updateState(it) }
-//        updateState(globalsize?.let { _statee.value.copy(currSize = newCurrSize, globalSize = it) })
-    }
-    private fun updateCurrSize(newCurrSize: Long) {
-        updateState(_statee.value.copy(currSize = newCurrSize))
-    }
-
-    var isFirst: Boolean = true
-
-    private fun Flow<ConnectionResult>.listen(): Job {
-        var currSize: Long = -1
-        var fileUri: Uri? = null
         return onEach { result ->
-            when(result) {
-                ConnectionResult.ConnectionEstablished -> {
-                    _state.update { it.copy(
-                        isConnected = true,
-                        isConnecting = false,
-                        errorMessage = null
-                    ) }
+            when (result) {
+                is ConnectionResult.ConnectionEstablished -> {
+                    isFirstChunk = true
+                    fileUri = null
+                    _state.update {
+                        it.copy(isConnected = true, isConnecting = false, errorMessage = null)
+                    }
+                    Log.d("BluetoothViewModel", "Connection established")
                 }
+
                 is ConnectionResult.TransferSucceeded -> {
-                    _state.update { it.copy(
-                        messages = it.messages + result.message.toString().toBluetoothMessage(false)
-                    ) }
-                    if(isFirst){
-                        isFirst = false
-                        currSize = 0
+                    if (isFirstChunk) {
+                        // First chunk after connection/EOF is always FileInfo metadata
+                        isFirstChunk = false
                         val fileInfo = result.message.toFileInfo()
-
-                        val fileName = fileInfo?.fileName ?: ""
-                        val format = fileInfo?.format ?: ""
-                        val mimeType = fileInfo?.mimeType ?: ""
-
-                        Log.e("HELLOME", fileInfo.toString())
-
-                        // Setting globalSize
+                        Log.d("BluetoothViewModel", "Incoming file metadata: $fileInfo")
                         if (fileInfo != null) {
-                            fileInfo.size?.let { setGlobalSize(1, it.toLong()) }
-                        }
-
-                        // Create a content values to store file information
-                        val values = ContentValues().apply {
-                            put(MediaStore.Files.FileColumns.DISPLAY_NAME, "$fileName")
-                            put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                when {
-                                    mimeType.startsWith("image/") -> put(
-                                        MediaStore.Images.Media.RELATIVE_PATH,
-                                        Environment.DIRECTORY_PICTURES
-                                    )
-                                    mimeType.startsWith("audio/") -> put(
-                                        MediaStore.Audio.Media.RELATIVE_PATH,
-                                        Environment.DIRECTORY_MUSIC
-                                    )
-                                    mimeType.startsWith("video/") -> put(
-                                        MediaStore.Video.Media.RELATIVE_PATH,
-                                        Environment.DIRECTORY_MOVIES
-                                    )
-                                }
+                            _currentFileSize.value = fileInfo.size?.toLong() ?: 1L
+                            viewModelScope.launch {
+                                fileUri = fileTransferRepository.createMediaStoreEntry(fileInfo)
+                                Log.d("BluetoothViewModel", "MediaStore entry created: $fileUri")
                             }
                         }
-
-                        // Get the content URI for the new media entry
-                        val contentUri = when {
-                            mimeType.startsWith("image/") -> MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-                            mimeType.startsWith("audio/") -> MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-                            mimeType.startsWith("video/") -> MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-                            else -> MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-                        }
-
-                        fileUri = contentResolver?.insert(contentUri, values)
-
-                    }
-                    else{
-                        try {
-                            fileUri?.let {
-//                                // Open an output stream to write file data
-//                                delay(1)
-
-                                contentResolver?.openOutputStream(it, "wa")?.use { outputStream ->
-//                                    Log.e("HELLOME",result.message.size.toString())
-//                                    Log.e("HELLOME",outputStream.toString())
-                                    currSize = currSize + result.message.size
-                                    outputStream.write(result.message)
-//                                    outputStream.write(result.message, currSize.toInt(),result.message.size)
-
-
-                                    updateCurrSize(currSize.toLong())
-//
-                                }
-//
-                                Log.e("HELLOME", "File saved to MediaStore: $it " + currSize)
-//
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-//                            Log.e("HELLOME", "Failed to write to MediaStore" + e.toString())
-                            Log.e("HELLOERROR", e.toString())
+                    } else {
+                        // Subsequent chunks are raw file bytes
+                        val currentUri = fileUri ?: return@onEach
+                        viewModelScope.launch {
+                            fileTransferRepository.appendChunkToFile(currentUri, result.message)
+                            val received = _transferProgress.value.bytesReceived + result.message.size
+                            _transferProgress.update { it.copy(bytesReceived = received) }
                         }
                     }
                 }
+
+                is ConnectionResult.EndOfFile -> {
+                    // Prepare for next file in multi-file transfer
+                    Log.d("BluetoothViewModel", "End of file received; ready for next file")
+                    isFirstChunk = true
+                    fileUri = null
+                    val newCount = _currFileCount.value + 1
+                    _currFileCount.value = newCount
+                    _transferProgress.update {
+                        it.copy(bytesReceived = 0L, totalBytes = 1L)
+                    }
+                }
+
                 is ConnectionResult.Error -> {
-                    _state.update { it.copy(
-                        isConnected = false,
-                        isConnecting = false,
-                        errorMessage = result.message
-                    ) }
+                    Log.e("BluetoothViewModel", "Connection error: ${result.message}")
+                    _state.update {
+                        it.copy(isConnected = false, isConnecting = false, errorMessage = result.message)
+                    }
                 }
             }
-        }
-            .catch { throwable ->
-                bluetoothController.closeConnection()
-                _state.update { it.copy(
-                    isConnected = false,
-                    isConnecting = false,
-                ) }
-            }
-            .launchIn(viewModelScope)
+        }.catch { throwable ->
+            Log.e("BluetoothViewModel", "Connection flow error", throwable)
+            bluetoothController.closeConnection()
+            _state.update { it.copy(isConnected = false, isConnecting = false) }
+        }.launchIn(viewModelScope)
     }
 
     override fun onCleared() {
@@ -272,3 +208,18 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.release()
     }
 }
+
+/** Tracks bytes sent / received for the active file transfer. */
+data class TransferProgressState(
+    val bytesSent: Long = 0L,
+    val bytesReceived: Long = 0L,
+    val totalBytes: Long = 1L
+) {
+    val sentPercent: Int get() = if (totalBytes > 0) ((bytesSent * 100) / totalBytes).toInt().coerceIn(0, 100) else 0
+    val receivedPercent: Int get() = if (totalBytes > 0) ((bytesReceived * 100) / totalBytes).toInt().coerceIn(0, 100) else 0
+}
+
+/** Models for SelectFile screen — kept here to avoid extra files for small data classes. */
+data class Image(val id: Long, val name: String, val uri: android.net.Uri)
+data class Video(val id: Long, val name: String, val uri: android.net.Uri)
+data class Audio(val id: Long, val name: String, val uri: android.net.Uri)

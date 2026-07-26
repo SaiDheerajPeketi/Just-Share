@@ -1,11 +1,16 @@
 package com.invincible.jedishare.domain.chat
 
-import com.invincible.jedishare.presentation.BluetoothViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/**
+ * Domain interface for all Bluetooth operations.
+ *
+ * MVVM fix: ViewModel is no longer passed as a parameter to any method here.
+ * The data layer communicates exclusively through [Flow] / [StateFlow] / [SharedFlow].
+ */
 interface BluetoothController {
     val isConnected: StateFlow<Boolean>
     val scannedDevices: StateFlow<List<BluetoothDevice>>
@@ -15,13 +20,24 @@ interface BluetoothController {
     fun startDiscovery()
     fun stopDiscovery()
 
-    fun startBluetoothServer(viewModel: BluetoothViewModel): Flow<ConnectionResult>
-    fun connectToDevice(device: BluetoothDevice, viewModel: BluetoothViewModel): Flow<ConnectionResult>
+    /** Opens a server socket and emits connection/transfer results as a cold Flow. */
+    fun startBluetoothServer(): Flow<ConnectionResult>
 
-    suspend fun trySendMessage(message: String,
-                               iterationCountFlow: MutableSharedFlow<Long>, // Use SharedFlow to emit values
-                               viewModel: BluetoothViewModel
-                               ): BluetoothMessage?
+    /** Connects to a remote device and emits connection/transfer results as a cold Flow. */
+    fun connectToDevice(device: BluetoothDevice): Flow<ConnectionResult>
+
+    /**
+     * Sends the files represented by [uriList] over the active Bluetooth connection.
+     * Emits each chunk iteration index to [iterationCountFlow] for progress tracking.
+     *
+     * @return A [BluetoothMessage] summary if send succeeded, or null on failure.
+     */
+    suspend fun trySendMessage(
+        uriList: List<android.net.Uri>,
+        iterationCountFlow: MutableSharedFlow<Long>,
+        onFileSizeResolved: (Long) -> Unit,
+        onFileCountUpdated: (Int) -> Unit
+    ): BluetoothMessage?
 
     fun closeConnection()
     fun release()
