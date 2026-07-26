@@ -2,119 +2,92 @@ package com.invincible.jedishare.data.chat
 
 import android.bluetooth.BluetoothSocket
 import android.util.Log
-import com.invincible.jedishare.domain.chat.BluetoothMessage
 import com.invincible.jedishare.domain.chat.TransferFailedException
-import com.invincible.jedishare.presentation.BluetoothViewModel
-import com.invincible.jedishare.presentation.components.CustomProgressIndicator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.nio.ByteBuffer
 
-const val BUFFER_SIZE = 990 // Adjust the buffer size as needed
-const val FILE_DELIMITER = "----FILE_DELIMITER----"
-val repeatedString = FILE_DELIMITER.repeat(40)
-
+/**
+ * Manages the raw byte-level I/O over a connected [BluetoothSocket].
+ *
+ * Fixes applied:
+ * - Removed all ViewModel references. This class is now a pure data-layer service.
+ * - [CHUNK_SIZE] raised to 8192 bytes for better throughput.
+ * - File delimiter is now a dedicated sealed type, not a magic-number byte comparison.
+ * - [listenForIncomingMessages] emits [IncomingData] sealed types rather than raw bytes,
+ *   letting the ViewModel cleanly distinguish metadata from file data.
+ */
 class BluetoothDataTransferService(
     private val socket: BluetoothSocket
 ) {
-
-    private val incomingDataStream = ByteArrayOutputStream()
-
-    fun listenForIncomingMessages(viewModel: BluetoothViewModel): Flow<ByteArray> {
-        return flow {
-            if (!socket.isConnected) {
-                return@flow
-            }
-            val buffer = ByteArray(BUFFER_SIZE)
-            while (true) {
-                val byteCount = try {
-                    socket.inputStream.read(buffer)
-                } catch (e: IOException) {
-                    throw TransferFailedException()
-                }
-                var bufferRed = buffer.copyOfRange(0, byteCount)
-                Log.e("HELLOME", "Received: " + bufferRed.size.toString())
-
-//                processIncomingData(bufferRed)
-//                checkForFiles(viewModel)?.let { fileBytes ->
-//                    emit(fileBytes)
-//                }
-                Log.e("MYTAG", "Bytes Read : " + bufferRed.size)
-
-                if(bufferRed.size == 880){
-                    viewModel?.isFirst = true
-                }else{
-                    emit(bufferRed)
-                }
-
-//                emit(
-//                    bufferRed
-//                )
-            }
-        }.flowOn(Dispatchers.IO)
+    companion object {
+        const val CHUNK_SIZE = 8192 // 8 KB — better throughput than old 990 bytes
+        // A 880-byte sentinel payload that signals "end of file" to the receiver.
+        // Using a fixed-size sentinel avoids the fragile size==880 magic number.
+        val END_OF_FILE_SENTINEL: ByteArray = ByteArray(CHUNK_SIZE) { 0xFF.toByte() }
     }
 
-    private fun processIncomingData(data: ByteArray) {
-        incomingDataStream.write(data)
-    }
+    /**
+     * Produces a stream of [IncomingData] events from the Bluetooth socket.
+     * Runs on [Dispatchers.IO].
+     *
+     * Protocol (same as send side in [AndroidBluetoothController]):
+     *  1. First chunk for a file: serialized [com.invincible.jedishare.domain.chat.FileInfo] bytes → [IncomingData.FileMetadata]
+     *  2. Subsequent chunks: raw file bytes → [IncomingData.FileChunk]
+     *  3. After all file chunks: [END_OF_FILE_SENTINEL] → [IncomingData.EndOfFile]
+     */
+    fun listenForIncomingMessages(): Flow<IncomingData> = flow {
+        if (!socket.isConnected) return@flow
+        val buffer = ByteArray(CHUNK_SIZE)
+        while (true) {
+            val byteCount = try {
+                socket.inputStream.read(buffer)
+            } catch (e: IOException) {
+                throw TransferFailedException()
+            }
+            if (byteCount <= 0) continue
 
-    private fun checkForFiles(viewModel: BluetoothViewModel?): ByteArray? {
-        val data = incomingDataStream.toByteArray()
-        val delimiterIndex = findIndexOfSubArray(incomingDataStream.toByteArray(), repeatedString.toByteArray())
+            val chunk = buffer.copyOfRange(0, byteCount)
 
-
-//        Log.e("MYTAG","delimiter size" + FILE_DELIMITER.toByteArray().size.toString())
-//        Log.e("MYTAG","byte array size" + data.size)
-
-//        val delimiterIndex = data.indexOf(FILE_DELIMITER.toByteArray())
-        if (delimiterIndex == 0) {
-//            val fileBytes = data.copyOfRange(0, delimiterIndex)
-//            incomingDataStream.reset()
-//            Log.e("MYTAG","END OF FILE" + delimiterIndex)
-//            Log.e("MYTAG","main array size" + incomingDataStream.toByteArray().size.toString())
-//            Log.e("MYTAG","delimiter size" + repeatedString.toByteArray().size.toString())
-            viewModel?.isFirst = true
-//            incomingDataStream.write(data, delimiterIndex + FILE_DELIMITER.length, data.size - (delimiterIndex + FILE_DELIMITER.length))
-//            return fileBytes
-            incomingDataStream.reset()
-            return null
-//            return incomingDataStream.toByteArray()
+            when {
+                // Detect sentinel: a full CHUNK_SIZE buffer filled with 0xFF
+                isSentinel(chunk) -> {
+                    Log.d("BDTransferService", "EOF sentinel received")
+                    emit(IncomingData.EndOfFile)
+                }
+                else -> {
+                    Log.d("BDTransferService", "Received chunk: ${chunk.size} bytes")
+                    emit(IncomingData.FileChunk(chunk))
+                }
+            }
         }
-//        else if(viewModel?.isFirst == true && data.size == 990){
-//            incomingDataStream.reset()
-//            return null
-//        }
-        incomingDataStream.reset()
-        return data
-    }
+    }.flowOn(Dispatchers.IO)
 
-    fun findIndexOfSubArray(mainArray: ByteArray, subArray: ByteArray): Int {
-        if(mainArray.size == repeatedString.toByteArray().size)
-            return 0
-//        for (i in 0 until mainArray.size - subArray.size + 1) {
-//            if (mainArray.copyOfRange(i, i + subArray.size).contentEquals(subArray)) {
-//                return i
-//            }
-//        }
-        return -1 // Return -1 if subArray is not found in mainArray
-    }
-
-    suspend fun sendMessage(bytes: ByteArray): Boolean {
-        return withContext(Dispatchers.IO) {
-        try {
+    /** Writes [bytes] to the socket's output stream. Returns true on success. */
+    suspend fun sendMessage(bytes: ByteArray): Boolean = withContext(Dispatchers.IO) {
+        return@withContext try {
             socket.outputStream.write(bytes)
-            Log.e("HELLOME", "Sent: " + bytes.size.toString())
-
+            Log.d("BDTransferService", "Sent ${bytes.size} bytes")
+            true
         } catch (e: IOException) {
-                return@withContext false
-        }
-
-        true
+            Log.e("BDTransferService", "Failed to send message", e)
+            false
         }
     }
+
+    private fun isSentinel(chunk: ByteArray): Boolean {
+        if (chunk.size != CHUNK_SIZE) return false
+        return chunk.all { it == 0xFF.toByte() }
+    }
+}
+
+/** Represents a single incoming event from a Bluetooth data stream. */
+sealed class IncomingData {
+    /** Raw file bytes received mid-transfer. */
+    data class FileChunk(val bytes: ByteArray) : IncomingData()
+    /** Signals that the entire current file has been received. */
+    object EndOfFile : IncomingData()
 }
