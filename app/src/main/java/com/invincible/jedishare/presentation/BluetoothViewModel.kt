@@ -82,6 +82,9 @@ class BluetoothViewModel @Inject constructor(
     private val _incomingFileNameState = MutableStateFlow<String?>(null)
     val incomingFileNameState: StateFlow<String?> = _incomingFileNameState.asStateFlow()
 
+    private val _incomingMimeTypeState = MutableStateFlow<String?>(null)
+    val incomingMimeTypeState: StateFlow<String?> = _incomingMimeTypeState.asStateFlow()
+
     private val _connectedDeviceNameState = MutableStateFlow<String?>(null)
     val connectedDeviceNameState: StateFlow<String?> = _connectedDeviceNameState.asStateFlow()
 
@@ -105,6 +108,7 @@ class BluetoothViewModel @Inject constructor(
         _incomingFileName = null
         _incomingFileNameState.value = null
         _incomingMimeType = null
+        _incomingMimeTypeState.value = null
         _incomingFileSize = 0L
         _currentFileSize.value = 0L
         _currFileCount.value = 0
@@ -170,6 +174,7 @@ class BluetoothViewModel @Inject constructor(
                     _incomingFileNameState.value = fileInfo.fileName
                     _incomingFileName = fileInfo.fileName
                     _incomingMimeType = fileInfo.mimeType
+                    _incomingMimeTypeState.value = fileInfo.mimeType
                     _incomingFileSize = fileInfo.size?.toLongOrNull() ?: 0L
                 },
                 onBytesSent = { bytesRead ->
@@ -225,6 +230,7 @@ class BluetoothViewModel @Inject constructor(
                     _incomingFileName = null
                     _incomingFileNameState.value = null
                     _incomingMimeType = null
+                    _incomingMimeTypeState.value = null
                     _incomingFileSize = 0L
                     _currentFileSize.value = 0L
                     _currFileCount.value = 0
@@ -245,6 +251,7 @@ class BluetoothViewModel @Inject constructor(
                             _incomingFileName = fileInfo.fileName
                             _incomingFileNameState.value = fileInfo.fileName
                             _incomingMimeType = fileInfo.mimeType
+                            _incomingMimeTypeState.value = fileInfo.mimeType
                             _incomingFileSize = fileInfo.size?.toLongOrNull() ?: 0L
                             _currentFileSize.value = _incomingFileSize
                             _transferProgress.update { it.copy(totalBytes = _incomingFileSize, bytesReceived = 0L) }
