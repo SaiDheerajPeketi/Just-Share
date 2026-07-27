@@ -293,7 +293,14 @@ fun DiscoverDevicesScreen(
                 if (scanning) {
                     com.invincible.jedishare.ui.components.PillButton(
                         label = "Stop Scan",
-                        onClick = { scanning = false },
+                        onClick = { 
+                            scanning = false 
+                            if (transferMethod == "bt") {
+                                btViewModel.stopScan()
+                            } else {
+                                wifiViewModel.stopDiscovery()
+                            }
+                        },
                         variant = com.invincible.jedishare.ui.components.PillButtonVariant.OUTLINE,
                         size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
@@ -308,36 +315,42 @@ fun DiscoverDevicesScreen(
                 }
             } else {
                 // Receiver UI
-                var isDiscoverable by remember { mutableStateOf(false) }
-                var timeLeft by remember { mutableStateOf(0) }
+                // Receiver UI
+                var btDiscoverable by remember { mutableStateOf(false) }
+                var btTimeLeft by remember { mutableStateOf(0) }
                 
-                DisposableEffect(Unit) {
-                    val receiver = object : BroadcastReceiver() {
-                        override fun onReceive(context: Context?, intent: Intent?) {
-                            if (intent?.action == BluetoothAdapter.ACTION_SCAN_MODE_CHANGED) {
-                                val mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, BluetoothAdapter.ERROR)
-                                if (mode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
-                                    isDiscoverable = true
-                                    timeLeft = 300
-                                } else {
-                                    isDiscoverable = false
-                                    timeLeft = 0
+                val isDiscoverable = if (transferMethod == "bt") btDiscoverable else wifiState.isDiscovering
+                val timeLeft = if (transferMethod == "bt") btTimeLeft else -1 // -1 means infinite/managed by system for wifi
+                
+                if (transferMethod == "bt") {
+                    DisposableEffect(Unit) {
+                        val receiver = object : BroadcastReceiver() {
+                            override fun onReceive(context: Context?, intent: Intent?) {
+                                if (intent?.action == BluetoothAdapter.ACTION_SCAN_MODE_CHANGED) {
+                                    val mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, BluetoothAdapter.ERROR)
+                                    if (mode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+                                        btDiscoverable = true
+                                        btTimeLeft = 300
+                                    } else {
+                                        btDiscoverable = false
+                                        btTimeLeft = 0
+                                    }
                                 }
                             }
                         }
+                        context.registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED))
+                        onDispose {
+                            context.unregisterReceiver(receiver)
+                        }
                     }
-                    context.registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED))
-                    onDispose {
-                        context.unregisterReceiver(receiver)
-                    }
-                }
-                
-                LaunchedEffect(isDiscoverable) {
-                    while (isDiscoverable && timeLeft > 0) {
-                        delay(1000)
-                        timeLeft--
-                        if (timeLeft == 0) {
-                            isDiscoverable = false
+                    
+                    LaunchedEffect(btDiscoverable) {
+                        while (btDiscoverable && btTimeLeft > 0) {
+                            delay(1000)
+                            btTimeLeft--
+                            if (btTimeLeft == 0) {
+                                btDiscoverable = false
+                            }
                         }
                     }
                 }
@@ -390,7 +403,7 @@ fun DiscoverDevicesScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = if (isDiscoverable) "This device is now visible to nearby Bluetooth devices" else "Start visibility so other devices can find you",
+                        text = if (isDiscoverable) "This device is now visible to nearby ${if (transferMethod == "bt") "Bluetooth" else "Wi-Fi"} devices" else "Start visibility so other devices can find you",
                         style = MaterialTheme.typography.body2,
                         color = colors.mutedFg,
                         textAlign = TextAlign.Center,
@@ -440,13 +453,21 @@ fun DiscoverDevicesScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Visibility", style = MaterialTheme.typography.caption, color = colors.mutedFg)
-                                val mins = timeLeft / 60
-                                val secs = timeLeft % 60
-                                Text(
-                                    String.format("%02d:%02d", mins, secs),
-                                    style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
-                                    color = if (timeLeft > 0) colors.red else colors.mutedFg
-                                )
+                                if (transferMethod == "bt") {
+                                    val mins = timeLeft / 60
+                                    val secs = timeLeft % 60
+                                    Text(
+                                        String.format("%02d:%02d", mins, secs),
+                                        style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
+                                        color = if (timeLeft > 0) colors.red else colors.mutedFg
+                                    )
+                                } else {
+                                    Text(
+                                        if (isDiscoverable) "Active" else "Inactive",
+                                        style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isDiscoverable) colors.red else colors.mutedFg
+                                    )
+                                }
                             }
                         }
                     }
@@ -457,7 +478,11 @@ fun DiscoverDevicesScreen(
                         com.invincible.jedishare.ui.components.PillButton(
                             label = "Restart Visibility",
                             onClick = { 
-                                btViewModel.requestDiscoverable()
+                                if (transferMethod == "bt") {
+                                    btViewModel.requestDiscoverable()
+                                } else {
+                                    wifiViewModel.startDiscovery()
+                                }
                             },
                             size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
                             modifier = Modifier.fillMaxWidth()
@@ -466,8 +491,14 @@ fun DiscoverDevicesScreen(
                         com.invincible.jedishare.ui.components.PillButton(
                             label = "Stop Advertising",
                             onClick = { 
-                                isDiscoverable = false
-                                timeLeft = 0
+                                if (transferMethod == "bt") {
+                                    btDiscoverable = false
+                                    btTimeLeft = 0
+                                } else {
+                                    // There is no direct "stop visibility" for wifi direct easily mapped here, 
+                                    // but we can stop discovery
+                                    wifiViewModel.stopDiscovery()
+                                }
                             },
                             variant = com.invincible.jedishare.ui.components.PillButtonVariant.OUTLINE,
                             size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
