@@ -102,7 +102,7 @@ fun HomeScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(androidx.compose.material.icons.filled.Bolt, contentDescription = "Scan QR", tint = colors.red, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Bolt, contentDescription = "Scan QR", tint = colors.red, modifier = Modifier.size(18.dp))
                 }
             }
 
