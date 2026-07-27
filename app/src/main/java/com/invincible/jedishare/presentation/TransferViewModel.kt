@@ -34,6 +34,7 @@ data class UnifiedTransferState(
     val isConnected: Boolean = false,
     val connectedDeviceName: String? = null,
     val urisToShare: List<Uri> = emptyList(),
+    val fileInfos: List<com.invincible.jedishare.domain.chat.FileInfo> = emptyList(),
     
     // Progress
     val progressPercent: Float = 0f,
@@ -82,9 +83,12 @@ class TransferViewModel @Inject constructor(
     }
 
     fun setUris(uris: List<Uri>) {
+        val contentResolver = getApplication<Application>().contentResolver
+        val fileInfos = uris.map { com.invincible.jedishare.getFileDetailsFromUri(it, contentResolver) }
         _state.update {
             it.copy(
                 urisToShare = uris,
+                fileInfos = fileInfos,
                 progressPercent = 0f,
                 currentFileName = "",
                 currentFileIndex = 0,
@@ -108,6 +112,7 @@ class TransferViewModel @Inject constructor(
                 isConnected = false,
                 connectedDeviceName = null,
                 urisToShare = emptyList(),
+                fileInfos = emptyList(),
                 progressPercent = 0f,
                 currentFileName = "",
                 totalFiles = 0,

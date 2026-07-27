@@ -180,10 +180,10 @@ class BluetoothViewModel @Inject constructor(
                         historyRepository.addEntry(
                             TransferHistoryEntity(
                                 fileName = fileInfo.fileName ?: "Unknown",
-                                mimeType = fileInfo.format?.let { com.invincible.jedishare.classifyFileType(it) },
+                                mimeType = fileInfo.mimeType,
                                 fileSizeBytes = fileInfo.size?.toLongOrNull() ?: 0L,
                                 isSender = true,
-                                transferMethod = "Bluetooth",
+                                transferMethod = "bt",
                                 remoteDeviceName = _connectedDeviceName ?: "Unknown Device"
                             )
                         )
@@ -275,7 +275,7 @@ class BluetoothViewModel @Inject constructor(
                                 mimeType        = mimeType,
                                 fileSizeBytes   = fileSize,
                                 isSender        = isSender,
-                                transferMethod  = "Bluetooth",
+                                transferMethod  = "bt",
                                 remoteDeviceName = deviceName
                             )
                         )
