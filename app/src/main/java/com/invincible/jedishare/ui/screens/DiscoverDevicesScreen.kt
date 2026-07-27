@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -328,6 +329,17 @@ fun DiscoverDevicesScreen(
                     }
                 }
                 
+                val infiniteTransition = rememberInfiniteTransition()
+                val pulseScale by infiniteTransition.animateFloat(
+                    initialValue = 0.95f,
+                    targetValue = 1.15f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1000, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    )
+                )
+                val activeScale = if (isDiscoverable) pulseScale else 1f
+                
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -336,6 +348,7 @@ fun DiscoverDevicesScreen(
                     Box(
                         modifier = Modifier
                             .size(160.dp)
+                            .graphicsLayer { scaleX = activeScale; scaleY = activeScale }
                             .background(colors.red.copy(alpha = 0.05f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -433,7 +446,10 @@ fun DiscoverDevicesScreen(
                     } else {
                         com.invincible.jedishare.ui.components.PillButton(
                             label = "Stop Advertising",
-                            onClick = { isDiscoverable = false },
+                            onClick = { 
+                                isDiscoverable = false
+                                timeLeft = 0
+                            },
                             variant = com.invincible.jedishare.ui.components.PillButtonVariant.OUTLINE,
                             size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
                             modifier = Modifier.fillMaxWidth()
