@@ -72,6 +72,8 @@ class CommunicationService : Service() {
         const val EXTRAS_PROGRESS_STATE      = "com.invincible.jedishare.EXTRAS_PROGRESS_STATE"
         const val EXTRAS_FILE_NAME           = "com.invincible.jedishare.EXTRAS_FILE_NAME"
         const val EXTRAS_FILE_SIZE           = "com.invincible.jedishare.EXTRAS_FILE_SIZE"
+        const val EXTRAS_CURRENT_FILE_INDEX  = "com.invincible.jedishare.EXTRAS_CURRENT_FILE_INDEX"
+        const val EXTRAS_TOTAL_FILES         = "com.invincible.jedishare.EXTRAS_TOTAL_FILES"
         const val BROADCAST_SENDING_UPDATE   = "com.invincible.jedishare.SENDING_UPDATE"
 
         private const val NOTIF_CHANNEL_ID = "jedishare_transfer"
@@ -361,6 +363,8 @@ class CommunicationService : Service() {
 
         val progressIntent = Intent(BROADCAST_SENDING_UPDATE)
 
+        val totalFiles = uris.size
+        var currentIndex = 0
         for (uri in uris) {
             val fileInfo = getFileDetailsFromUri(uri, contentResolver)
             val totalSize = fileInfo.size?.toLong() ?: 0L
@@ -373,6 +377,8 @@ class CommunicationService : Service() {
                 putExtra(EXTRAS_PROGRESS_STATE, 0)
                 putExtra(EXTRAS_FILE_NAME, fileInfo.fileName)
                 putExtra(EXTRAS_FILE_SIZE, totalSize)
+                putExtra(EXTRAS_CURRENT_FILE_INDEX, currentIndex)
+                putExtra(EXTRAS_TOTAL_FILES, totalFiles)
             }
             sendBroadcast(progressIntent)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
@@ -391,10 +397,15 @@ class CommunicationService : Service() {
                 }
             } ?: Log.e(TAG, "Could not open InputStream for $uri")
 
+            // Broadcast 100% before EOF
+            progressIntent.putExtra(EXTRAS_PROGRESS_STATE, 100)
+            sendBroadcast(progressIntent)
+
             // EOF sentinel
             out.write(ByteArray(CHUNK_SIZE) { 0xFF.toByte() })
             out.flush()
             Log.d(TAG, "EOF sentinel sent for ${fileInfo.fileName}")
+            currentIndex++
 
             // Log completed WiFi Direct transfer to history DB for sender
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {

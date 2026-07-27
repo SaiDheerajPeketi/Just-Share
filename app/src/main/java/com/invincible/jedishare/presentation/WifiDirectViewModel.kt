@@ -4,9 +4,11 @@ import timber.log.Timber
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
+import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
@@ -84,6 +86,22 @@ class WifiDirectViewModel @Inject constructor(
         Log.d(TAG, "ConnectionInfo: $info")
         if (info.groupFormed) {
             _uiState.update { it.copy(isConnected = true, connectionStatus = "connected") }
+            
+            val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
+                action = com.invincible.jedishare.CommunicationService.ACTION_START_COMMUNICATION
+                val role = if (info.isGroupOwner) com.invincible.jedishare.CommunicationService.SERVER_ROLE else com.invincible.jedishare.CommunicationService.CLIENT_ROLE
+                putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_COMMUNICATION_ROLE, role)
+                info.groupOwnerAddress?.hostAddress?.let { address ->
+                    putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_GROUP_OWNER_ADDRESS, address)
+                }
+                putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_GROUP_OWNER_PORT, 8988)
+                putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_DEVICE_NAME, _uiState.value.thisDeviceName)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
     }
 
