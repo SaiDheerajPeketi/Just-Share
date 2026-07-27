@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import com.invincible.jedishare.domain.chat.BluetoothDevice
 import com.invincible.jedishare.domain.chat.BluetoothMessage
 

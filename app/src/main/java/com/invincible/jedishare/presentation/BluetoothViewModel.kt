@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -86,7 +88,10 @@ class BluetoothViewModel @Inject constructor(
     private val _uriList = MutableStateFlow<List<Uri>>(emptyList())
     val uriList: StateFlow<List<Uri>> = _uriList.asStateFlow()
 
-    fun setUriList(uris: List<Uri>) { _uriList.value = uris }
+    fun setUriList(uris: List<Uri>) { 
+        Timber.d("BluetoothViewModel - setUriList called")
+        _uriList.value = uris 
+    }
     fun getUriList(): List<Uri> = _uriList.value
 
     // ── Tracks current incoming file metadata (for history logging) ────────────
@@ -98,6 +103,7 @@ class BluetoothViewModel @Inject constructor(
     // ── Actions ────────────────────────────────────────────────────────────────
 
     fun connectToDevice(device: BluetoothDeviceDomain) {
+        Timber.d("BluetoothViewModel - connectToDevice called")
         _connectedDeviceName = device.name
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
@@ -106,12 +112,14 @@ class BluetoothViewModel @Inject constructor(
     }
 
     fun disconnectFromDevice() {
+        Timber.d("BluetoothViewModel - disconnectFromDevice called")
         deviceConnectionJob?.cancel()
         bluetoothController.closeConnection()
         _state.update { it.copy(isConnecting = false, isConnected = false) }
     }
 
     fun waitForIncomingConnections() {
+        Timber.d("BluetoothViewModel - waitForIncomingConnections called")
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
             .startBluetoothServer()
@@ -122,6 +130,7 @@ class BluetoothViewModel @Inject constructor(
     fun stopScan() = bluetoothController.stopDiscovery()
 
     fun sendMessage(message: String) {
+        Timber.d("BluetoothViewModel - stopScan called")
         viewModelScope.launch {
             val uris = _uriList.value
             if (uris.isEmpty()) {
@@ -241,6 +250,7 @@ class BluetoothViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        Timber.d("BluetoothViewModel - onCleared called")
         super.onCleared()
         bluetoothController.release()
     }

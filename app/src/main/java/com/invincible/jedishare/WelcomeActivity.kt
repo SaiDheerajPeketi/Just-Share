@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -44,6 +46,7 @@ import com.invincible.jedishare.ui.theme.MyRedSecondaryLight
 
 class WelcomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("WelcomeActivity - onCreate called")
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {

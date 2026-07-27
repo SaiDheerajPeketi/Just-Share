@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -65,6 +67,7 @@ class SelectFile : ComponentActivity() {
     private var selectedUris by mutableStateOf<List<Uri>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("SelectFile - onCreate called")
         super.onCreate(savedInstanceState)
 
         setContent {
@@ -186,6 +189,7 @@ private fun SelectFileScreen(
 
 @Composable
 private fun FilePickerPlaceholder(onPickFiles: () -> Unit) {
+    Timber.d("SelectFile - FilePickerPlaceholder called")
     Box(
         modifier = Modifier
             .padding(20.dp)
@@ -285,6 +289,7 @@ private fun FileListItem(
     contentResolver: android.content.ContentResolver,
     onRemove: () -> Unit
 ) {
+    Timber.d("SelectFile - FileListItem called")
     val fileInfo = remember(uri) { getFileDetailsFromUri(uri, contentResolver) }
     val fileType = fileInfo.format?.let { classifyFileType(it) }
 

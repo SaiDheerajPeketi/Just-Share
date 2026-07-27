@@ -1,5 +1,7 @@
 package com.invincible.jedishare.domain.chat
 
+import timber.log.Timber
+
 /**
  * Sealed interface representing all possible results from a Bluetooth connection flow.
  *

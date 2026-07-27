@@ -1,5 +1,7 @@
 package com.invincible.jedishare.ui.theme
 
+import timber.log.Timber
+
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
@@ -36,6 +38,7 @@ private val LightColorPalette = lightColors(
 
 @Composable
 fun JediShareTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    Timber.d("Global - JediShareTheme called")
     val colors = if (darkTheme) {
         DarkColorPalette
     } else {

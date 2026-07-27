@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.MediaStore
@@ -17,6 +19,7 @@ import com.invincible.jedishare.domain.chat.FileInfo
  * Fix: uses try-catch for robustness; mimeType is resolved from extension if missing.
  */
 fun getFileDetailsFromUri(uri: Uri, contentResolver: ContentResolver): FileInfo {
+    Timber.d("Global - getFileDetailsFromUri called")
     var fileName: String? = null
     var format: String? = null
     var size: String? = null
@@ -59,11 +62,14 @@ fun getFileDetailsFromUri(uri: Uri, contentResolver: ContentResolver): FileInfo 
  * This version uses explicit [Long] literals (1024L * 1024 * 1024, etc.) to ensure
  * correct formatting for files up to several TB.
  */
-fun bytesToHumanReadableSize(bytes: Double): String = when {
-    bytes >= 1_073_741_824.0 -> "%.1f GB".format(bytes / 1_073_741_824.0) // 1024^3
-    bytes >= 1_048_576.0     -> "%.1f MB".format(bytes / 1_048_576.0)     // 1024^2
-    bytes >= 1_024.0         -> "%.0f kB".format(bytes / 1_024.0)         // 1024^1
-    else                     -> "${bytes.toLong()} B"
+fun bytesToHumanReadableSize(bytes: Double): String {
+    Timber.d("Global - bytesToHumanReadableSize called")
+    return when {
+        bytes >= 1_073_741_824.0 -> "%.1f GB".format(bytes / 1_073_741_824.0) // 1024^3
+        bytes >= 1_048_576.0     -> "%.1f MB".format(bytes / 1_048_576.0)     // 1024^2
+        bytes >= 1_024.0         -> "%.0f kB".format(bytes / 1_024.0)         // 1024^1
+        else                     -> "${bytes.toLong()} B"
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,6 +82,7 @@ fun bytesToHumanReadableSize(bytes: Double): String = when {
  * Fix: uses [String.lowercase] instead of deprecated [String.toLowerCase].
  */
 fun classifyFileType(fileExtension: String): String {
+    Timber.d("Global - classifyFileType called")
     val ext = fileExtension.lowercase()
     return when {
         ext in listOf("jpg", "jpeg", "png", "gif", "bmp", "heic", "webp") -> "Photo"

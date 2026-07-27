@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -26,6 +28,7 @@ class WiFiDirectBroadcastReceiver(
 
     @Suppress("DEPRECATION") // EXTRA_NETWORK_INFO deprecated in API 29 but needed for P2P
     override fun onReceive(context: Context?, intent: Intent?) {
+        Timber.d("WiFiDirectBroadcastReceiver - onReceive called")
         when (intent?.action) {
             WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
                 val state = intent.getIntExtra(

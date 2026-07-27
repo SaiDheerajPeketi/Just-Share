@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation.components
 
+import timber.log.Timber
+
 import android.content.ContentResolver
 import android.net.Uri
 import android.util.Log
@@ -143,6 +145,7 @@ fun DisplayFileswithProgressBar(
     contentResolver: ContentResolver,
     viewModel: BluetoothViewModel
 ) {
+    Timber.d("Global - DisplayFileswithProgressBar called")
     Box(
         modifier = Modifier
             .padding(bottom = 20.dp, start = 20.dp, end = 20.dp)
@@ -364,6 +367,7 @@ fun CustomProgressIndicator(
 
 @Composable
 private fun animateAlignmentAsState(targetBiasValue: Float): State<BiasAlignment> {
+    Timber.d("Global - animateAlignmentAsState called")
     val bias by animateFloatAsState(targetBiasValue)
     return derivedStateOf { BiasAlignment(horizontalBias = bias, verticalBias = 0f) }
 }

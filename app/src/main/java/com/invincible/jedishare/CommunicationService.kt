@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -90,12 +92,14 @@ class CommunicationService : Service() {
     private var remoteDeviceName: String? = null
 
     override fun onCreate() {
+        Timber.d("CommunicationService - onCreate called")
         super.onCreate()
         createNotificationChannel()
         Log.d(TAG, "Service created")
     }
 
     private fun createNotificationChannel() {
+        Timber.d("CommunicationService - createNotificationChannel called")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 NOTIF_CHANNEL_ID,
@@ -111,6 +115,7 @@ class CommunicationService : Service() {
     }
 
     private fun startForegroundNotification() {
+        Timber.d("CommunicationService - startForegroundNotification called")
         val openAppIntent = PendingIntent.getActivity(
             this, 0,
             packageManager.getLaunchIntentForPackage(packageName),
@@ -137,6 +142,7 @@ class CommunicationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Timber.d("CommunicationService - onBind called")
         when (intent?.action) {
             ACTION_START_COMMUNICATION -> {
                 val state = serviceState.get()
@@ -180,6 +186,7 @@ class CommunicationService : Service() {
 
     @Throws(IOException::class)
     private fun startServer(port: Int, deviceName: String?) {
+        Timber.d("CommunicationService - startServer called")
         serverSocket = ServerSocket(port).apply { soTimeout = 8000 }
         Log.d(TAG, "Server: waiting for connection on port $port")
         communicationSocket = try {
@@ -198,6 +205,7 @@ class CommunicationService : Service() {
 
     @Throws(IOException::class)
     private fun startClient(address: String?, port: Int, deviceName: String?) {
+        Timber.d("CommunicationService - startClient called")
         communicationSocket = Socket().apply { bind(null) }
         Log.d(TAG, "Client: connecting to $address:$port")
         try {
@@ -226,6 +234,7 @@ class CommunicationService : Service() {
      */
     @Throws(IOException::class)
     private fun messageReadingLoop(deviceName: String?) {
+        Timber.d("CommunicationService - messageReadingLoop called")
         val socket = communicationSocket ?: return
         dataOutputStream = DataOutputStream(socket.getOutputStream())
         dataOutputStream!!.writeUTF(deviceName ?: "Unknown")
@@ -345,6 +354,7 @@ class CommunicationService : Service() {
      */
     @Throws(IOException::class)
     private fun sendFiles(intent: Intent) {
+        Timber.d("CommunicationService - sendFiles called")
         val uris = intent.getParcelableArrayListExtra<Uri>("urilist") ?: return
         val out  = dataOutputStream ?: return
 
@@ -394,6 +404,7 @@ class CommunicationService : Service() {
      * Stores files in app-specific subfolders (/JediShare) for clean organization.
      */
     private fun createMediaStoreEntry(fileInfo: FileInfo): Uri? {
+        Timber.d("CommunicationService - createMediaStoreEntry called")
         val mimeType = fileInfo.mimeType ?: "*/*"
         val fileName = fileInfo.fileName ?: "received_file"
         val values = ContentValues().apply {
@@ -423,6 +434,7 @@ class CommunicationService : Service() {
     }
 
     private fun closeAllAndStop() {
+        Timber.d("CommunicationService - closeAllAndStop called")
         try { communicationSocket?.close() } catch (e: IOException) { Log.w(TAG, "socket close: ${e.message}") }
         try { serverSocket?.close()        } catch (e: IOException) { Log.w(TAG, "serverSocket close: ${e.message}") }
         try { dataOutputStream?.close()    } catch (e: IOException) { Log.w(TAG, "dos close: ${e.message}") }
@@ -437,6 +449,7 @@ class CommunicationService : Service() {
     }
 
     override fun onDestroy() {
+        Timber.d("CommunicationService - onDestroy called")
         super.onDestroy()
         closeAllAndStop()
     }

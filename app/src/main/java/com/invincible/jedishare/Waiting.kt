@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
@@ -23,6 +25,7 @@ import java.io.InputStream
 
 class Waiting : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("Waiting - onCreate called")
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {

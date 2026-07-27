@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.data.repository.MediaRepository
@@ -25,6 +27,7 @@ class AudioViewModel @Inject constructor(
     init { loadAudios() }
 
     fun loadAudios() {
+        Timber.d("AudioViewModel - loadAudios called")
         viewModelScope.launch {
             _audios.value = mediaRepository.getAudio()
         }

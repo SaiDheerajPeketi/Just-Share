@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -70,6 +72,7 @@ interface PermissionTextProvider {
 
 class InternetPermissionTextProvider: PermissionTextProvider {
     override fun getDescription(isPermanentlyDeclined: Boolean): String {
+        Timber.d("PermissionTextProvider - getDescription called")
         return if(isPermanentlyDeclined) {
             "It seems you permanently declined internet permission. " +
                     "You can go to the app settings to grant it."
@@ -82,6 +85,7 @@ class InternetPermissionTextProvider: PermissionTextProvider {
 
 class LocationPermissionTextProvider: PermissionTextProvider {
     override fun getDescription(isPermanentlyDeclined: Boolean): String {
+        Timber.d("LocationPermissionTextProvider - getDescription called")
         return if(isPermanentlyDeclined) {
             "It seems you permanently declined location permission. " +
                     "You can go to the app settings to grant it."
@@ -94,6 +98,7 @@ class LocationPermissionTextProvider: PermissionTextProvider {
 
 class WifiPermissionTextProvider: PermissionTextProvider {
     override fun getDescription(isPermanentlyDeclined: Boolean): String {
+        Timber.d("WifiPermissionTextProvider - getDescription called")
         return if(isPermanentlyDeclined) {
             "It seems you permanently declined wifi permission. " +
                     "You can go to the app settings to grant it."

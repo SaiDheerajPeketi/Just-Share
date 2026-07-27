@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -14,6 +16,7 @@ class WiFiDirectServiceBroadcastReceiver(
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
+        Timber.d("WiFiDirectServiceBroadcastReceiver - onReceive called")
         intent ?: return
         if (intent.action != CommunicationService.BROADCAST_SENDING_UPDATE) return
 

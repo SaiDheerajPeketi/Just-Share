@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.data.db.TransferHistoryEntity
@@ -29,10 +31,12 @@ class HistoryViewModel @Inject constructor(
         )
 
     fun deleteEntry(entry: TransferHistoryEntity) {
+        Timber.d("HistoryViewModel - deleteEntry called")
         viewModelScope.launch { repository.deleteEntry(entry) }
     }
 
     fun clearAll() {
+        Timber.d("HistoryViewModel - clearAll called")
         viewModelScope.launch { repository.clearAll() }
     }
 }

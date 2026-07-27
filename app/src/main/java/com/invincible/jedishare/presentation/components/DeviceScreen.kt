@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation.components
 
+import timber.log.Timber
+
 import android.os.SystemClock.sleep
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring

@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,6 +22,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class Progress : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("Progress - onCreate called")
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {

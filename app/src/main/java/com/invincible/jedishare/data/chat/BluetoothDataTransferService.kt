@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.chat
 
+import timber.log.Timber
+
 import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.invincible.jedishare.domain.chat.TransferFailedException
@@ -40,6 +42,7 @@ class BluetoothDataTransferService(
      *  3. After all file chunks: [END_OF_FILE_SENTINEL] → [IncomingData.EndOfFile]
      */
     fun listenForIncomingMessages(): Flow<IncomingData> = flow {
+        Timber.d("BluetoothDataTransferService - listenForIncomingMessages called")
         if (!socket.isConnected) return@flow
         val buffer = ByteArray(CHUNK_SIZE)
         while (true) {
@@ -68,6 +71,7 @@ class BluetoothDataTransferService(
 
     /** Writes [bytes] to the socket's output stream. Returns true on success. */
     suspend fun sendMessage(bytes: ByteArray): Boolean = withContext(Dispatchers.IO) {
+        Timber.d("BluetoothDataTransferService - sendMessage called")
         return@withContext try {
             socket.outputStream.write(bytes)
             Log.d("BDTransferService", "Sent ${bytes.size} bytes")
@@ -79,6 +83,7 @@ class BluetoothDataTransferService(
     }
 
     private fun isSentinel(chunk: ByteArray): Boolean {
+        Timber.d("BluetoothDataTransferService - isSentinel called")
         if (chunk.size != CHUNK_SIZE) return false
         return chunk.all { it == 0xFF.toByte() }
     }

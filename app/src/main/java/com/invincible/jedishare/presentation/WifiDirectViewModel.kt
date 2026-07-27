@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.wifi.p2p.WifiP2pConfig
@@ -56,9 +58,11 @@ class WifiDirectViewModel @Inject constructor(
     /** Shared ActionListener that logs failure reason. */
     private val actionListener = object : WifiP2pManager.ActionListener {
         override fun onSuccess() {
+            Timber.d("WifiDirectViewModel - onSuccess called")
             Log.d(TAG, "P2P action succeeded")
         }
         override fun onFailure(reason: Int) {
+            Timber.d("WifiDirectViewModel - onFailure called")
             val msg = "Wi-Fi Direct failed: " + when (reason) {
                 WifiP2pManager.BUSY          -> "Framework busy"
                 WifiP2pManager.ERROR         -> "Internal error"
@@ -88,6 +92,7 @@ class WifiDirectViewModel @Inject constructor(
      * Must be called from the Activity's [onCreate].
      */
     fun initialize(manager: WifiP2pManager, channel: WifiP2pManager.Channel) {
+        Timber.d("WifiDirectViewModel - initialize called")
         wifiP2pManager = manager
         wifiP2pChannel = channel
         // Request existing connection info
@@ -101,6 +106,7 @@ class WifiDirectViewModel @Inject constructor(
     // ── P2P State Updates (called from WiFiDirectBroadcastReceiver) ────────────
 
     fun onWifiDirectEnabled(enabled: Boolean) {
+        Timber.d("WifiDirectViewModel - onWifiDirectEnabled called")
         _uiState.update { it.copy(isWifiDirectEnabled = enabled) }
         if (enabled) startDiscovery()
         else {
@@ -109,18 +115,22 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     fun onDiscoveryStateChanged(discovering: Boolean) {
+        Timber.d("WifiDirectViewModel - onDiscoveryStateChanged called")
         _uiState.update { it.copy(isDiscovering = discovering) }
     }
 
     fun onThisDeviceChanged(name: String?) {
+        Timber.d("WifiDirectViewModel - onThisDeviceChanged called")
         _uiState.update { it.copy(thisDeviceName = name ?: "") }
     }
 
     fun onPeersChanged() {
+        Timber.d("WifiDirectViewModel - onPeersChanged called")
         wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
     }
 
     fun onConnectionChanged() {
+        Timber.d("WifiDirectViewModel - onConnectionChanged called")
         wifiP2pManager?.requestConnectionInfo(wifiP2pChannel, connectionInfoListener)
     }
 
@@ -128,6 +138,7 @@ class WifiDirectViewModel @Inject constructor(
 
     @SuppressLint("MissingPermission")
     fun startDiscovery() {
+        Timber.d("WifiDirectViewModel - startDiscovery called")
         if (_uiState.value.isWifiDirectEnabled && !_uiState.value.isDiscovering) {
             wifiP2pManager?.discoverPeers(wifiP2pChannel, actionListener)
         }
@@ -135,24 +146,39 @@ class WifiDirectViewModel @Inject constructor(
 
     @SuppressLint("MissingPermission")
     fun connectToDevice(device: WifiP2pDevice) {
+        Timber.d("WifiDirectViewModel - connectToDevice called")
         val config = WifiP2pConfig().apply { deviceAddress = device.deviceAddress }
         wifiP2pManager?.connect(wifiP2pChannel, config, actionListener)
     }
 
     fun requestConnectionInfo() {
+        Timber.d("WifiDirectViewModel - requestConnectionInfo called")
         wifiP2pManager?.requestConnectionInfo(wifiP2pChannel, connectionInfoListener)
     }
 
     fun disconnectP2P() {
+        Timber.d("WifiDirectViewModel - disconnectP2P called")
         wifiP2pManager?.let { mgr ->
             wifiP2pChannel?.let { ch ->
                 mgr.cancelConnect(ch, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() { Log.d(TAG, "cancelConnect success") }
-                    override fun onFailure(r: Int) { Log.d(TAG, "cancelConnect failed: $r") }
+                    override fun onSuccess() { 
+                        Timber.d("WifiDirectViewModel - onSuccess called")
+                        Log.d(TAG, "cancelConnect success") 
+                    }
+                    override fun onFailure(r: Int) { 
+                        Timber.d("WifiDirectViewModel - onFailure called")
+                        Log.d(TAG, "cancelConnect failed: $r") 
+                    }
                 })
                 mgr.removeGroup(ch, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() { Log.d(TAG, "removeGroup success") }
-                    override fun onFailure(r: Int) { Log.d(TAG, "removeGroup failed: $r") }
+                    override fun onSuccess() { 
+                        Timber.d("WifiDirectViewModel - onSuccess called")
+                        Log.d(TAG, "removeGroup success") 
+                    }
+                    override fun onFailure(r: Int) { 
+                        Timber.d("WifiDirectViewModel - onFailure called")
+                        Log.d(TAG, "removeGroup failed: $r") 
+                    }
                 })
             }
         }
@@ -160,24 +186,28 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     fun onLocationDisabled() {
+        Timber.d("WifiDirectViewModel - onLocationDisabled called")
         disconnectP2P()
     }
 
     // ── Permission Dialog (replaces standalone PermissionViewModel) ─────────────
 
     fun onPermissionResult(permission: String, isGranted: Boolean) {
+        Timber.d("WifiDirectViewModel - onPermissionResult called")
         if (!isGranted && !visiblePermissionDialogQueue.contains(permission)) {
             visiblePermissionDialogQueue.add(permission)
         }
     }
 
     fun dismissPermissionDialog() {
+        Timber.d("WifiDirectViewModel - dismissPermissionDialog called")
         if (visiblePermissionDialogQueue.isNotEmpty()) {
             visiblePermissionDialogQueue.removeFirst()
         }
     }
 
     override fun onCleared() {
+        Timber.d("WifiDirectViewModel - onCleared called")
         super.onCleared()
         wifiP2pChannel?.close()
     }
