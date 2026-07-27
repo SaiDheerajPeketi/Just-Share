@@ -145,14 +145,18 @@ fun HistoryScreen(
                                 Text(
                                     text = if (item.dir == "Sent") "↑ Sent to ${item.peer}" else "↓ Received from ${item.peer}", 
                                     fontSize = 12.sp, 
-                                    color = colors.mutedFg
+                                    color = colors.mutedFg,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     Text(text = item.size, fontSize = 12.sp, color = colors.mutedFg)
-                                    Text(text = " · ", fontSize = 12.sp, color = colors.mutedFg)
+                                    Text(text = "·", fontSize = 12.sp, color = colors.mutedFg)
                                     Text(text = item.date, fontSize = 12.sp, color = colors.mutedFg)
-                                    Spacer(modifier = Modifier.width(8.dp))
                                     Row(
                                         modifier = Modifier
                                             .background(
@@ -166,12 +170,13 @@ fun HistoryScreen(
                                             if (item.method == "Wi-Fi") Icons.Default.Wifi else Icons.Default.Bluetooth, 
                                             contentDescription = null, 
                                             tint = if (item.method == "Wi-Fi") Color(0xFF1565C0) else colors.darkRed, 
-                                            modifier = Modifier.size(8.dp)
+                                            modifier = Modifier.size(10.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = item.method, 
-                                            fontSize = 12.sp, 
+                                            fontSize = 10.sp, 
+                                            fontWeight = FontWeight.SemiBold,
                                             color = if (item.method == "Wi-Fi") Color(0xFF1565C0) else colors.darkRed
                                         )
                                     }
