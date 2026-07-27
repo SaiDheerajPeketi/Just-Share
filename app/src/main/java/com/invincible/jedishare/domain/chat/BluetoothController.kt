@@ -39,6 +39,7 @@ interface BluetoothController {
         iterationCountFlow: MutableSharedFlow<Long>,
         onFileSizeResolved: (Long) -> Unit,
         onFileCountUpdated: (Int) -> Unit,
+        onBytesSent: (Long) -> Unit = {},
         onFileSent: (com.invincible.jedishare.domain.chat.FileInfo) -> Unit = {}
     ): BluetoothMessage?
 

@@ -76,8 +76,11 @@ class BluetoothViewModel @Inject constructor(
     val currFileCount: StateFlow<Int> = _currFileCount.asStateFlow()
 
     /** Total size of the current file (bytes), used to compute receiver progress %. */
-    private val _currentFileSize = MutableStateFlow(1L)
+    private val _currentFileSize = MutableStateFlow(0L)
     val fileInfoState: StateFlow<Long> = _currentFileSize.asStateFlow()
+
+    private val _incomingFileNameState = MutableStateFlow<String?>(null)
+    val incomingFileNameState: StateFlow<String?> = _incomingFileNameState.asStateFlow()
 
     /** Emits the chunk iteration count (sender side) for the progress bar. */
     private val _iterationCountFlow = MutableSharedFlow<Long>()
@@ -137,11 +140,18 @@ class BluetoothViewModel @Inject constructor(
                 Log.w("BluetoothViewModel", "sendMessage called with empty URI list")
                 return@launch
             }
+
             val bluetoothMessage = bluetoothController.trySendMessage(
                 uriList = uris,
                 iterationCountFlow = _iterationCountFlow,
-                onFileSizeResolved = { size -> _currentFileSize.value = size },
+                onFileSizeResolved = { size -> 
+                    _currentFileSize.value = size
+                    _transferProgress.update { it.copy(totalBytes = size, bytesSent = 0L) }
+                },
                 onFileCountUpdated = { count -> _currFileCount.value = count },
+                onBytesSent = { bytesRead ->
+                    _transferProgress.update { it.copy(bytesSent = it.bytesSent + bytesRead) }
+                },
                 onFileSent = { fileInfo ->
                     viewModelScope.launch {
                         historyRepository.addEntry(
@@ -185,6 +195,13 @@ class BluetoothViewModel @Inject constructor(
                 is ConnectionResult.ConnectionEstablished -> {
                     isFirstChunk = true
                     fileUri = null
+                    _incomingFileName = null
+                    _incomingFileNameState.value = null
+                    _incomingMimeType = null
+                    _incomingFileSize = 0L
+                    _currentFileSize.value = 0L
+                    _currFileCount.value = 0
+                    _transferProgress.update { it.copy(totalBytes = 1L, bytesReceived = 0L, bytesSent = 0L) }
                     _state.update {
                         it.copy(isConnected = true, isConnecting = false, errorMessage = null)
                     }
@@ -199,19 +216,19 @@ class BluetoothViewModel @Inject constructor(
                         Log.d("BluetoothViewModel", "Incoming file metadata: $fileInfo")
                         if (fileInfo != null) {
                             _incomingFileName = fileInfo.fileName
+                            _incomingFileNameState.value = fileInfo.fileName
                             _incomingMimeType = fileInfo.mimeType
                             _incomingFileSize = fileInfo.size?.toLong() ?: 0L
                             _currentFileSize.value = _incomingFileSize
-                            viewModelScope.launch {
-                                fileUri = fileTransferRepository.createMediaStoreEntry(fileInfo)
-                                Log.d("BluetoothViewModel", "MediaStore entry created: $fileUri")
-                            }
+                            _transferProgress.update { it.copy(totalBytes = _incomingFileSize, bytesReceived = 0L) }
+                            fileUri = fileTransferRepository.createMediaStoreEntry(fileInfo)
+                            Log.d("BluetoothViewModel", "MediaStore entry created: $fileUri")
                         }
                     } else {
                         // Subsequent chunks are raw file bytes
                         val currentUri = fileUri ?: return@onEach
-                        viewModelScope.launch {
-                            fileTransferRepository.appendChunkToFile(currentUri, result.message)
+                        val success = fileTransferRepository.appendChunkToFile(currentUri, result.message)
+                        if (success) {
                             val received = _transferProgress.value.bytesReceived + result.message.size
                             _transferProgress.update { it.copy(bytesReceived = received) }
                         }
@@ -242,12 +259,10 @@ class BluetoothViewModel @Inject constructor(
                     Log.d("BluetoothViewModel", "End of file received; ready for next file")
                     isFirstChunk = true
                     fileUri = null
-                    _incomingFileName = null
-                    _incomingMimeType = null
-                    _incomingFileSize = 0L
                     val newCount = _currFileCount.value + 1
                     _currFileCount.value = newCount
-                    _transferProgress.update { it.copy(bytesReceived = 0L, totalBytes = 1L) }
+                    // Do not clear metadata so UI can show 100% completion
+                    _transferProgress.update { it.copy(bytesReceived = it.totalBytes) }
                 }
 
                 is ConnectionResult.Error -> {
