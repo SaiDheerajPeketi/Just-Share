@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
@@ -30,37 +31,58 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.invincible.jedishare.data.db.TransferHistoryEntity
+import com.invincible.jedishare.presentation.HistoryViewModel
 import com.invincible.jedishare.ui.components.BottomNav
 import com.invincible.jedishare.ui.theme.JediShareTheme
+import java.text.SimpleDateFormat
+import java.util.*
 
-data class HistoryItem(
-    val id: Int,
-    val name: String,
-    val peer: String,
-    val dir: String,
-    val size: String,
-    val date: String,
-    val method: String,
-    val icon: ImageVector
-)
+fun formatSize(bytes: Long): String {
+    if (bytes < 1024) return "$bytes B"
+    val kb = bytes / 1024.0
+    if (kb < 1024) return String.format("%.1f KB", kb)
+    val mb = kb / 1024.0
+    if (mb < 1024) return String.format("%.1f MB", mb)
+    val gb = mb / 1024.0
+    return String.format("%.1f GB", gb)
+}
+
+fun getIconForMimeType(mimeType: String?): ImageVector {
+    return when {
+        mimeType?.startsWith("image/") == true -> Icons.Default.Image
+        mimeType?.startsWith("video/") == true -> Icons.Default.Videocam
+        mimeType?.startsWith("audio/") == true -> Icons.Default.MusicNote
+        else -> Icons.Default.InsertDriveFile
+    }
+}
+
+fun formatDateRelative(ms: Long): String {
+    val date = Date(ms)
+    val now = Date()
+    val format = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    
+    // Very simple check for Today/Yesterday (for better logic, use Calendar)
+    val diff = now.time - date.time
+    val days = diff / (1000 * 60 * 60 * 24)
+    
+    return when (days) {
+        0L -> "TODAY"
+        1L -> "YESTERDAY"
+        else -> format.format(date).uppercase(Locale.getDefault())
+    }
+}
 
 @Composable
 fun HistoryScreen(
+    viewModel: HistoryViewModel = hiltViewModel(),
     onNavigateToNavRoute: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
-    var items by remember { 
-        mutableStateOf(
-            listOf(
-                HistoryItem(1, "Project_Assets_v2.zip", "MacBook Pro", "Sent", "1.2 GB", "TODAY", "Wi-Fi", Icons.Default.InsertDriveFile),
-                HistoryItem(2, "IMG_9823.heic", "Galaxy S23", "Received", "4.5 MB", "TODAY", "BT", Icons.Default.Image),
-                HistoryItem(3, "Client_Presentation.mp4", "iPad Pro", "Sent", "850 MB", "YESTERDAY", "Wi-Fi", Icons.Default.Videocam),
-                HistoryItem(4, "Q3_Reports", "Desktop-X82", "Received", "120 MB", "YESTERDAY", "Wi-Fi", Icons.Default.InsertDriveFile)
-            )
-        )
-    }
+    val historyItems by viewModel.history.collectAsState()
 
-    val groupedItems = items.groupBy { it.date }
+    val groupedItems = historyItems.groupBy { formatDateRelative(it.timestampMs) }
 
     Column(
         modifier = Modifier
@@ -84,7 +106,7 @@ fun HistoryScreen(
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = { items = emptyList() }
+                    onClick = { viewModel.clearAll() }
                 )
             )
         }
@@ -92,7 +114,7 @@ fun HistoryScreen(
         Box(
             modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
         ) {
-            if (items.isEmpty()) {
+            if (historyItems.isEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxSize().padding(top = 80.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -100,98 +122,119 @@ fun HistoryScreen(
                     Box(
                         modifier = Modifier
                             .size(120.dp)
-                            .background(colors.lightRed, RoundedCornerShape(32.dp)),
+                            .background(colors.cardBg, RoundedCornerShape(32.dp))
+                            .border(1.dp, colors.border, RoundedCornerShape(32.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.History, contentDescription = null, tint = colors.red, modifier = Modifier.size(40.dp))
+                        Icon(Icons.Default.History, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(48.dp))
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "No transfer history yet", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold), color = colors.black)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "Your transfers will appear here", fontSize = 14.sp, color = colors.mutedFg)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("No Transfers Yet", style = MaterialTheme.typography.h2, color = colors.black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Your file transfer history will appear here.",
+                        style = MaterialTheme.typography.body2,
+                        color = colors.mutedFg
+                    )
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                 ) {
-                    groupedItems.forEach { (dateHeader, dateItems) ->
+                    groupedItems.forEach { (date, itemsForDate) ->
                         item {
-                            Column {
-                                Text(
-                                    text = dateHeader,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.mutedFg,
-                                    letterSpacing = 1.sp,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
-                                )
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    dateItems.forEach { item ->
-                                        Row(
+                            Text(
+                                text = date,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.mutedFg,
+                                letterSpacing = 1.sp,
+                                modifier = Modifier.padding(bottom = 8.dp, top = 16.dp)
+                            )
+                        }
+
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(colors.cardBg)
+                                    .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                            ) {
+                                itemsForDate.forEachIndexed { index, item ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        val baseTint = when {
+                                            item.mimeType?.startsWith("image/") == true || item.mimeType?.startsWith("audio/") == true -> colors.red
+                                            item.mimeType?.startsWith("video/") == true -> colors.green
+                                            else -> Color(0xFF1976D2) // Blue for docs/others
+                                        }
+
+                                        Box(
                                             modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(colors.cardBg, RoundedCornerShape(16.dp))
-                                                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                                                .padding(16.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                                .size(44.dp)
+                                                .background(baseTint.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(48.dp)
-                                                    .background(if (item.dir == "Sent") colors.lightRed else Color(0xFFF5F5F5), RoundedCornerShape(12.dp)),
-                                                contentAlignment = Alignment.Center
+                                            Icon(
+                                                getIconForMimeType(item.mimeType), 
+                                                contentDescription = null, 
+                                                tint = baseTint, 
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = item.fileName,
+                                                style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold),
+                                                color = colors.black,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(top = 2.dp)
                                             ) {
-                                                Icon(
-                                                    imageVector = item.icon, 
-                                                    contentDescription = null, 
-                                                    tint = if (item.dir == "Sent") colors.red else colors.mutedFg, 
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(16.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = item.name, 
-                                                    style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold), 
-                                                    color = colors.black,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                Text(
-                                                    text = if (item.dir == "Sent") "Sent to ${item.peer}" else "Received from ${item.peer}", 
-                                                    fontSize = 13.sp, 
-                                                    color = colors.mutedFg,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column(horizontalAlignment = Alignment.End) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .background(Color(0xFFF5F5F5), RoundedCornerShape(50))
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                ) {
-                                                    Text(
-                                                        text = item.method, 
-                                                        fontSize = 10.sp, 
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF555555)
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Text(
-                                                    text = item.size, 
-                                                    style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold), 
-                                                    color = colors.black
-                                                )
+                                                Text(text = if (item.isSender) "Sent to " else "From ", style = MaterialTheme.typography.caption, color = colors.mutedFg)
+                                                Text(text = item.remoteDeviceName ?: "Unknown", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Medium), color = colors.black)
+                                                Text(text = " • ${formatSize(item.fileSizeBytes)}", style = MaterialTheme.typography.caption, color = colors.mutedFg)
                                             }
                                         }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Row(
+                                                modifier = Modifier.background(Color(0xFFF5F5F5), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    if (item.transferMethod == "bt") Icons.Default.Bluetooth else Icons.Default.Wifi,
+                                                    contentDescription = null,
+                                                    tint = colors.mutedFg,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(text = if (item.transferMethod == "bt") "BT" else "Wi-Fi", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = colors.mutedFg)
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete",
+                                                tint = colors.red.copy(alpha = 0.5f),
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .clickable { viewModel.deleteEntry(item) }
+                                            )
+                                        }
+                                    }
+                                    if (index < itemsForDate.lastIndex) {
+                                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
                                     }
                                 }
                             }
@@ -201,6 +244,9 @@ fun HistoryScreen(
             }
         }
 
-        BottomNav(activeRoute = "history", onNavigate = onNavigateToNavRoute)
+        BottomNav(
+            activeRoute = "history",
+            onNavigate = onNavigateToNavRoute
+        )
     }
 }
