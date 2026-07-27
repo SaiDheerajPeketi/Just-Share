@@ -174,7 +174,18 @@ fun DiscoverDevicesScreen(
             onNavigateToScreen("transfer-progress")
         } else if (wifiState.isConnected && transferMethod == "wifi" && !transferState.hasTransferStarted) {
             transferViewModel.markTransferStarted()
-            // Wifi triggers sending via CommunicationService, usually done in connectionInfoListener
+            val uris = transferState.urisToShare
+            if (uris.isNotEmpty() && isSender) {
+                val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
+                    action = com.invincible.jedishare.CommunicationService.ACTION_SEND_MSG
+                    putParcelableArrayListExtra("urilist", java.util.ArrayList(uris))
+                }
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            }
             onNavigateToScreen("transfer-progress")
         }
     }

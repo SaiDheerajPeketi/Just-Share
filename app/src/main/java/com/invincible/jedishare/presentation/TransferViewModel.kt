@@ -58,11 +58,13 @@ class TransferViewModel @Inject constructor(
             if (intent?.action == CommunicationService.BROADCAST_SENDING_UPDATE) {
                 val progress = intent.getIntExtra(CommunicationService.EXTRAS_PROGRESS_STATE, 0)
                 val fileName = intent.getStringExtra(CommunicationService.EXTRAS_FILE_NAME) ?: ""
+                val fileIndex = intent.getIntExtra(CommunicationService.EXTRAS_CURRENT_FILE_INDEX, 0)
                 _state.update { 
                     it.copy(
                         progressPercent = progress.toFloat(),
                         currentFileName = fileName,
-                        isTransferComplete = progress == 100
+                        currentFileIndex = fileIndex,
+                        isTransferComplete = progress == 100 && fileIndex == (it.urisToShare.size - 1).coerceAtLeast(0)
                     ) 
                 }
             }

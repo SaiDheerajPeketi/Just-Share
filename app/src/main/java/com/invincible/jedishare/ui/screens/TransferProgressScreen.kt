@@ -66,9 +66,9 @@ fun TransferProgressScreen(
         }
     } else {
         if (isSender) {
-            state.isTransferComplete
+            state.isTransferComplete || (state.urisToShare.isNotEmpty() && state.currentFileIndex >= state.urisToShare.size)
         } else {
-            progress >= 100f
+            progress >= 100f && state.isTransferComplete
         }
     }
     val btFileInfo by btViewModel.fileInfoState.collectAsState()
