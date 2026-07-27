@@ -20,9 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.invincible.jedishare.presentation.BluetoothViewModel
+import com.invincible.jedishare.presentation.TransferViewModel
 import com.invincible.jedishare.ui.components.BackBar
 import com.invincible.jedishare.ui.theme.JediShareTheme
-import kotlinx.coroutines.delay
 
 data class TransferFile(
     val name: String,
@@ -34,25 +36,59 @@ data class TransferFile(
 
 @Composable
 fun TransferProgressScreen(
+    transferViewModel: TransferViewModel,
+    btViewModel: BluetoothViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
-    var progress by remember { mutableStateOf(42f) }
-
-    LaunchedEffect(Unit) {
-        while (progress < 100f) {
-            delay(200)
-            progress += 2f
-        }
+    val state by transferViewModel.state.collectAsState()
+    val btProgress by btViewModel.transferProgress.collectAsState()
+    val btState by btViewModel.statee.collectAsState()
+    
+    val isSender = state.urisToShare.isNotEmpty()
+    val method = state.method
+    
+    val progress = if (method == "bt") {
+        if (isSender) btProgress.sentPercent.toFloat() else btProgress.receivedPercent.toFloat()
+    } else {
+        state.progressPercent
     }
+    
+    val isDone = if (method == "bt") {
+        progress >= 100f
+    } else {
+        state.isTransferComplete
+    }
+    val btFileInfo by btViewModel.fileInfoState.collectAsState()
+    val btIncomingFileName by btViewModel.incomingFileNameState.collectAsState()
 
-    val files = listOf(
-        TransferFile("vacation_beach.jpg", "4.2 MB", Icons.Default.Image, isDone = true, isActive = false),
-        TransferFile("family_video.mp4", "128 MB", Icons.Default.Videocam, isDone = false, isActive = true),
-        TransferFile("report_q4.pdf", "2.8 MB", Icons.Default.InsertDriveFile, isDone = false, isActive = false),
-        TransferFile("podcast_ep12.mp3", "34 MB", Icons.Default.MusicNote, isDone = false, isActive = false)
-    )
+    // If there is no active file being broadcasted yet, show an empty list or the mock list with updated state
+    // We can map the urisToShare from the state to display all files that were selected.
+    val files = if (state.urisToShare.isNotEmpty()) {
+        state.urisToShare.mapIndexed { index, uri ->
+            val isActive = state.currentFileName.isNotEmpty() && uri.toString().contains(state.currentFileName) 
+                           || (state.currentFileName.isEmpty() && index == 0 && !isDone)
+            TransferFile(
+                name = btIncomingFileName ?: uri.lastPathSegment ?: "File ${index + 1}",
+                size = if (btFileInfo > 0) "${btFileInfo / 1024} KB" else "Unknown",
+                icon = Icons.Default.InsertDriveFile,
+                isDone = isDone || (index < state.currentFileIndex),
+                isActive = isActive
+            )
+        }
+    } else {
+        // Fallback for receiving side (we might not know all incoming files beforehand)
+        listOf(
+            TransferFile(
+                name = btIncomingFileName ?: "Incoming File...",
+                size = if (btFileInfo > 0) "${btFileInfo / 1024} KB" else "Unknown",
+                icon = Icons.Default.InsertDriveFile,
+                isDone = isDone,
+                isActive = !isDone
+            )
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -74,13 +110,13 @@ fun TransferProgressScreen(
                     .background(colors.red.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Send, contentDescription = null, tint = colors.red, modifier = Modifier.size(40.dp))
+                Icon(if (isDone) Icons.Default.Check else Icons.Default.Send, contentDescription = null, tint = colors.red, modifier = Modifier.size(40.dp))
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
+            Text(if (isDone) "Transfer Complete" else "Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Marcus's Galaxy S24", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold), color = colors.black)
+                Text(state.connectedDeviceName ?: "Unknown Device", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold), color = colors.black)
                 Spacer(modifier = Modifier.width(8.dp))
                 Box(modifier = Modifier.size(8.dp).background(colors.green, CircleShape))
             }
@@ -139,7 +175,7 @@ fun TransferProgressScreen(
                         }
                     }
 
-                    if (file.isActive) {
+                    if (file.isActive && !file.isDone) {
                         Spacer(modifier = Modifier.height(12.dp))
                         LinearProgressIndicator(
                             progress = progress / 100f,
@@ -169,9 +205,9 @@ fun TransferProgressScreen(
                 ),
                 elevation = ButtonDefaults.elevation(0.dp)
             ) {
-                Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(if (isDone) Icons.Default.Home else Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Disconnect", fontWeight = FontWeight.SemiBold)
+                Text(if (isDone) "Go Home" else "Disconnect", fontWeight = FontWeight.SemiBold)
             }
         }
     }

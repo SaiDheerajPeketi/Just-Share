@@ -227,6 +227,7 @@ class AndroidBluetoothController(
         iterationCountFlow: MutableSharedFlow<Long>,
         onFileSizeResolved: (Long) -> Unit,
         onFileCountUpdated: (Int) -> Unit,
+        onFileInfoResolved: (FileInfo) -> Unit,
         onBytesSent: (Long) -> Unit,
         onFileSent: (FileInfo) -> Unit
     ): BluetoothMessage? = kotlinx.coroutines.withContext(Dispatchers.IO) {
@@ -236,14 +237,15 @@ class AndroidBluetoothController(
         var fileCount = 0
         for (uri in uriList) {
             val fileInfo: FileInfo = getFileDetailsFromUri(uri, context.contentResolver)
-            onFileSizeResolved(fileInfo.size?.toLong() ?: 1L)
+            onFileInfoResolved(fileInfo)
+            onFileSizeResolved(fileInfo.size?.toLongOrNull() ?: 1L)
 
             val metaBytes = fileInfo.toByteArray() ?: ByteArray(0)
             val metaSizeBuffer = java.nio.ByteBuffer.allocate(4).putInt(metaBytes.size).array()
             dataTransferService?.sendMessage(metaSizeBuffer)
             dataTransferService?.sendMessage(metaBytes)
 
-            val fileSize = fileInfo.size?.toLong() ?: 0L
+            val fileSize = fileInfo.size?.toLongOrNull() ?: 0L
             val fileSizeBuffer = java.nio.ByteBuffer.allocate(8).putLong(fileSize).array()
             dataTransferService?.sendMessage(fileSizeBuffer)
 

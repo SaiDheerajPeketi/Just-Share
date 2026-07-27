@@ -6,7 +6,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.invincible.jedishare.presentation.BluetoothViewModel
+import com.invincible.jedishare.presentation.TransferViewModel
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Permissions : Screen("permissions")
@@ -26,7 +28,9 @@ sealed class Screen(val route: String) {
 fun AppNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Splash.route
+    startDestination: String = Screen.Splash.route,
+    transferViewModel: TransferViewModel = hiltViewModel(),
+    btViewModel: BluetoothViewModel = hiltViewModel()
 ) {
     NavHost(
         navController = navController,
@@ -67,6 +71,7 @@ fun AppNavGraph(
         }
         composable(Screen.Home.route) {
             com.invincible.jedishare.ui.screens.HomeScreen(
+                transferViewModel = transferViewModel,
                 onNavigateToNavRoute = { route -> navController.navigate(route) },
                 onNavigateToScreen = { route -> navController.navigate(route) }
             )
@@ -78,6 +83,7 @@ fun AppNavGraph(
             val method = backStackEntry.arguments?.getString("method") ?: "bt"
             com.invincible.jedishare.ui.screens.SelectFilesScreen(
                 method = method,
+                transferViewModel = transferViewModel,
                 onBack = { navController.popBackStack() },
                 onNavigateToScreen = { route -> navController.navigate(route) }
             )
@@ -85,6 +91,9 @@ fun AppNavGraph(
         composable(Screen.DiscoverBT.route) {
             com.invincible.jedishare.ui.screens.DiscoverDevicesScreen(
                 title = "Bluetooth Devices",
+                transferMethod = "bt",
+                transferViewModel = transferViewModel,
+                btViewModel = btViewModel,
                 onBack = { navController.popBackStack() },
                 onNavigateToScreen = { route -> navController.navigate(route) }
             )
@@ -92,12 +101,16 @@ fun AppNavGraph(
         composable(Screen.DiscoverWifi.route) {
             com.invincible.jedishare.ui.screens.DiscoverDevicesScreen(
                 title = "Wi-Fi Direct Devices",
+                transferMethod = "wifi",
+                transferViewModel = transferViewModel,
                 onBack = { navController.popBackStack() },
                 onNavigateToScreen = { route -> navController.navigate(route) }
             )
         }
         composable(Screen.TransferProgress.route) {
             com.invincible.jedishare.ui.screens.TransferProgressScreen(
+                transferViewModel = transferViewModel,
+                btViewModel = btViewModel,
                 onBack = { navController.popBackStack() },
                 onNavigateToScreen = { route -> navController.navigate(route) }
             )

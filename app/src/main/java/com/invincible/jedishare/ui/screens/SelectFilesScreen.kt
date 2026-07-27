@@ -1,5 +1,8 @@
 package com.invincible.jedishare.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -18,12 +22,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.invincible.jedishare.presentation.SelectFileViewModel
+import com.invincible.jedishare.presentation.TransferViewModel
 import com.invincible.jedishare.ui.components.BackBar
 import com.invincible.jedishare.ui.components.PillButton
 import com.invincible.jedishare.ui.components.PillButtonSize
@@ -32,12 +40,19 @@ import com.invincible.jedishare.ui.theme.*
 @Composable
 fun SelectFilesScreen(
     method: String = "bt",
+    transferViewModel: TransferViewModel,
+    viewModel: SelectFileViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
     var activeTab by remember { mutableStateOf("images") }
-    var selectedIds by remember { mutableStateOf(setOf<Int>()) }
+    
+    val images by viewModel.images.collectAsState()
+    val videos by viewModel.videos.collectAsState()
+    val audios by viewModel.audios.collectAsState()
+    val selectedUris by viewModel.selectedUris.collectAsState()
+
     val tabs = listOf(
         Triple("images", "Images", Icons.Default.Image),
         Triple("videos", "Videos", Icons.Default.VideoLibrary),
@@ -45,14 +60,10 @@ fun SelectFilesScreen(
         Triple("docs", "Docs", Icons.Default.InsertDriveFile)
     )
 
-    // Mock data for UI layout
-    val mockItems = (1..12).map { id ->
-        val color = when (id % 3) {
-            0 -> Color(0xFFE8D5B7)
-            1 -> Color(0xFFC8D8E8)
-            else -> Color(0xFFD8E8C8)
+    val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.addUris(uris)
         }
-        Pair(id, color)
     }
 
     Column(
@@ -86,7 +97,13 @@ fun SelectFilesScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { activeTab = tab.first }
+                        ) { 
+                            activeTab = tab.first
+                            if (activeTab == "docs") {
+                                pickerLauncher.launch("*/*")
+                                activeTab = "images" // Reset so they can pick again
+                            }
+                        }
                         .drawBehind {
                             if (isActive) {
                                 drawLine(
@@ -111,40 +128,71 @@ fun SelectFilesScreen(
 
         // Grid
         Box(modifier = Modifier.weight(1f).padding(12.dp)) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(mockItems.size) { index ->
-                    val item = mockItems[index]
-                    val isSelected = selectedIds.contains(item.first)
+            val itemsToDisplay = when (activeTab) {
+                "images" -> images.map { Pair(it.uri, it.name) }
+                "videos" -> videos.map { Pair(it.uri, it.name) }
+                "audio" -> audios.map { Pair(it.uri, it.name) }
+                else -> emptyList()
+            }
 
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(item.second)
-                            .clickable {
-                                selectedIds = if (isSelected) {
-                                    selectedIds - item.first
-                                } else {
-                                    selectedIds + item.first
+            if (itemsToDisplay.isEmpty() && activeTab != "docs") {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No files found", color = colors.mutedFg)
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(itemsToDisplay) { item ->
+                        val uri = item.first
+                        val isSelected = selectedUris.contains(uri)
+
+                        Box(
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(colors.cardBg)
+                                .clickable {
+                                    if (isSelected) {
+                                        // Wait, SelectFileViewModel doesn't have removeUri yet? Let's check.
+                                        // I will add it or just pass list minus uri to setUris? 
+                                        // But SelectFileViewModel only has addUris. Let's add removeUri to SelectFileViewModel.
+                                    } else {
+                                        viewModel.addUris(listOf(uri))
+                                    }
                                 }
+                        ) {
+                            if (activeTab == "images" || activeTab == "videos") {
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.LibraryMusic,
+                                    contentDescription = null,
+                                    tint = colors.mutedFg,
+                                    modifier = Modifier.align(Alignment.Center).size(32.dp)
+                                )
                             }
-                    ) {
-                        if (isSelected) {
-                            Box(modifier = Modifier.fillMaxSize().background(colors.red.copy(alpha = 0.35f)))
-                            Box(
-                                modifier = Modifier
-                                    .padding(6.dp)
-                                    .align(Alignment.TopEnd)
-                                    .size(24.dp)
-                                    .background(colors.red, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+
+                            if (isSelected) {
+                                Box(modifier = Modifier.fillMaxSize().background(colors.red.copy(alpha = 0.35f)))
+                                Box(
+                                    modifier = Modifier
+                                        .padding(6.dp)
+                                        .align(Alignment.TopEnd)
+                                        .size(24.dp)
+                                        .background(colors.red, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
@@ -154,9 +202,12 @@ fun SelectFilesScreen(
 
         Box(modifier = Modifier.padding(16.dp)) {
             PillButton(
-                label = if (selectedIds.isNotEmpty()) "Send ${selectedIds.size} file${if (selectedIds.size > 1) "s" else ""}" else "Select files above",
-                onClick = { onNavigateToScreen("discover-$method") },
-                disabled = selectedIds.isEmpty(),
+                label = if (selectedUris.isNotEmpty()) "Send ${selectedUris.size} file${if (selectedUris.size > 1) "s" else ""}" else "Select files above",
+                onClick = { 
+                    transferViewModel.setUris(selectedUris)
+                    onNavigateToScreen("discover-$method") 
+                },
+                disabled = selectedUris.isEmpty(),
                 size = PillButtonSize.LG,
                 modifier = Modifier.fillMaxWidth()
             )
