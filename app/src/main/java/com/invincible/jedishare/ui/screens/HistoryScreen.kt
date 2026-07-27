@@ -12,6 +12,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Image
@@ -51,13 +52,15 @@ fun HistoryScreen(
     var items by remember { 
         mutableStateOf(
             listOf(
-                HistoryItem(1, "vacation_beach.jpg", "Marcus's Galaxy S24", "Sent", "4.2 MB", "Today 14:32", "Wi-Fi", Icons.Default.Image),
-                HistoryItem(2, "family_video.mp4", "Sarah's Pixel 8", "Received", "128 MB", "Today 11:05", "Bluetooth", Icons.Default.Videocam),
-                HistoryItem(3, "report_q4.pdf", "Work MacBook Pro", "Sent", "2.8 MB", "Yesterday", "Wi-Fi", Icons.Default.InsertDriveFile),
-                HistoryItem(4, "podcast_ep12.mp3", "Lena's iPhone 15", "Received", "34 MB", "Mon, Jul 21", "Bluetooth", Icons.Default.MusicNote)
+                HistoryItem(1, "Project_Assets_v2.zip", "MacBook Pro", "Sent", "1.2 GB", "TODAY", "Wi-Fi", Icons.Default.InsertDriveFile),
+                HistoryItem(2, "IMG_9823.heic", "Galaxy S23", "Received", "4.5 MB", "TODAY", "BT", Icons.Default.Image),
+                HistoryItem(3, "Client_Presentation.mp4", "iPad Pro", "Sent", "850 MB", "YESTERDAY", "Wi-Fi", Icons.Default.Videocam),
+                HistoryItem(4, "Q3_Reports", "Desktop-X82", "Received", "120 MB", "YESTERDAY", "Wi-Fi", Icons.Default.InsertDriveFile)
             )
         )
     }
+
+    val groupedItems = items.groupBy { it.date }
 
     Column(
         modifier = Modifier
@@ -69,27 +72,37 @@ fun HistoryScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.Transparent)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Transfer History", style = MaterialTheme.typography.h3, color = colors.black)
             Box(
                 modifier = Modifier
                     .size(24.dp)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = { items = emptyList() }
+                        onClick = { onNavigateToNavRoute("home") }
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = colors.red, modifier = Modifier.size(24.dp))
+                Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = colors.black)
             }
+            Text("Transfer History", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold), color = colors.black)
+            Text(
+                text = "Clear All", 
+                style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold), 
+                color = colors.red,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { items = emptyList() }
+                )
+            )
         }
 
         Box(
-            modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
         ) {
             if (items.isEmpty()) {
                 Column(
@@ -111,80 +124,89 @@ fun HistoryScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.cardBg, RoundedCornerShape(24.dp))
-                        .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    items(items.size) { index ->
-                        val item = items[index]
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (item.dir == "Sent") colors.lightRed else Color(0xFFE8F5E9)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(item.icon, contentDescription = null, tint = if (item.dir == "Sent") colors.red else Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
+                    groupedItems.forEach { (dateHeader, dateItems) ->
+                        item {
+                            Column {
                                 Text(
-                                    text = item.name, 
-                                    style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), 
-                                    color = colors.black,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = if (item.dir == "Sent") "↑ Sent to ${item.peer}" else "↓ Received from ${item.peer}", 
-                                    fontSize = 12.sp, 
+                                    text = dateHeader,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
                                     color = colors.mutedFg,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    letterSpacing = 1.sp,
+                                    modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Text(text = item.size, fontSize = 12.sp, color = colors.mutedFg)
-                                    Text(text = "·", fontSize = 12.sp, color = colors.mutedFg)
-                                    Text(text = item.date, fontSize = 12.sp, color = colors.mutedFg)
-                                    Row(
-                                        modifier = Modifier
-                                            .background(
-                                                if (item.method == "Wi-Fi") Color(0xFFE3F2FD) else colors.lightRed, 
-                                                RoundedCornerShape(percent = 50)
-                                            )
-                                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            if (item.method == "Wi-Fi") Icons.Default.Wifi else Icons.Default.Bluetooth, 
-                                            contentDescription = null, 
-                                            tint = if (item.method == "Wi-Fi") Color(0xFF1565C0) else colors.darkRed, 
-                                            modifier = Modifier.size(10.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = item.method, 
-                                            fontSize = 10.sp, 
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (item.method == "Wi-Fi") Color(0xFF1565C0) else colors.darkRed
-                                        )
+                                    dateItems.forEach { item ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(colors.cardBg, RoundedCornerShape(16.dp))
+                                                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                                                .padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(48.dp)
+                                                    .background(if (item.dir == "Sent") colors.lightRed else Color(0xFFF5F5F5), RoundedCornerShape(12.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = item.icon, 
+                                                    contentDescription = null, 
+                                                    tint = if (item.dir == "Sent") colors.red else colors.mutedFg, 
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(16.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = item.name, 
+                                                    style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold), 
+                                                    color = colors.black,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = if (item.dir == "Sent") "Sent to ${item.peer}" else "Received from ${item.peer}", 
+                                                    fontSize = 13.sp, 
+                                                    color = colors.mutedFg,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(Color(0xFFF5F5F5), RoundedCornerShape(50))
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = item.method, 
+                                                        fontSize = 10.sp, 
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF555555)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Text(
+                                                    text = item.size, 
+                                                    style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold), 
+                                                    color = colors.black
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        }
-                        if (index < items.lastIndex) {
-                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
                         }
                     }
                 }
