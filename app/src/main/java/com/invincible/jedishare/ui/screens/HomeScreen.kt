@@ -146,7 +146,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
+                        .background(colors.cardBg)
                         .border(1.dp, colors.border, RoundedCornerShape(24.dp))
                 ) {
                     Box(
@@ -226,7 +226,7 @@ fun HomeScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White)
+                        .background(colors.cardBg)
                         .border(2.dp, colors.red, RoundedCornerShape(32.dp))
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -255,7 +255,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
+                        .background(colors.cardBg)
                         .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -275,7 +275,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
+                        .background(colors.cardBg)
                         .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                         .clickable { }
                         .padding(vertical = 16.dp, horizontal = 12.dp),
