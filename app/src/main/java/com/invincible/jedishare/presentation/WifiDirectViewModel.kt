@@ -160,6 +160,9 @@ class WifiDirectViewModel @Inject constructor(
 
     fun onDisconnected() {
         Timber.d("WifiDirectViewModel - onDisconnected called")
+        if (!isSenderRole && _uiState.value.connectionStatus == "hosting") {
+            return
+        }
         _uiState.update { it.copy(isConnected = false, connectionStatus = "") }
         stopCommunicationService()
     }
@@ -183,8 +186,7 @@ class WifiDirectViewModel @Inject constructor(
         val channel = wifiP2pChannel ?: return
         if (_uiState.value.isWifiDirectEnabled &&
             !_uiState.value.isDiscovering &&
-            !_uiState.value.isConnected &&
-            _uiState.value.connectionStatus != "hosting"
+            !_uiState.value.isConnected
         ) {
             manager.discoverPeers(channel, actionListener)
         }
@@ -209,27 +211,7 @@ class WifiDirectViewModel @Inject constructor(
             return
         }
         _uiState.update { it.copy(connectionStatus = "hosting", errorMessage = null) }
-        
-        // Clean up any lingering groups from previous sessions before we start advertising
-        viewModelScope.launch {
-            runP2pAction(
-                label = "cancelConnect before hosting",
-                retryReasons = emptySet()
-            ) { listener ->
-                manager.cancelConnect(channel, listener)
-            }
-            runP2pAction(
-                label = "removeGroup before hosting",
-                retryReasons = emptySet()
-            ) { listener ->
-                manager.removeGroup(channel, listener)
-            }
-            delay(300L)
-            
-            // Just use discoverPeers to make ourselves visible. 
-            // When the sender connects, the OS will negotiate the group and prompt the user.
-            startDiscovery()
-        }
+        manager.discoverPeers(channel, actionListener)
     }
 
     @SuppressLint("MissingPermission")
@@ -331,20 +313,6 @@ class WifiDirectViewModel @Inject constructor(
                 manager.stopPeerDiscovery(channel, listener)
             }
             delay(300L)
-        }
-
-        runP2pAction(
-            label = "cancelConnect before connect",
-            retryReasons = emptySet()
-        ) { listener ->
-            manager.cancelConnect(channel, listener)
-        }
-        
-        runP2pAction(
-            label = "removeGroup before connect",
-            retryReasons = emptySet()
-        ) { listener ->
-            manager.removeGroup(channel, listener)
         }
 
         delay(700L)
