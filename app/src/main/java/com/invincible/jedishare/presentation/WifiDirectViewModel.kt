@@ -209,54 +209,26 @@ class WifiDirectViewModel @Inject constructor(
             return
         }
         _uiState.update { it.copy(connectionStatus = "hosting", errorMessage = null) }
+        
+        // Clean up any lingering groups from previous sessions before we start advertising
         viewModelScope.launch {
-            if (_uiState.value.isDiscovering) {
-                runP2pAction(
-                    label = "stopPeerDiscovery before createGroup",
-                    retryReasons = setOf(WifiP2pManager.BUSY)
-                ) { listener ->
-                    manager.stopPeerDiscovery(channel, listener)
-                }
-                delay(300L)
-            }
-
             runP2pAction(
-                label = "cancelConnect before createGroup",
-                retryReasons = setOf(WifiP2pManager.BUSY)
+                label = "cancelConnect before hosting",
+                retryReasons = emptySet()
             ) { listener ->
                 manager.cancelConnect(channel, listener)
             }
-
             runP2pAction(
-                label = "removeGroup before createGroup",
-                retryReasons = setOf(WifiP2pManager.BUSY)
+                label = "removeGroup before hosting",
+                retryReasons = emptySet()
             ) { listener ->
                 manager.removeGroup(channel, listener)
             }
-
-            delay(500L)
-
-            val failure = runP2pAction(
-                label = "createGroup",
-                retryReasons = setOf(WifiP2pManager.BUSY, WifiP2pManager.ERROR)
-            ) { listener ->
-                manager.createGroup(channel, listener)
-            }
-
-            if (failure == null) {
-                _uiState.update {
-                    it.copy(
-                        isDiscovering = false,
-                        connectionStatus = "hosting",
-                        errorMessage = null
-                    )
-                }
-                requestConnectionInfo()
-            } else {
-                val msg = "Wi-Fi Direct hosting failed: ${failureReason(failure)}"
-                Log.e(TAG, msg)
-                _uiState.update { it.copy(connectionStatus = "", errorMessage = msg) }
-            }
+            delay(300L)
+            
+            // Just use discoverPeers to make ourselves visible. 
+            // When the sender connects, the OS will negotiate the group and prompt the user.
+            startDiscovery()
         }
     }
 
@@ -269,7 +241,6 @@ class WifiDirectViewModel @Inject constructor(
         val config = WifiP2pConfig().apply {
             deviceAddress = device.deviceAddress
             wps.setup = WpsInfo.PBC
-            groupOwnerIntent = 0
         }
         viewModelScope.launch {
             prepareAndConnect(manager, channel, config)
@@ -360,6 +331,20 @@ class WifiDirectViewModel @Inject constructor(
                 manager.stopPeerDiscovery(channel, listener)
             }
             delay(300L)
+        }
+
+        runP2pAction(
+            label = "cancelConnect before connect",
+            retryReasons = emptySet()
+        ) { listener ->
+            manager.cancelConnect(channel, listener)
+        }
+        
+        runP2pAction(
+            label = "removeGroup before connect",
+            retryReasons = emptySet()
+        ) { listener ->
+            manager.removeGroup(channel, listener)
         }
 
         delay(700L)
