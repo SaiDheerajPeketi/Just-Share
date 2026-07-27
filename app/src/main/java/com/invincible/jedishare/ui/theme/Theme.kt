@@ -7,35 +7,108 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import android.app.Activity
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.graphics.toArgb
+
+class CustomColors(
+    val red: Color,
+    val lightRed: Color,
+    val darkRed: Color,
+    val black: Color,
+    val white: Color,
+    val surface: Color,
+    val cardBg: Color,
+    val mutedFg: Color,
+    val border: Color,
+    val gold: Color,
+    val green: Color,
+    val isLight: Boolean
+)
+
+val LocalCustomColors = staticCompositionLocalOf {
+    CustomColors(
+        red = MyRed,
+        lightRed = LightRed,
+        darkRed = DarkRed,
+        black = LightBlack,
+        white = LightWhite,
+        surface = LightSurface,
+        cardBg = LightCardBg,
+        mutedFg = LightMutedFg,
+        border = LightBorder,
+        gold = Gold,
+        green = Green,
+        isLight = true
+    )
+}
+
+private val LightCustomColors = CustomColors(
+    red = MyRed,
+    lightRed = LightRed,
+    darkRed = DarkRed,
+    black = LightBlack,
+    white = LightWhite,
+    surface = LightSurface,
+    cardBg = LightCardBg,
+    mutedFg = LightMutedFg,
+    border = LightBorder,
+    gold = Gold,
+    green = Green,
+    isLight = true
+)
+
+private val DarkCustomColors = CustomColors(
+    red = MyRed,
+    lightRed = LightRed,
+    darkRed = DarkRed,
+    black = DarkBlack,
+    white = DarkWhite,
+    surface = DarkSurface,
+    cardBg = DarkCardBg,
+    mutedFg = DarkMutedFg,
+    border = DarkBorder,
+    gold = Gold,
+    green = Green,
+    isLight = false
+)
 
 private val DarkColorPalette = darkColors(
-    primary = DarkModeButtons,
-    primaryVariant = Purple700,
-    secondary = Teal200,
-    background = DarkModeBackground,
-    onSurface = Color.White,
+    primary = MyRed,
+    primaryVariant = DarkRed,
+    secondary = Gold,
+    background = DarkSurface,
+    surface = DarkCardBg,
+    onPrimary = DarkWhite,
+    onSecondary = DarkWhite,
+    onBackground = DarkBlack,
+    onSurface = DarkBlack,
 )
 
 private val LightColorPalette = lightColors(
-//    primary = Purple500,
-//    secondary = Teal200,
     primary = MyRed,
-    primaryVariant = Purple700,
-    secondary = MyRedSecondary,
-    background = White,
-    onSurface = Color.Black,
+    primaryVariant = DarkRed,
+    secondary = Gold,
+    background = LightSurface,
+    surface = LightCardBg,
+    onPrimary = LightWhite,
+    onSecondary = LightWhite,
+    onBackground = LightBlack,
+    onSurface = LightBlack,
+)
 
-    /* Other default colors to override
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black,
-    */)
+object JediShareTheme {
+    val colors: CustomColors
+        @Composable
+        get() = LocalCustomColors.current
+}
 
 @Composable
 fun JediShareTheme(content: @Composable () -> Unit) {
@@ -49,16 +122,24 @@ fun JediShareTheme(content: @Composable () -> Unit) {
     
     val isDarkMode by dataStore.isDarkModeEnabled.collectAsStateWithLifecycle(initialValue = isSystemInDarkTheme())
     
-    val colors = if (isDarkMode) {
-        DarkColorPalette
-    } else {
-        LightColorPalette
+    val customColors = if (isDarkMode) DarkCustomColors else LightCustomColors
+    val materialColors = if (isDarkMode) DarkColorPalette else LightColorPalette
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = customColors.surface.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkMode
+        }
     }
 
-    MaterialTheme(
-        colors = colors,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalCustomColors provides customColors) {
+        MaterialTheme(
+            colors = materialColors,
+            typography = Typography,
+            shapes = Shapes,
+            content = content
+        )
+    }
 }

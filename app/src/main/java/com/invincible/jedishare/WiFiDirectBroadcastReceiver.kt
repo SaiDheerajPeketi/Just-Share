@@ -20,7 +20,6 @@ import com.invincible.jedishare.presentation.WifiDirectViewModel
  * Now delegates to ViewModel methods to respect the MVVM boundary.
  */
 class WiFiDirectBroadcastReceiver(
-    private val activity: WifiDirectDeviceSelectActivity,
     private val viewModel: WifiDirectViewModel
 ) : BroadcastReceiver() {
 

@@ -38,16 +38,11 @@ class ShareReceiverActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val method = dataStore.defaultTransferMethod.first()
-            val targetClass = if (method == "WiFi-Direct") {
-                WifiDirectDeviceSelectActivity::class.java
-            } else {
-                DeviceList::class.java
-            }
-            
-            val nextIntent = Intent(this@ShareReceiverActivity, targetClass).apply {
+            val nextIntent = Intent(this@ShareReceiverActivity, MainActivity::class.java).apply {
                 putParcelableArrayListExtra("urilist", uris)
-                // Forward action so they know it's a share if needed
+                putExtra("start_route", if (method == "WiFi-Direct") "discover-wifi" else "discover-bt")
                 action = intent.action
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             startActivity(nextIntent)
             finish()
