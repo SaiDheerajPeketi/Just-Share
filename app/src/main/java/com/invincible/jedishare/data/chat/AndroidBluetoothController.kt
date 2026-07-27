@@ -226,7 +226,8 @@ class AndroidBluetoothController(
         uriList: List<Uri>,
         iterationCountFlow: MutableSharedFlow<Long>,
         onFileSizeResolved: (Long) -> Unit,
-        onFileCountUpdated: (Int) -> Unit
+        onFileCountUpdated: (Int) -> Unit,
+        onFileSent: (FileInfo) -> Unit
     ): BluetoothMessage? {
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return null
         if (dataTransferService == null) return null
@@ -255,6 +256,7 @@ class AndroidBluetoothController(
             dataTransferService?.sendMessage(BluetoothDataTransferService.END_OF_FILE_SENTINEL)
             onFileCountUpdated(++fileCount)
             Log.d(TAG, "File $fileCount sent: $uri")
+            onFileSent(fileInfo)
         }
 
         return BluetoothMessage(
