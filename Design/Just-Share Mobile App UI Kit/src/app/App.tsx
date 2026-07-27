@@ -30,7 +30,7 @@ type Screen =
   | "discover-bt" | "discover-wifi" | "transfer-progress"
   | "history" | "settings" | "secure-send" | "qr-scan"
   | "incoming-confirm" | "trusted-devices" | "pro-upgrade"
-  | "interstitial-ad";
+  | "interstitial-ad" | "receive-mode";
 
 // ─── Shared Primitives ────────────────────────────────────────────────────────
 
@@ -324,7 +324,7 @@ function HomeScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
         </button>
 
         {/* RECEIVE Card */}
-        <button onClick={() => onNavigate("discover-bt")}
+        <button onClick={() => onNavigate("receive-mode")}
           className="w-full rounded-3xl p-6 flex flex-col items-center justify-center gap-4 border-2 transition-transform active:scale-[0.98]"
           style={{ backgroundColor: CARD_BG, borderColor: RED, minHeight: 200 }}>
           <div className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -1287,6 +1287,188 @@ function InterstitialAdScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Screen: Receive Mode ─────────────────────────────────────────────────────
+function ReceiveModeScreen({ onBack, onNavigate }: { onBack: () => void; onNavigate: (s: Screen) => void }) {
+  const [method, setMethod] = useState<"bluetooth" | "wifi">("bluetooth");
+  const [advertising, setAdvertising] = useState(true);
+  const [secondsLeft, setSecondsLeft] = useState(300);
+
+  const deviceName = "Marcus's Galaxy S24";
+  const deviceId = "AC:DE:48:00:11:22";
+
+  useEffect(() => {
+    if (!advertising) return;
+    const t = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) { clearInterval(t); setAdvertising(false); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [advertising]);
+
+  const mins = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const secs = String(secondsLeft % 60).padStart(2, "0");
+
+  const restart = () => { setSecondsLeft(300); setAdvertising(true); };
+
+  return (
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: SURFACE }}>
+      {/* Top bar */}
+      <BackBar title="Receive Files" onBack={onBack} />
+
+      {/* Method toggle */}
+      <div className="flex mx-4 mt-4 p-1 rounded-2xl gap-1" style={{ backgroundColor: "#EBEBEB" }}>
+        {(["bluetooth", "wifi"] as const).map(m => (
+          <button
+            key={m}
+            onClick={() => setMethod(m)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            style={{
+              backgroundColor: method === m ? WHITE : "transparent",
+              color: method === m ? RED : MUTED_FG,
+              boxShadow: method === m ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+            }}
+          >
+            {m === "bluetooth" ? <Bluetooth size={14} /> : <Wifi size={14} />}
+            {m === "bluetooth" ? "Bluetooth" : "Wi-Fi Direct"}
+          </button>
+        ))}
+      </div>
+
+      {/* Main beacon area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
+
+        {/* Pulsing beacon */}
+        <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
+          {advertising && [0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="absolute rounded-full animate-ping"
+              style={{
+                width: 80 + i * 40,
+                height: 80 + i * 40,
+                backgroundColor: RED,
+                opacity: 0.06 + (2 - i) * 0.04,
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: "2.5s",
+              }}
+            />
+          ))}
+          <div
+            className="relative z-10 rounded-full flex items-center justify-center shadow-2xl"
+            style={{
+              width: 88, height: 88,
+              background: advertising
+                ? `radial-gradient(circle at 35% 35%, ${RED}, ${DARK_RED})`
+                : "#D0D0D0",
+              boxShadow: advertising ? `0 0 32px ${RED}55` : "none",
+            }}
+          >
+            <ArrowDown size={38} color={WHITE} />
+          </div>
+        </div>
+
+        {/* Status text */}
+        {advertising ? (
+          <div className="text-center space-y-1">
+            <p className="text-lg font-black" style={{ color: BLACK }}>Waiting for sender…</p>
+            <p className="text-sm" style={{ color: MUTED_FG }}>
+              This device is now visible to nearby {method === "bluetooth" ? "Bluetooth" : "Wi-Fi Direct"} devices
+            </p>
+          </div>
+        ) : (
+          <div className="text-center space-y-1">
+            <p className="text-lg font-black" style={{ color: MUTED_FG }}>Visibility expired</p>
+            <p className="text-sm" style={{ color: MUTED_FG }}>Tap Restart to become discoverable again</p>
+          </div>
+        )}
+
+        {/* Device identity card */}
+        <div
+          className="w-full rounded-3xl border overflow-hidden"
+          style={{ backgroundColor: CARD_BG, borderColor: BORDER }}
+        >
+          {/* Device name row */}
+          <div className="flex items-center gap-4 px-5 py-4 border-b" style={{ borderColor: BORDER }}>
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: LIGHT_RED }}
+            >
+              <Smartphone size={20} style={{ color: RED }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: MUTED_FG }}>
+                Visible as
+              </p>
+              <p className="text-base font-black truncate" style={{ color: BLACK }}>{deviceName}</p>
+            </div>
+            <div
+              className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"
+              style={{
+                backgroundColor: advertising ? "#E8F5E9" : "#F0F0F0",
+                color: advertising ? GREEN : MUTED_FG,
+              }}
+            >
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: advertising ? GREEN : MUTED_FG }}
+              />
+              {advertising ? "Live" : "Off"}
+            </div>
+          </div>
+
+          {/* MAC / countdown row */}
+          <div className="flex items-center divide-x" style={{ borderColor: BORDER }}>
+            <div className="flex-1 px-5 py-3">
+              <p className="text-xs" style={{ color: MUTED_FG }}>Address</p>
+              <p className="text-sm font-mono font-semibold mt-0.5" style={{ color: BLACK }}>{deviceId}</p>
+            </div>
+            <div className="flex-1 px-5 py-3">
+              <p className="text-xs" style={{ color: MUTED_FG }}>Visibility</p>
+              <p
+                className="text-sm font-mono font-bold mt-0.5"
+                style={{ color: advertising ? RED : MUTED_FG }}
+              >
+                {advertising ? `${mins}:${secs}` : "0:00"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* QR shortcut */}
+        <button
+          onClick={() => onNavigate("qr-scan")}
+          className="flex items-center gap-2 px-5 py-3 rounded-2xl border transition-colors active:bg-gray-50"
+          style={{ backgroundColor: CARD_BG, borderColor: BORDER }}
+        >
+          <QrCode size={18} style={{ color: RED }} />
+          <span className="text-sm font-semibold" style={{ color: BLACK }}>Show QR Code instead</span>
+          <ChevronRight size={16} style={{ color: MUTED_FG }} />
+        </button>
+      </div>
+
+      {/* Bottom action */}
+      <div className="px-6 pb-8 pt-3 space-y-3">
+        {advertising ? (
+          <button
+            onClick={() => setAdvertising(false)}
+            className="w-full py-4 rounded-full border-2 font-bold text-sm transition-colors active:bg-gray-50"
+            style={{ borderColor: DARK_RED, color: DARK_RED }}
+          >
+            Stop Advertising
+          </button>
+        ) : (
+          <PillButton label="Restart (5 min)" onClick={restart} size="lg" icon={<RefreshCw size={18} />} />
+        )}
+        <p className="text-center text-xs" style={{ color: MUTED_FG }}>
+          Just Share never sends data without your confirmation
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Screen Navigator ─────────────────────────────────────────────────────────
 
 const SCREEN_LABELS: Record<Screen, string> = {
@@ -1294,6 +1476,7 @@ const SCREEN_LABELS: Record<Screen, string> = {
   permissions: "2. Permissions",
   home: "3. Home",
   "select-files": "4. File Selection",
+  "receive-mode": "3b. Receive Mode",
   "discover-bt": "5. BT Discovery",
   "discover-wifi": "6. Wi-Fi Direct",
   "transfer-progress": "7. Transfer Progress",
@@ -1308,7 +1491,7 @@ const SCREEN_LABELS: Record<Screen, string> = {
 };
 
 const ALL_SCREENS: Screen[] = [
-  "splash", "permissions", "home", "select-files",
+  "splash", "permissions", "home", "receive-mode", "select-files",
   "discover-bt", "discover-wifi", "transfer-progress",
   "history", "settings", "secure-send", "qr-scan",
   "incoming-confirm", "trusted-devices", "pro-upgrade", "interstitial-ad"
@@ -1330,6 +1513,7 @@ export default function App() {
       case "permissions": return <PermissionsScreen onContinue={() => navigate("home")} />;
       case "home": return <HomeScreen onNavigate={navigate} />;
       case "select-files": return <FileSelectionScreen onBack={() => navigate("home")} onNavigate={navigate} />;
+      case "receive-mode": return <ReceiveModeScreen onBack={() => navigate("home")} onNavigate={navigate} />;
       case "discover-bt": return <DiscoverBTScreen onBack={() => navigate("home")} onNavigate={navigate} />;
       case "discover-wifi": return <DiscoverWifiScreen onBack={() => navigate("discover-bt")} onNavigate={navigate} />;
       case "transfer-progress": return <TransferProgressScreen onBack={() => navigate("discover-bt")} onNavigate={navigate} />;
