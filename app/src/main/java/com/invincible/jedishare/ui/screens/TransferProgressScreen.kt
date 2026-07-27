@@ -157,18 +157,20 @@ fun TransferProgressScreen(
         }
 
         Column(modifier = Modifier.padding(16.dp)) {
-            OutlinedButton(
+            Button(
                 onClick = { onBack() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                border = androidx.compose.foundation.BorderStroke(2.dp, colors.darkRed),
                 shape = CircleShape,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = colors.darkRed,
-                    backgroundColor = Color.Transparent
-                )
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = colors.darkRed,
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.elevation(0.dp)
             ) {
+                Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text("Disconnect", fontWeight = FontWeight.SemiBold)
             }
         }
