@@ -362,21 +362,7 @@ class WifiDirectViewModel @Inject constructor(
             delay(300L)
         }
 
-        runP2pAction(
-            label = "cancelConnect before connect",
-            retryReasons = setOf(WifiP2pManager.BUSY)
-        ) { listener ->
-            manager.cancelConnect(channel, listener)
-        }
-
-        runP2pAction(
-            label = "removeGroup before connect",
-            retryReasons = setOf(WifiP2pManager.BUSY)
-        ) { listener ->
-            manager.removeGroup(channel, listener)
-        }
-
-        delay(500L)
+        delay(700L)
 
         val connectFailure = runP2pAction(
             label = "connect",

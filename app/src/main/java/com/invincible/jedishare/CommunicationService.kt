@@ -196,7 +196,7 @@ class CommunicationService : Service() {
     @Throws(IOException::class)
     private fun startServer(port: Int, deviceName: String?) {
         Timber.d("CommunicationService - startServer called")
-        serverSocket = ServerSocket(port).apply { soTimeout = 8000 }
+        serverSocket = ServerSocket(port).apply { soTimeout = 60_000 }
         Log.d(TAG, "Server: waiting for connection on port $port")
         communicationSocket = try {
             serverSocket!!.accept()
