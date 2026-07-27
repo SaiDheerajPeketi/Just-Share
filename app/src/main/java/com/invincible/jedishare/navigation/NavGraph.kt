@@ -19,6 +19,7 @@ sealed class Screen(val route: String) {
     object TransferProgress : Screen("transfer-progress")
     object History : Screen("history")
     object Settings : Screen("settings")
+    object ScanQr : Screen("scan-qr")
 }
 
 @Composable
@@ -109,6 +110,11 @@ fun AppNavGraph(
         composable(Screen.Settings.route) {
             com.invincible.jedishare.ui.screens.SettingsScreen(
                 onNavigateToNavRoute = { route -> navController.navigate(route) }
+            )
+        }
+        composable(Screen.ScanQr.route) {
+            com.invincible.jedishare.ui.screens.ScanQrScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

@@ -94,10 +94,15 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .background(colors.lightRed, CircleShape),
+                        .background(colors.lightRed, CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onNavigateToScreen("scan-qr") }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Bolt, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
+                    Icon(androidx.compose.material.icons.filled.QrCodeScanner, contentDescription = "Scan QR", tint = colors.red, modifier = Modifier.size(18.dp))
                 }
             }
 
