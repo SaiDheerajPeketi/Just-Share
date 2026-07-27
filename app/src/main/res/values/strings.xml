@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Jedi Share</string>
+    <string name="app_name">Just Share</string>
     <string name="title_activity_send_or_receive">SendOrReceive</string>
     <string name="title_activity_waiting">Waiting</string>
     <string name="title_activity_select_file">SelectFile</string>
