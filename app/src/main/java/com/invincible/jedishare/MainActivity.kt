@@ -41,12 +41,14 @@ class MainActivity : ComponentActivity() {
             add(Manifest.permission.NEARBY_WIFI_DEVICES)
             add(Manifest.permission.BLUETOOTH_SCAN)
             add(Manifest.permission.BLUETOOTH_CONNECT)
+            add(Manifest.permission.BLUETOOTH_ADVERTISE)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             add(Manifest.permission.READ_EXTERNAL_STORAGE)
             add(Manifest.permission.ACCESS_FINE_LOCATION)
             add(Manifest.permission.ACCESS_COARSE_LOCATION)
             add(Manifest.permission.BLUETOOTH_SCAN)
             add(Manifest.permission.BLUETOOTH_CONNECT)
+            add(Manifest.permission.BLUETOOTH_ADVERTISE)
         } else {
             add(Manifest.permission.READ_EXTERNAL_STORAGE)
             add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
