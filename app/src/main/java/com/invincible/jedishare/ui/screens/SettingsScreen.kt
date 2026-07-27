@@ -3,6 +3,7 @@ package com.invincible.jedishare.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -124,7 +125,10 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .background(if (transferMethod == "bluetooth") colors.lightRed else colors.surface, RoundedCornerShape(16.dp))
                         .border(1.dp, if (transferMethod == "bluetooth") colors.red else colors.border, RoundedCornerShape(16.dp))
-                        .clickable { transferMethod = "bluetooth" }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { transferMethod = "bluetooth" }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -144,7 +148,10 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .background(if (transferMethod == "wifi") colors.lightRed else colors.surface, RoundedCornerShape(16.dp))
                         .border(1.dp, if (transferMethod == "wifi") colors.red else colors.border, RoundedCornerShape(16.dp))
-                        .clickable { transferMethod = "wifi" }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { transferMethod = "wifi" }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
