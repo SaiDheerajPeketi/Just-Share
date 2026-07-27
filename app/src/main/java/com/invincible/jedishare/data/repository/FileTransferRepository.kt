@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.repository
 
+import timber.log.Timber
+
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.net.Uri
@@ -28,6 +30,7 @@ class FileTransferRepository @Inject constructor(
      * @return The URI of the newly created MediaStore entry, or null on failure.
      */
     suspend fun createMediaStoreEntry(fileInfo: FileInfo): Uri? = withContext(Dispatchers.IO) {
+        Timber.d("FileTransferRepository - createMediaStoreEntry called")
         val mimeType = fileInfo.mimeType ?: "*/*"
         val fileName = fileInfo.fileName ?: "received_file"
 
@@ -79,6 +82,7 @@ class FileTransferRepository @Inject constructor(
      * @return True if the write succeeded, false otherwise.
      */
     suspend fun appendChunkToFile(fileUri: Uri, chunk: ByteArray): Boolean = withContext(Dispatchers.IO) {
+        Timber.d("FileTransferRepository - appendChunkToFile called")
         try {
             contentResolver.openOutputStream(fileUri, "wa")?.use { outputStream ->
                 outputStream.write(chunk)

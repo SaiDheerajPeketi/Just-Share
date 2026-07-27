@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -33,6 +35,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class DeviceList : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("DeviceList - onCreate called")
         super.onCreate(savedInstanceState)
 
         // Log share-sheet URIs if launched via ACTION_SEND / ACTION_SEND_MULTIPLE

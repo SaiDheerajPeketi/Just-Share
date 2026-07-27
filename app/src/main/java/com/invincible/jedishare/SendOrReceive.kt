@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -24,6 +26,7 @@ import com.invincible.jedishare.ui.theme.JediShareTheme
 
 class SendOrReceive : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("SendOrReceive - onCreate called")
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {
@@ -47,6 +50,7 @@ class SendOrReceive : ComponentActivity() {
 
 @Composable
 fun Screen2() {
+    Timber.d("SendOrReceive - Screen2 called")
     val context = LocalContext.current
     Row (
         modifier = Modifier

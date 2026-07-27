@@ -1,5 +1,7 @@
 package com.invincible.jedishare.ui.theme
 
+import timber.log.Timber
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Shapes
 import androidx.compose.ui.unit.dp

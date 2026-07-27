@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.chat
 
+import timber.log.Timber
+
 
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -13,6 +15,7 @@ class BluetoothStateReceiver(
 ): BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
+        Timber.d("BluetoothStateReceiver - onReceive called")
         val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent?.getParcelableExtra(
                 BluetoothDevice.EXTRA_DEVICE,

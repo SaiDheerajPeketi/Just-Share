@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation.components
 
+import timber.log.Timber
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column

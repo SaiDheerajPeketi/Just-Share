@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.db
 
+import timber.log.Timber
+
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey

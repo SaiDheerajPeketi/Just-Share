@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.db
 
+import timber.log.Timber
+
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 

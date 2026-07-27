@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.data.repository.MediaRepository
@@ -25,6 +27,7 @@ class VideoViewModel @Inject constructor(
     init { loadVideos() }
 
     fun loadVideos() {
+        Timber.d("VideoViewModel - loadVideos called")
         viewModelScope.launch {
             _videos.value = mediaRepository.getVideos()
         }

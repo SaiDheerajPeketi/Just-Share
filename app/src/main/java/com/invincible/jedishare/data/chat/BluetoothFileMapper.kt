@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.chat
 
+import timber.log.Timber
+
 import android.util.Log
 import com.invincible.jedishare.domain.chat.FileInfo
 import org.json.JSONObject
@@ -20,6 +22,7 @@ private const val TAG = "BluetoothFileMapper"
 
 /** Serializes this [FileInfo] to a compact JSON UTF-8 byte array. */
 fun FileInfo.toByteArray(): ByteArray? = runCatching {
+    Timber.d("version - toByteArray called")
     JSONObject().apply {
         put("fileName", fileName ?: JSONObject.NULL)
         put("format",   format   ?: JSONObject.NULL)
@@ -30,6 +33,7 @@ fun FileInfo.toByteArray(): ByteArray? = runCatching {
 
 /** Deserializes a UTF-8 JSON byte array back to [FileInfo], or null on error. */
 fun ByteArray.toFileInfo(): FileInfo? = runCatching {
+    Timber.d("version - toFileInfo called")
     val json = JSONObject(this.decodeToString())
     FileInfo(
         fileName = json.optString("fileName").takeIf { it.isNotEmpty() },

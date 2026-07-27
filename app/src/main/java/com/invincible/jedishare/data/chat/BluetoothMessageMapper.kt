@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.chat
 
+import timber.log.Timber
+
 import com.invincible.jedishare.domain.chat.BluetoothMessage
 
 /**
@@ -15,6 +17,7 @@ import com.invincible.jedishare.domain.chat.BluetoothMessage
 
 /** Converts a raw "senderName#message" string to a [BluetoothMessage]. */
 fun String.toBluetoothMessage(isFromLocalUser: Boolean): BluetoothMessage {
+    Timber.d("Global - toBluetoothMessage called")
     val name    = substringBeforeLast("#")
     val message = substringAfterLast("#")
     return BluetoothMessage(

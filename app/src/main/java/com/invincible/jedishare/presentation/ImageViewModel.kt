@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.data.repository.MediaRepository
@@ -25,6 +27,7 @@ class ImageViewModel @Inject constructor(
     init { loadImages() }
 
     fun loadImages() {
+        Timber.d("ImageViewModel - loadImages called")
         viewModelScope.launch {
             _images.value = mediaRepository.getImages()
         }

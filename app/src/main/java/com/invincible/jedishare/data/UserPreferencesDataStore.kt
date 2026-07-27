@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data
 
+import timber.log.Timber
+
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -43,14 +45,17 @@ class UserPreferencesDataStore @Inject constructor(
     }
 
     suspend fun setDarkMode(enabled: Boolean) {
+        Timber.d("UserPreferencesDataStore - setDarkMode called")
         context.dataStore.edit { prefs -> prefs[KEY_DARK_MODE] = enabled }
     }
 
     suspend fun setDefaultTransferMethod(method: String) {
+        Timber.d("UserPreferencesDataStore - setDefaultTransferMethod called")
         context.dataStore.edit { prefs -> prefs[KEY_DEFAULT_TRANSFER_METHOD] = method }
     }
 
     suspend fun setChunkSizeKb(sizeKb: Int) {
+        Timber.d("UserPreferencesDataStore - setChunkSizeKb called")
         context.dataStore.edit { prefs -> prefs[KEY_CHUNK_SIZE_KB] = sizeKb }
     }
 }

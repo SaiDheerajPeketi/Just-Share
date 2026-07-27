@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.data.UserPreferencesDataStore
@@ -32,14 +34,17 @@ class SettingsViewModel @Inject constructor(
     )
 
     fun toggleDarkMode(enabled: Boolean) {
+        Timber.d("SettingsViewModel - toggleDarkMode called")
         viewModelScope.launch { prefs.setDarkMode(enabled) }
     }
 
     fun setDefaultTransferMethod(method: String) {
+        Timber.d("SettingsViewModel - setDefaultTransferMethod called")
         viewModelScope.launch { prefs.setDefaultTransferMethod(method) }
     }
 
     fun setChunkSizeKb(size: Int) {
+        Timber.d("SettingsViewModel - setChunkSizeKb called")
         viewModelScope.launch { prefs.setChunkSizeKb(size) }
     }
 }

@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
@@ -124,6 +126,7 @@ class MainActivity : ComponentActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("MainActivity - onCreate called")
         super.onCreate(savedInstanceState)
 
         val enableBluetoothLauncher = registerForActivityResult(
@@ -289,6 +292,7 @@ fun CustomSwitch(
 }
 
 fun isBluetoothOkay(){
+    Timber.d("MainActivity - isBluetoothOkay called")
 
 }
 
@@ -296,12 +300,14 @@ fun isBluetoothOkay(){
 private fun animateAlignmentAsState(
     targetBiasValue: Float
 ): State<BiasAlignment> {
+    Timber.d("MainActivity - animateAlignmentAsState called")
     val bias by animateFloatAsState(targetBiasValue)
     return derivedStateOf { BiasAlignment(horizontalBias = bias, verticalBias = 0f) }
 }
 
 @Composable
 fun CircularButton(onClick: () -> Unit, buttonName: String, icon: Painter, color: Color = MaterialTheme.colors.primary) {
+    Timber.d("MainActivity - CircularButton called")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ){
@@ -333,6 +339,7 @@ fun CircularButton(onClick: () -> Unit, buttonName: String, icon: Painter, color
 
 @Composable
 fun Screen1() {
+    Timber.d("MainActivity - Screen1 called")
     val context = LocalContext.current
     Column (
         modifier = Modifier
@@ -453,6 +460,7 @@ fun Screen1() {
 
 @Composable
 fun NavBar(isMainActivity: String? = null) {
+    Timber.d("MainActivity - NavBar called")
 
     val iconColor = Color(0xFF555555)
 

@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.IntentFilter
@@ -91,6 +93,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("WifiDirectDeviceSelectActivity - onCreate called")
         super.onCreate(savedInstanceState)
 
         val fileUriList: List<Uri> =
@@ -299,6 +302,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     }
 
     override fun onResume() {
+        Timber.d("WifiDirectDeviceSelectActivity - onResume called")
         super.onResume()
         receiver?.let { registerReceiver(it, intentFilter) }
         connectionUpdateReceiver?.let {
@@ -307,6 +311,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        Timber.d("WifiDirectDeviceSelectActivity - onPause called")
         super.onPause()
         try { receiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         try { connectionUpdateReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
@@ -315,6 +320,7 @@ class WifiDirectDeviceSelectActivity : ComponentActivity() {
 
 @Composable
 private fun PeerItem(device: WifiP2pDevice, onConnect: () -> Unit) {
+    Timber.d("WifiDirectDeviceSelectActivity - PeerItem called")
     val statusText = when (device.status) {
         WifiP2pDevice.AVAILABLE  -> "Available"
         WifiP2pDevice.INVITED    -> "Invited"

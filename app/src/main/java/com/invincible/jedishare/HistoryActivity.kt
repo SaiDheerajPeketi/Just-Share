@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -42,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @AndroidEntryPoint
 class HistoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("HistoryActivity - onCreate called")
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {
@@ -54,6 +57,7 @@ class HistoryActivity : ComponentActivity() {
 
 @Composable
 private fun HistoryScreen(viewModel: HistoryViewModel) {
+    Timber.d("HistoryActivity - HistoryScreen called")
     val historyList by viewModel.history.collectAsStateWithLifecycle()
 
     Box(
@@ -133,6 +137,7 @@ private fun HistoryItem(
     entry: TransferHistoryEntity,
     onDelete: () -> Unit
 ) {
+    Timber.d("HistoryActivity - HistoryItem called")
     val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
     val dateStr = dateFormat.format(Date(entry.timestampMs))
 

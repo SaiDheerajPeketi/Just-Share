@@ -1,5 +1,7 @@
 package com.invincible.jedishare.di
 
+import timber.log.Timber
+
 import android.content.ContentResolver
 import android.content.Context
 import androidx.room.Room

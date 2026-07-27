@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.chat
 
+import timber.log.Timber
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -102,6 +104,7 @@ class AndroidBluetoothController(
     // ── Discovery ─────────────────────────────────────────────────────────────
 
     override fun startDiscovery() {
+        Timber.d("AndroidBluetoothController - startDiscovery called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
         context.registerReceiver(
             foundDeviceReceiver,
@@ -112,6 +115,7 @@ class AndroidBluetoothController(
     }
 
     override fun stopDiscovery() {
+        Timber.d("AndroidBluetoothController - stopDiscovery called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
         bluetoothAdapter?.cancelDiscovery()
     }
@@ -119,6 +123,7 @@ class AndroidBluetoothController(
     // ── Server / Client Flows ─────────────────────────────────────────────────
 
     override fun startBluetoothServer(): Flow<ConnectionResult> = flow {
+        Timber.d("AndroidBluetoothController - startBluetoothServer called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
             throw SecurityException("No BLUETOOTH_CONNECT permission")
         }
@@ -148,6 +153,7 @@ class AndroidBluetoothController(
     }.onCompletion { closeConnection() }.flowOn(Dispatchers.IO)
 
     override fun connectToDevice(device: BluetoothDeviceDomain): Flow<ConnectionResult> = flow {
+        Timber.d("AndroidBluetoothController - connectToDevice called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
             throw SecurityException("No BLUETOOTH_CONNECT permission")
         }
@@ -261,6 +267,7 @@ class AndroidBluetoothController(
     // ── Connection Management ─────────────────────────────────────────────────
 
     override fun closeConnection() {
+        Timber.d("AndroidBluetoothController - closeConnection called")
         currentClientSocket?.close()
         currentServerSocket?.close()
         currentClientSocket = null
@@ -268,6 +275,7 @@ class AndroidBluetoothController(
     }
 
     override fun release() {
+        Timber.d("AndroidBluetoothController - release called")
         try { context.unregisterReceiver(foundDeviceReceiver) } catch (e: Exception) { Log.w(TAG, "foundDeviceReceiver already unregistered") }
         try { context.unregisterReceiver(bluetoothStateReceiver) } catch (e: Exception) { Log.w(TAG, "bluetoothStateReceiver already unregistered") }
         closeConnection()
@@ -276,6 +284,7 @@ class AndroidBluetoothController(
     // ── Private Helpers ───────────────────────────────────────────────────────
 
     private fun updatePairedDevices() {
+        Timber.d("AndroidBluetoothController - updatePairedDevices called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
         bluetoothAdapter?.bondedDevices
             ?.map { it.toBluetoothDeviceDomain() }
@@ -286,8 +295,11 @@ class AndroidBluetoothController(
         context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 
     /** Maps an [IncomingData] event to a [ConnectionResult] for the ViewModel. */
-    private fun IncomingData.toConnectionResult(): ConnectionResult = when (this) {
-        is IncomingData.FileChunk -> ConnectionResult.TransferSucceeded(bytes)
-        is IncomingData.EndOfFile -> ConnectionResult.EndOfFile
+    private fun IncomingData.toConnectionResult(): ConnectionResult {
+        Timber.d("AndroidBluetoothController - toConnectionResult called")
+        return when (this) {
+            is IncomingData.FileChunk -> ConnectionResult.TransferSucceeded(bytes)
+            is IncomingData.EndOfFile -> ConnectionResult.EndOfFile
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.invincible.jedishare.data.repository
 
+import timber.log.Timber
+
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.net.Uri
@@ -21,6 +23,7 @@ class MediaRepository @Inject constructor(
 
     /** Returns all images from external storage, sorted by date taken descending. */
     suspend fun getImages(): List<Image> = withContext(Dispatchers.IO) {
+        Timber.d("MediaRepository - getImages called")
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DISPLAY_NAME
@@ -46,6 +49,7 @@ class MediaRepository @Inject constructor(
 
     /** Returns all videos from external storage, sorted by date taken descending. */
     suspend fun getVideos(): List<Video> = withContext(Dispatchers.IO) {
+        Timber.d("MediaRepository - getVideos called")
         val projection = arrayOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DISPLAY_NAME
@@ -71,6 +75,7 @@ class MediaRepository @Inject constructor(
 
     /** Returns all audio files from external storage, sorted by date added descending. */
     suspend fun getAudio(): List<Audio> = withContext(Dispatchers.IO) {
+        Timber.d("MediaRepository - getAudio called")
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.DISPLAY_NAME

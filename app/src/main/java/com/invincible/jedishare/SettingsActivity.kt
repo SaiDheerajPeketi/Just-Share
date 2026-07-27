@@ -1,5 +1,7 @@
 package com.invincible.jedishare
 
+import timber.log.Timber
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @AndroidEntryPoint
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("SettingsActivity - onCreate called")
         super.onCreate(savedInstanceState)
         setContent {
             JediShareTheme {
@@ -48,6 +51,7 @@ class SettingsActivity : ComponentActivity() {
 
 @Composable
 private fun SettingsScreen(viewModel: SettingsViewModel) {
+    Timber.d("SettingsActivity - SettingsScreen called")
     val isDarkMode by viewModel.isDarkMode.collectAsStateWithLifecycle()
     val defaultMethod by viewModel.defaultTransferMethod.collectAsStateWithLifecycle()
 
@@ -162,6 +166,7 @@ private fun SettingRow(
     subtitle: String,
     trailing: @Composable () -> Unit
 ) {
+    Timber.d("SettingsActivity - SettingRow called")
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -1,5 +1,7 @@
 package com.invincible.jedishare.domain.chat
 
+import timber.log.Timber
+
 import java.io.Serializable
 
 data class FileInfo(

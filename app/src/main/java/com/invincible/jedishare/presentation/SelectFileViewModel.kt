@@ -1,5 +1,7 @@
 package com.invincible.jedishare.presentation
 
+import timber.log.Timber
+
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -44,21 +46,25 @@ class SelectFileViewModel @Inject constructor(
 
     /** Adds newly picked URIs to the existing selection. */
     fun addUris(newUris: List<Uri>) {
+        Timber.d("SelectFileViewModel - addUris called")
         _selectedUris.value = _selectedUris.value + newUris
     }
 
     /** Removes a specific URI from the selection. */
     fun removeUri(uri: Uri) {
+        Timber.d("SelectFileViewModel - removeUri called")
         _selectedUris.value = _selectedUris.value.filterNot { it == uri }
     }
 
     /** Clears all selected URIs. */
     fun clearSelection() {
+        Timber.d("SelectFileViewModel - clearSelection called")
         _selectedUris.value = emptyList()
     }
 
     /** Loads all media from MediaStore asynchronously. */
     fun loadMedia() {
+        Timber.d("SelectFileViewModel - loadMedia called")
         viewModelScope.launch {
             _images.value = mediaRepository.getImages()
             _videos.value = mediaRepository.getVideos()
