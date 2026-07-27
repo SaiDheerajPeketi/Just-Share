@@ -56,6 +56,7 @@ class WifiDirectViewModel @Inject constructor(
 
     private var wifiP2pManager: WifiP2pManager? = null
     private var wifiP2pChannel: WifiP2pManager.Channel? = null
+    private var receiver: com.invincible.jedishare.WiFiDirectBroadcastReceiver? = null
 
     /** Shared ActionListener that logs failure reason. */
     private val actionListener = object : WifiP2pManager.ActionListener {
@@ -117,6 +118,23 @@ class WifiDirectViewModel @Inject constructor(
         manager.requestConnectionInfo(channel) { info ->
             if (info?.groupOwnerAddress != null) {
                 Log.d(TAG, "Existing connection info found")
+            }
+        }
+        
+        if (receiver == null) {
+            receiver = com.invincible.jedishare.WiFiDirectBroadcastReceiver(this)
+            val intentFilter = android.content.IntentFilter().apply {
+                addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
+                addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+                addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+                addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
+                addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION)
+            }
+            // Register receiver with the application context
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(receiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                context.registerReceiver(receiver, intentFilter)
             }
         }
     }
@@ -235,6 +253,15 @@ class WifiDirectViewModel @Inject constructor(
     override fun onCleared() {
         Timber.d("WifiDirectViewModel - onCleared called")
         super.onCleared()
+        disconnectP2P()
+        receiver?.let { 
+            try { 
+                context.unregisterReceiver(it) 
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to unregister receiver: ${e.message}")
+            } 
+        }
+        receiver = null
         wifiP2pChannel?.close()
     }
 }
