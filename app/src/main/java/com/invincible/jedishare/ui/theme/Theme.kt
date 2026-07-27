@@ -8,6 +8,8 @@ import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 
 private val DarkColorPalette = darkColors(
     primary = DarkModeButtons,
@@ -33,13 +35,21 @@ private val LightColorPalette = lightColors(
     onSecondary = Color.Black,
     onBackground = Color.Black,
     onSurface = Color.Black,
-    */
-)
+    */)
 
 @Composable
-fun JediShareTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun JediShareTheme(content: @Composable () -> Unit) {
     Timber.d("Global - JediShareTheme called")
-    val colors = if (darkTheme) {
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val dataStore = dagger.hilt.android.EntryPointAccessors.fromApplication(
+        context.applicationContext,
+        com.invincible.jedishare.di.DataStoreEntryPoint::class.java
+    ).userPreferencesDataStore()
+    
+    val isDarkMode by dataStore.isDarkModeEnabled.collectAsStateWithLifecycle(initialValue = isSystemInDarkTheme())
+    
+    val colors = if (isDarkMode) {
         DarkColorPalette
     } else {
         LightColorPalette
