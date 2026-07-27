@@ -1,5 +1,7 @@
 package com.invincible.jedishare.ui.screens
 
+import com.invincible.jedishare.ui.components.BackBar
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,87 +37,45 @@ fun ScanQrScreen(onBack: () -> Unit) {
             .fillMaxSize()
             .background(colors.surface)
     ) {
-        // Top bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onBack
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = colors.red)
-            }
-            Text(
-                text = "Scan to Pair", 
-                style = MaterialTheme.typography.h3.copy(fontWeight = FontWeight.Black), 
-                color = colors.red,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.size(24.dp)) // To balance the back button
-        }
+        BackBar(title = "Scan to Pair", onBack = onBack)
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // Segmented Control
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .background(Color(0xFFF5F5F5), RoundedCornerShape(24.dp))
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (selectedTab == "scan") colors.cardBg else Color.Transparent)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { selectedTab = "scan" }
-                    )
-                    .then(if (selectedTab == "scan") Modifier.shadow(2.dp, RoundedCornerShape(20.dp)) else Modifier),
-                contentAlignment = Alignment.Center
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(colors.cardBg)
+                    .border(1.dp, colors.border, RoundedCornerShape(24.dp))
             ) {
-                Text(
-                    text = "Scan QR", 
-                    fontSize = 14.sp, 
-                    fontWeight = FontWeight.Bold, 
-                    color = if (selectedTab == "scan") colors.black else colors.mutedFg
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (selectedTab == "my_code") colors.cardBg else Color.Transparent)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { selectedTab = "my_code" }
-                    )
-                    .then(if (selectedTab == "my_code") Modifier.shadow(2.dp, RoundedCornerShape(20.dp)) else Modifier),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "My Code", 
-                    fontSize = 14.sp, 
-                    fontWeight = FontWeight.Bold, 
-                    color = if (selectedTab == "my_code") colors.black else colors.mutedFg
-                )
+                Box(
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { selectedTab = "scan" }
+                        .background(if (selectedTab == "scan") colors.lightRed else Color.Transparent, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Scan QR", color = if (selectedTab == "scan") colors.red else colors.mutedFg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Box(
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { selectedTab = "my_code" }
+                        .background(if (selectedTab == "my_code") colors.lightRed else Color.Transparent, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("My Code", color = if (selectedTab == "my_code") colors.red else colors.mutedFg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
 
