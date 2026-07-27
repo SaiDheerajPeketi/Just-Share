@@ -11,9 +11,7 @@ import android.util.Log
  * Receives transfer progress broadcasts from [CommunicationService] (WiFi Direct path).
  * Logs progress — the Activity's LaunchedEffect already observes connection state via ViewModel.
  */
-class WiFiDirectServiceBroadcastReceiver(
-    private val activity: WifiDirectDeviceSelectActivity
-) : BroadcastReceiver() {
+class WiFiDirectServiceBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         Timber.d("WiFiDirectServiceBroadcastReceiver - onReceive called")

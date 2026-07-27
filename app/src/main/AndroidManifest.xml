@@ -80,21 +80,15 @@
 
         <!-- LAUNCHER activity -->
         <activity
-            android:name=".WelcomeActivity"
+            android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/title_activity_welcome"
+            android:label="@string/app_name"
             android:theme="@style/Theme.JediShare">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="false"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.JediShare" />
 
         <!-- Accepts shared files from other apps via the share sheet -->
         <activity
@@ -110,53 +104,7 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".DeviceList"
-            android:exported="false"
-            android:label="@string/title_activity_device_list"
-            android:theme="@style/Theme.JediShare" />
 
-        <activity
-            android:name=".SelectFile"
-            android:exported="false"
-            android:label="@string/title_activity_select_file"
-            android:theme="@style/Theme.JediShare" />
-
-        <activity
-            android:name=".WifiDirectDeviceSelectActivity"
-            android:exported="false"
-            android:label="@string/title_activity_wifi_direct_device_select"
-            android:theme="@style/Theme.JediShare" />
-
-        <activity
-            android:name=".Progress"
-            android:exported="false"
-            android:label="@string/title_activity_progress"
-            android:theme="@style/Theme.JediShare" />
-
-        <activity
-            android:name=".HistoryActivity"
-            android:exported="false"
-            android:label="@string/title_activity_history"
-            android:theme="@style/Theme.JediShare" />
-
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:label="@string/title_activity_settings"
-            android:theme="@style/Theme.JediShare" />
-
-        <activity
-            android:name=".SendOrReceive"
-            android:exported="false"
-            android:label="@string/title_activity_send_or_receive"
-            android:theme="@style/Theme.JediShare" />
-
-        <activity
-            android:name=".Waiting"
-            android:exported="false"
-            android:label="@string/title_activity_waiting"
-            android:theme="@style/Theme.JediShare" />
 
         <!--
             CommunicationService handles Wi-Fi Direct file transfers.
