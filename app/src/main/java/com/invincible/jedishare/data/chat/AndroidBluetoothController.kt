@@ -80,13 +80,9 @@ class AndroidBluetoothController(
     }
 
     private val bluetoothStateReceiver = BluetoothStateReceiver { isConnected, bluetoothDevice ->
-        if (bluetoothAdapter?.bondedDevices?.contains(bluetoothDevice) == true) {
-            _isConnected.update { isConnected }
-        } else {
-            CoroutineScope(Dispatchers.IO).launch {
-                _errors.emit("Can't connect to a non-paired device.")
-            }
-        }
+        // We no longer update _isConnected here because generic OS-level connections (e.g. from Settings)
+        // do not guarantee that our RFCOMM socket is established. _isConnected will be updated
+        // internally by connectToDevice() and startBluetoothServer().
     }
 
     init {
@@ -139,10 +135,11 @@ class AndroidBluetoothController(
                 null
             }
             if (currentClientSocket != null) {
-                emit(ConnectionResult.ConnectionEstablished)
-                currentServerSocket?.close()
                 val service = BluetoothDataTransferService(currentClientSocket!!)
                 dataTransferService = service
+                _isConnected.update { true }
+                emit(ConnectionResult.ConnectionEstablished)
+                currentServerSocket?.close()
                 emitAll(
                     service.listenForIncomingMessages().map { incomingData ->
                         incomingData.toConnectionResult()
@@ -172,9 +169,10 @@ class AndroidBluetoothController(
         socket?.let { secureSocket ->
             try {
                 secureSocket.connect()
-                emit(ConnectionResult.ConnectionEstablished)
                 val service = BluetoothDataTransferService(secureSocket)
                 dataTransferService = service
+                _isConnected.update { true }
+                emit(ConnectionResult.ConnectionEstablished)
                 emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
             } catch (secureEx: IOException) {
                 Log.w(TAG, "Secure connect failed, trying insecure fallback: ${secureEx.message}")
@@ -192,9 +190,10 @@ class AndroidBluetoothController(
                 if (insecureSocket != null) {
                     try {
                         insecureSocket.connect()
-                        emit(ConnectionResult.ConnectionEstablished)
                         val service = BluetoothDataTransferService(insecureSocket)
                         dataTransferService = service
+                        _isConnected.update { true }
+                        emit(ConnectionResult.ConnectionEstablished)
                         emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
                     } catch (insecureEx: IOException) {
                         insecureSocket.close()
@@ -215,9 +214,10 @@ class AndroidBluetoothController(
      * Sends all files in [uriList] over the active Bluetooth connection.
      *
      * Protocol per file:
-     *  1. Send serialized [FileInfo] as first chunk (metadata header).
-     *  2. Stream raw file bytes in [BluetoothDataTransferService.CHUNK_SIZE]-byte chunks.
-     *  3. Send [BluetoothDataTransferService.END_OF_FILE_SENTINEL] after all bytes.
+     *  1. Send 4-byte metadata size.
+     *  2. Send serialized [FileInfo] metadata.
+     *  3. Send 8-byte file size.
+     *  4. Stream raw file bytes in [BluetoothDataTransferService.CHUNK_SIZE]-byte chunks.
      *
      * Removes the 10ms + 1000ms busy-wait delays from the old implementation.
      * Calls [onFileSizeResolved] and [onFileCountUpdated] callbacks for ViewModel progress tracking.
@@ -227,39 +227,43 @@ class AndroidBluetoothController(
         iterationCountFlow: MutableSharedFlow<Long>,
         onFileSizeResolved: (Long) -> Unit,
         onFileCountUpdated: (Int) -> Unit,
+        onBytesSent: (Long) -> Unit,
         onFileSent: (FileInfo) -> Unit
-    ): BluetoothMessage? {
-        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return null
-        if (dataTransferService == null) return null
+    ): BluetoothMessage? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return@withContext null
+        if (dataTransferService == null) return@withContext null
 
         var fileCount = 0
         for (uri in uriList) {
             val fileInfo: FileInfo = getFileDetailsFromUri(uri, context.contentResolver)
             onFileSizeResolved(fileInfo.size?.toLong() ?: 1L)
 
-            // Send metadata header
-            fileInfo.toByteArray()?.let { dataTransferService?.sendMessage(it) }
-                ?: Log.e(TAG, "Failed to serialize FileInfo for $uri")
+            val metaBytes = fileInfo.toByteArray() ?: ByteArray(0)
+            val metaSizeBuffer = java.nio.ByteBuffer.allocate(4).putInt(metaBytes.size).array()
+            dataTransferService?.sendMessage(metaSizeBuffer)
+            dataTransferService?.sendMessage(metaBytes)
+
+            val fileSize = fileInfo.size?.toLong() ?: 0L
+            val fileSizeBuffer = java.nio.ByteBuffer.allocate(8).putLong(fileSize).array()
+            dataTransferService?.sendMessage(fileSizeBuffer)
 
             // Stream file bytes
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val buffer = ByteArray(BluetoothDataTransferService.CHUNK_SIZE)
-                var iterationCount = 0L
                 var bytesRead: Int
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                     dataTransferService?.sendMessage(buffer.copyOf(bytesRead))
-                    iterationCountFlow.emit(iterationCount++)
+                    val sentBytes = bytesRead.toLong()
+                    onBytesSent(sentBytes)
+                    iterationCountFlow.tryEmit(sentBytes)
                 }
             } ?: Log.e(TAG, "Could not open input stream for $uri")
-
-            // Send EOF sentinel
-            dataTransferService?.sendMessage(BluetoothDataTransferService.END_OF_FILE_SENTINEL)
             onFileCountUpdated(++fileCount)
             Log.d(TAG, "File $fileCount sent: $uri")
             onFileSent(fileInfo)
         }
 
-        return BluetoothMessage(
+        return@withContext BluetoothMessage(
             message = "Sent ${uriList.size} file(s)",
             senderName = bluetoothAdapter?.name ?: "Unknown",
             isFromLocalUser = true
@@ -270,6 +274,7 @@ class AndroidBluetoothController(
 
     override fun closeConnection() {
         Timber.d("AndroidBluetoothController - closeConnection called")
+        _isConnected.update { false }
         currentClientSocket?.close()
         currentServerSocket?.close()
         currentClientSocket = null
@@ -300,6 +305,7 @@ class AndroidBluetoothController(
     private fun IncomingData.toConnectionResult(): ConnectionResult {
         Timber.d("AndroidBluetoothController - toConnectionResult called")
         return when (this) {
+            is IncomingData.FileMetadata -> ConnectionResult.TransferSucceeded(bytes)
             is IncomingData.FileChunk -> ConnectionResult.TransferSucceeded(bytes)
             is IncomingData.EndOfFile -> ConnectionResult.EndOfFile
         }

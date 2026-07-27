@@ -23,19 +23,19 @@ fun getFileDetailsFromUri(uri: Uri, contentResolver: ContentResolver): FileInfo 
     var fileName: String? = null
     var format: String? = null
     var size: String? = null
-    var mimeType: String? = null
+    var mimeType: String? = contentResolver.getType(uri)
 
     try {
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
+            val sizeColumn = cursor.getColumnIndex(OpenableColumns.SIZE)
             val mimeTypeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
 
             if (cursor.moveToFirst()) {
                 fileName = if (nameColumn >= 0) cursor.getString(nameColumn) else null
-                format = fileName?.substringAfterLast('.', "")
+                format = fileName?.substringAfterLast('.', "")?.takeIf { it.isNotBlank() }
                 size = if (sizeColumn >= 0) cursor.getLong(sizeColumn).toString() else null
-                mimeType = if (mimeTypeColumn >= 0) cursor.getString(mimeTypeColumn) else null
+                mimeType = if (mimeTypeColumn >= 0) cursor.getString(mimeTypeColumn) else mimeType
 
                 if (mimeType.isNullOrBlank()) {
                     mimeType = MimeTypeMap.getSingleton()
@@ -45,6 +45,38 @@ fun getFileDetailsFromUri(uri: Uri, contentResolver: ContentResolver): FileInfo 
         }
     } catch (e: Exception) {
         Log.e("FileUtils", "Error querying URI: $uri", e)
+    }
+
+    if (fileName.isNullOrBlank()) {
+        fileName = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+    }
+    if (format.isNullOrBlank()) {
+        format = fileName?.substringAfterLast('.', "")?.takeIf { it.isNotBlank() }
+            ?: MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
+    }
+    if (mimeType.isNullOrBlank()) {
+        mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(format?.lowercase())
+    }
+    if (size.isNullOrBlank() || size == "-1") {
+        size = runCatching {
+            contentResolver.openAssetFileDescriptor(uri, "r")?.use { descriptor ->
+                descriptor.length.takeIf { it >= 0L }?.toString()
+            }
+        }.getOrNull()
+    }
+    if (size.isNullOrBlank() || size == "-1") {
+        size = runCatching {
+            contentResolver.openInputStream(uri)?.use { input ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var total = 0L
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read == -1) break
+                    total += read
+                }
+                total.toString()
+            }
+        }.getOrNull()
     }
 
     return FileInfo(fileName, format, size, mimeType)
