@@ -76,11 +76,10 @@ fun HistoryScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(modifier = Modifier.size(24.dp))
-            Text("Transfer History", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold), color = colors.black)
+            Text("Transfer History", style = MaterialTheme.typography.h3, color = colors.black)
             Text(
                 text = "Clear All", 
-                style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold), 
+                style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), 
                 color = colors.red,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
