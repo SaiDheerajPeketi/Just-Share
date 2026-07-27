@@ -55,10 +55,20 @@ fun TransferProgressScreen(
         state.progressPercent
     }
     
+    val btCurrFileCount by btViewModel.currFileCount.collectAsState()
+
     val isDone = if (method == "bt") {
-        progress >= 100f
+        if (isSender) {
+            state.urisToShare.isNotEmpty() && btCurrFileCount >= state.urisToShare.size
+        } else {
+            progress >= 100f
+        }
     } else {
-        state.isTransferComplete
+        if (isSender) {
+            state.isTransferComplete
+        } else {
+            progress >= 100f
+        }
     }
     val btFileInfo by btViewModel.fileInfoState.collectAsState()
     val btIncomingFileName by btViewModel.incomingFileNameState.collectAsState()
@@ -69,11 +79,17 @@ fun TransferProgressScreen(
         state.urisToShare.mapIndexed { index, uri ->
             val isActive = state.currentFileName.isNotEmpty() && uri.toString().contains(state.currentFileName) 
                            || (state.currentFileName.isEmpty() && index == 0 && !isDone)
+                           || (isSender && index == (if (method == "bt") btCurrFileCount else state.currentFileIndex) && !isDone)
+            
+            val fileInfo = state.fileInfos.getOrNull(index)
+            val name = fileInfo?.fileName ?: uri.lastPathSegment ?: "File ${index + 1}"
+            val sizeStr = fileInfo?.size?.toLongOrNull()?.let { formatSize(it) } ?: "Unknown"
+
             TransferFile(
-                name = btIncomingFileName ?: uri.lastPathSegment ?: "File ${index + 1}",
-                size = if (btFileInfo > 0) "${btFileInfo / 1024} KB" else "Unknown",
+                name = name,
+                size = sizeStr,
                 icon = Icons.Default.InsertDriveFile,
-                isDone = isDone || (index < state.currentFileIndex),
+                isDone = isDone || (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)),
                 isActive = isActive
             )
         }
