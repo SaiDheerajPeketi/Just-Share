@@ -30,6 +30,7 @@ data class TransferFile(
     val name: String,
     val size: String,
     val icon: ImageVector,
+    val mimeType: String? = null,
     val isDone: Boolean,
     val isActive: Boolean
 )
@@ -88,18 +89,21 @@ fun TransferProgressScreen(
             TransferFile(
                 name = name,
                 size = sizeStr,
-                icon = Icons.Default.InsertDriveFile,
+                icon = getIconForMimeType(fileInfo?.mimeType),
+                mimeType = fileInfo?.mimeType,
                 isDone = isDone || (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)),
                 isActive = isActive
             )
         }
     } else {
+        val incomingMimeType by btViewModel.incomingMimeTypeState.collectAsState()
         // Fallback for receiving side (we might not know all incoming files beforehand)
         listOf(
             TransferFile(
                 name = btIncomingFileName ?: "Incoming File...",
-                size = if (btFileInfo > 0) "${btFileInfo / 1024} KB" else "Unknown",
-                icon = Icons.Default.InsertDriveFile,
+                size = if (btFileInfo > 0) formatSize(btFileInfo) else "Unknown",
+                icon = getIconForMimeType(incomingMimeType),
+                mimeType = incomingMimeType,
                 isDone = isDone,
                 isActive = !isDone
             )
@@ -157,8 +161,14 @@ fun TransferProgressScreen(
                         .padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val iconBg = if (file.isDone) Color(0xFFE8F5E9) else if (file.isActive) colors.lightRed else Color(0xFFF0F0F0)
-                        val iconTint = if (file.isDone) colors.green else if (file.isActive) colors.red else colors.mutedFg
+                        val baseTint = when {
+                            file.mimeType?.startsWith("image/") == true || file.mimeType?.startsWith("audio/") == true -> colors.red
+                            file.mimeType?.startsWith("video/") == true -> colors.green
+                            else -> Color(0xFF1976D2) // Blue for docs/others
+                        }
+                        
+                        val iconBg = if (file.isDone) baseTint.copy(alpha = 0.1f) else if (file.isActive) baseTint.copy(alpha = 0.2f) else Color(0xFFF0F0F0)
+                        val iconTint = if (file.isDone || file.isActive) baseTint else colors.mutedFg
 
                         Box(
                             modifier = Modifier
