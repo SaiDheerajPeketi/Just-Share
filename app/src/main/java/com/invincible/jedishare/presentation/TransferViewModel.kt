@@ -39,6 +39,7 @@ data class UnifiedTransferState(
     // Progress
     val progressPercent: Float = 0f,
     val currentFileName: String = "",
+    val currentFileSizeBytes: Long = 0L,
     val totalFiles: Int = 0,
     val currentFileIndex: Int = 0,
     val isTransferComplete: Boolean = false,
@@ -58,13 +59,19 @@ class TransferViewModel @Inject constructor(
             if (intent?.action == CommunicationService.BROADCAST_SENDING_UPDATE) {
                 val progress = intent.getIntExtra(CommunicationService.EXTRAS_PROGRESS_STATE, 0)
                 val fileName = intent.getStringExtra(CommunicationService.EXTRAS_FILE_NAME) ?: ""
+                val fileSize = intent.getLongExtra(CommunicationService.EXTRAS_FILE_SIZE, 0L)
                 val fileIndex = intent.getIntExtra(CommunicationService.EXTRAS_CURRENT_FILE_INDEX, 0)
+                val totalFiles = intent.getIntExtra(CommunicationService.EXTRAS_TOTAL_FILES, 0)
                 _state.update { 
                     it.copy(
                         progressPercent = progress.toFloat(),
                         currentFileName = fileName,
+                        currentFileSizeBytes = fileSize,
                         currentFileIndex = fileIndex,
-                        isTransferComplete = progress == 100 && fileIndex == (it.urisToShare.size - 1).coerceAtLeast(0)
+                        totalFiles = if (totalFiles > 0) totalFiles else it.totalFiles,
+                        isTransferComplete = progress == 100 && (
+                            totalFiles == 0 || fileIndex >= totalFiles - 1
+                        )
                     ) 
                 }
             }
@@ -93,6 +100,8 @@ class TransferViewModel @Inject constructor(
                 fileInfos = fileInfos,
                 progressPercent = 0f,
                 currentFileName = "",
+                currentFileSizeBytes = 0L,
+                totalFiles = uris.size,
                 currentFileIndex = 0,
                 isTransferComplete = false,
                 hasTransferStarted = false
@@ -101,7 +110,7 @@ class TransferViewModel @Inject constructor(
     }
     
     fun setConnectedDeviceName(name: String) {
-        _state.update { it.copy(connectedDeviceName = name, isConnected = true) }
+        _state.update { it.copy(connectedDeviceName = name) }
     }
 
     fun markTransferStarted() {
@@ -117,6 +126,7 @@ class TransferViewModel @Inject constructor(
                 fileInfos = emptyList(),
                 progressPercent = 0f,
                 currentFileName = "",
+                currentFileSizeBytes = 0L,
                 totalFiles = 0,
                 currentFileIndex = 0,
                 isTransferComplete = false,

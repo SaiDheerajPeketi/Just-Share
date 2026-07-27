@@ -57,6 +57,7 @@ class WifiDirectViewModel @Inject constructor(
     private var wifiP2pManager: WifiP2pManager? = null
     private var wifiP2pChannel: WifiP2pManager.Channel? = null
     private var receiver: com.invincible.jedishare.WiFiDirectBroadcastReceiver? = null
+    private var communicationServiceStarted = false
 
     /** Shared ActionListener that logs failure reason. */
     private val actionListener = object : WifiP2pManager.ActionListener {
@@ -74,7 +75,6 @@ class WifiDirectViewModel @Inject constructor(
             }
             Log.e(TAG, msg)
             _uiState.update { it.copy(errorMessage = msg) }
-            disconnectP2P()
         }
     }
 
@@ -86,23 +86,10 @@ class WifiDirectViewModel @Inject constructor(
     val connectionInfoListener = WifiP2pManager.ConnectionInfoListener { info ->
         Log.d(TAG, "ConnectionInfo: $info")
         if (info.groupFormed) {
-            _uiState.update { it.copy(isConnected = true, connectionStatus = "connected") }
-            
-            val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
-                action = com.invincible.jedishare.CommunicationService.ACTION_START_COMMUNICATION
-                val role = if (info.isGroupOwner) com.invincible.jedishare.CommunicationService.SERVER_ROLE else com.invincible.jedishare.CommunicationService.CLIENT_ROLE
-                putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_COMMUNICATION_ROLE, role)
-                info.groupOwnerAddress?.hostAddress?.let { address ->
-                    putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_GROUP_OWNER_ADDRESS, address)
-                }
-                putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_GROUP_OWNER_PORT, 8988)
-                putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_DEVICE_NAME, _uiState.value.thisDeviceName)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            _uiState.update { it.copy(isConnected = true, connectionStatus = "connected", errorMessage = null) }
+            startCommunicationService(info)
+        } else {
+            _uiState.update { it.copy(isConnected = false, connectionStatus = "") }
         }
     }
 
@@ -116,8 +103,9 @@ class WifiDirectViewModel @Inject constructor(
         wifiP2pChannel = channel
         // Request existing connection info
         manager.requestConnectionInfo(channel) { info ->
-            if (info?.groupOwnerAddress != null) {
+            if (info?.groupFormed == true) {
                 Log.d(TAG, "Existing connection info found")
+                connectionInfoListener.onConnectionInfoAvailable(info)
             }
         }
         
@@ -146,7 +134,8 @@ class WifiDirectViewModel @Inject constructor(
         _uiState.update { it.copy(isWifiDirectEnabled = enabled) }
         if (enabled) startDiscovery()
         else {
-            _uiState.update { it.copy(peers = emptyList()) }
+            _uiState.update { it.copy(peers = emptyList(), isConnected = false, isDiscovering = false) }
+            stopCommunicationService()
         }
     }
 
@@ -163,6 +152,7 @@ class WifiDirectViewModel @Inject constructor(
     fun onDisconnected() {
         Timber.d("WifiDirectViewModel - onDisconnected called")
         _uiState.update { it.copy(isConnected = false, connectionStatus = "") }
+        stopCommunicationService()
     }
 
     fun onPeersChanged() {
@@ -180,24 +170,32 @@ class WifiDirectViewModel @Inject constructor(
     @SuppressLint("MissingPermission")
     fun startDiscovery() {
         Timber.d("WifiDirectViewModel - startDiscovery called")
-        if (_uiState.value.isWifiDirectEnabled && !_uiState.value.isDiscovering) {
-            wifiP2pManager?.discoverPeers(wifiP2pChannel, actionListener)
+        val manager = wifiP2pManager ?: return
+        val channel = wifiP2pChannel ?: return
+        if (_uiState.value.isWifiDirectEnabled && !_uiState.value.isDiscovering && !_uiState.value.isConnected) {
+            manager.discoverPeers(channel, actionListener)
         }
     }
 
     @SuppressLint("MissingPermission")
     fun stopDiscovery() {
         Timber.d("WifiDirectViewModel - stopDiscovery called")
+        val manager = wifiP2pManager ?: return
+        val channel = wifiP2pChannel ?: return
         if (_uiState.value.isDiscovering) {
-            wifiP2pManager?.stopPeerDiscovery(wifiP2pChannel, actionListener)
+            manager.stopPeerDiscovery(channel, actionListener)
         }
     }
 
     @SuppressLint("MissingPermission")
     fun connectToDevice(device: WifiP2pDevice) {
         Timber.d("WifiDirectViewModel - connectToDevice called")
+        val manager = wifiP2pManager ?: return
+        val channel = wifiP2pChannel ?: return
+        stopDiscovery()
+        _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
         val config = WifiP2pConfig().apply { deviceAddress = device.deviceAddress }
-        wifiP2pManager?.connect(wifiP2pChannel, config, actionListener)
+        manager.connect(channel, config, actionListener)
     }
 
     fun requestConnectionInfo() {
@@ -207,6 +205,7 @@ class WifiDirectViewModel @Inject constructor(
 
     fun disconnectP2P() {
         Timber.d("WifiDirectViewModel - disconnectP2P called")
+        stopCommunicationService()
         wifiP2pManager?.let { mgr ->
             wifiP2pChannel?.let { ch ->
                 mgr.cancelConnect(ch, object : WifiP2pManager.ActionListener {
@@ -232,6 +231,58 @@ class WifiDirectViewModel @Inject constructor(
             }
         }
         _uiState.update { it.copy(isConnected = false, peers = emptyList(), connectionStatus = "") }
+    }
+
+    private fun startCommunicationService(info: android.net.wifi.p2p.WifiP2pInfo) {
+        if (communicationServiceStarted) return
+        val role = if (info.isGroupOwner) {
+            com.invincible.jedishare.CommunicationService.SERVER_ROLE
+        } else {
+            com.invincible.jedishare.CommunicationService.CLIENT_ROLE
+        }
+        val groupOwnerAddress = info.groupOwnerAddress?.hostAddress
+        if (role == com.invincible.jedishare.CommunicationService.CLIENT_ROLE && groupOwnerAddress.isNullOrBlank()) {
+            _uiState.update { it.copy(errorMessage = "Wi-Fi Direct group owner address is unavailable") }
+            return
+        }
+
+        val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
+            action = com.invincible.jedishare.CommunicationService.ACTION_START_COMMUNICATION
+            putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_COMMUNICATION_ROLE, role)
+            groupOwnerAddress?.let { putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_GROUP_OWNER_ADDRESS, it) }
+            putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_GROUP_OWNER_PORT, 8988)
+            putExtra(com.invincible.jedishare.CommunicationService.EXTRAS_DEVICE_NAME, _uiState.value.thisDeviceName.ifBlank { Build.MODEL })
+        }
+
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }.onSuccess {
+            communicationServiceStarted = true
+        }.onFailure { throwable ->
+            Log.e(TAG, "Could not start Wi-Fi Direct communication service", throwable)
+            _uiState.update { it.copy(errorMessage = "Could not start Wi-Fi Direct transfer") }
+        }
+    }
+
+    private fun stopCommunicationService() {
+        if (!communicationServiceStarted) return
+        val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
+            action = com.invincible.jedishare.CommunicationService.ACTION_STOP_COMMUNICATION
+        }
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }.onFailure { throwable ->
+            Log.e(TAG, "Could not stop Wi-Fi Direct communication service", throwable)
+        }
+        communicationServiceStarted = false
     }
 
     fun onLocationDisabled() {

@@ -66,9 +66,9 @@ fun TransferProgressScreen(
         }
     } else {
         if (isSender) {
-            state.isTransferComplete || (state.urisToShare.isNotEmpty() && state.currentFileIndex >= state.urisToShare.size)
+            state.isTransferComplete
         } else {
-            progress >= 100f && state.isTransferComplete
+            state.isTransferComplete
         }
     }
     val btFileInfo by btViewModel.fileInfoState.collectAsState()
@@ -97,13 +97,19 @@ fun TransferProgressScreen(
         }
     } else {
         val incomingMimeType by btViewModel.incomingMimeTypeState.collectAsState()
+        val incomingName = if (method == "wifi") {
+            state.currentFileName.takeIf { it.isNotBlank() }
+        } else {
+            btIncomingFileName
+        }
+        val incomingSize = if (method == "wifi") state.currentFileSizeBytes else btFileInfo
         // Fallback for receiving side (we might not know all incoming files beforehand)
         listOf(
             TransferFile(
-                name = btIncomingFileName ?: "Incoming File...",
-                size = if (btFileInfo > 0) formatSize(btFileInfo) else "Unknown",
-                icon = getIconForMimeType(incomingMimeType),
-                mimeType = incomingMimeType,
+                name = incomingName ?: "Incoming File...",
+                size = if (incomingSize > 0) formatSize(incomingSize) else "Unknown",
+                icon = getIconForMimeType(if (method == "wifi") null else incomingMimeType),
+                mimeType = if (method == "wifi") null else incomingMimeType,
                 isDone = isDone,
                 isActive = !isDone
             )
