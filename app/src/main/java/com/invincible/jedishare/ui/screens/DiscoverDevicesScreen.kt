@@ -11,6 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,48 +47,43 @@ import com.invincible.jedishare.ui.components.StatusDot
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import kotlinx.coroutines.delay
 
+import androidx.compose.material.icons.filled.ArrowUpward
+
 @Composable
 fun RadarAnim(scanning: Boolean) {
     val colors = JediShareTheme.colors
     val infiniteTransition = rememberInfiniteTransition()
-    
-    val size1 by infiniteTransition.animateFloat(
-        initialValue = 40f,
-        targetValue = 100f,
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.15f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         )
     )
-    val alpha1 by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        )
-    )
+    val activeScale = if (scanning) pulseScale else 1f
 
     Box(
-        modifier = Modifier.size(120.dp),
+        modifier = Modifier
+            .size(120.dp)
+            .graphicsLayer { scaleX = activeScale; scaleY = activeScale }
+            .background(colors.red.copy(alpha = 0.05f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        if (scanning) {
-            Box(
-                modifier = Modifier
-                    .size(size1.dp)
-                    .alpha(alpha1)
-                    .border(2.dp, colors.red, CircleShape)
-            )
-        }
-        
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .background(colors.red, CircleShape),
+                .size(80.dp)
+                .background(colors.red.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Wifi, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(colors.red, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+            }
         }
     }
 }
@@ -192,23 +189,7 @@ fun DiscoverDevicesScreen(
         BackBar(
             title = displayTitle,
             onBack = onBack,
-            rightEl = if (isSender) {
-                {
-                    Box(
-                        modifier = Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { scanning = true }
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = if (scanning) colors.red else colors.mutedFg,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            } else null
+            rightEl = null
         )
 
         Column(
@@ -240,9 +221,11 @@ fun DiscoverDevicesScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .weight(1f)
                         .clip(RoundedCornerShape(24.dp))
                         .background(colors.cardBg)
                         .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                        .verticalScroll(rememberScrollState())
                 ) {
                     if (discovered.isEmpty()) {
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -292,6 +275,25 @@ fun DiscoverDevicesScreen(
                             }
                         }
                     }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                if (scanning) {
+                    com.invincible.jedishare.ui.components.PillButton(
+                        label = "Stop Scan",
+                        onClick = { scanning = false },
+                        variant = com.invincible.jedishare.ui.components.PillButtonVariant.OUTLINE,
+                        size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                    )
+                } else {
+                    com.invincible.jedishare.ui.components.PillButton(
+                        label = "Restart Scan",
+                        onClick = { scanning = true },
+                        size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                    )
                 }
             } else {
                 // Receiver UI
