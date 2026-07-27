@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -128,9 +130,13 @@ fun JediShareTheme(content: @Composable () -> Unit) {
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = customColors.surface.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkMode
+            val window = view.context.findActivity()?.window
+            if (window != null) {
+                window.statusBarColor = customColors.surface.toArgb()
+                window.navigationBarColor = customColors.surface.toArgb()
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkMode
+                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDarkMode
+            }
         }
     }
 
@@ -142,4 +148,10 @@ fun JediShareTheme(content: @Composable () -> Unit) {
             content = content
         )
     }
+}
+
+tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
