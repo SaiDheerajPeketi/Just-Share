@@ -21,6 +21,7 @@ import com.invincible.jedishare.data.db.TransferHistoryEntity
 import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.chat.FileInfo
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
