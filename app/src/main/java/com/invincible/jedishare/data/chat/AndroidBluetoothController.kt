@@ -8,7 +8,9 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -85,6 +87,14 @@ class AndroidBluetoothController(
         // internally by connectToDevice() and startBluetoothServer().
     }
 
+    private val bondStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == android.bluetooth.BluetoothDevice.ACTION_BOND_STATE_CHANGED) {
+                updatePairedDevices()
+            }
+        }
+    }
+
     init {
         updatePairedDevices()
         context.registerReceiver(
@@ -94,6 +104,10 @@ class AndroidBluetoothController(
                 addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_CONNECTED)
                 addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED)
             }
+        )
+        context.registerReceiver(
+            bondStateReceiver,
+            IntentFilter(android.bluetooth.BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         )
     }
 
@@ -287,6 +301,7 @@ class AndroidBluetoothController(
         Timber.d("AndroidBluetoothController - release called")
         try { context.unregisterReceiver(foundDeviceReceiver) } catch (e: Exception) { Log.w(TAG, "foundDeviceReceiver already unregistered") }
         try { context.unregisterReceiver(bluetoothStateReceiver) } catch (e: Exception) { Log.w(TAG, "bluetoothStateReceiver already unregistered") }
+        try { context.unregisterReceiver(bondStateReceiver) } catch (e: Exception) { Log.w(TAG, "bondStateReceiver already unregistered") }
         closeConnection()
     }
 
