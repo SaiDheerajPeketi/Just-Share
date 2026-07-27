@@ -141,7 +141,22 @@ class BluetoothViewModel @Inject constructor(
                 uriList = uris,
                 iterationCountFlow = _iterationCountFlow,
                 onFileSizeResolved = { size -> _currentFileSize.value = size },
-                onFileCountUpdated = { count -> _currFileCount.value = count }
+                onFileCountUpdated = { count -> _currFileCount.value = count },
+                onFileSent = { fileInfo ->
+                    viewModelScope.launch {
+                        historyRepository.addEntry(
+                            TransferHistoryEntity(
+                                fileName = fileInfo.fileName ?: "Unknown",
+                                mimeType = fileInfo.format?.let { com.invincible.jedishare.classifyFileType(it) },
+                                fileSizeBytes = fileInfo.size?.toLongOrNull() ?: 0L,
+                                isSender = true,
+                                transferMethod = "Bluetooth",
+                                remoteDeviceName = _connectedDeviceName ?: "Unknown Device"
+                            )
+                        )
+                        Log.d("BluetoothViewModel", "Sender history entry saved: ${fileInfo.fileName}")
+                    }
+                }
             )
             if (bluetoothMessage != null) {
                 _state.update { it.copy(messages = it.messages + bluetoothMessage) }

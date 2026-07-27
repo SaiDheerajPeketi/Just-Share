@@ -38,7 +38,8 @@ interface BluetoothController {
         uriList: List<android.net.Uri>,
         iterationCountFlow: MutableSharedFlow<Long>,
         onFileSizeResolved: (Long) -> Unit,
-        onFileCountUpdated: (Int) -> Unit
+        onFileCountUpdated: (Int) -> Unit,
+        onFileSent: (com.invincible.jedishare.domain.chat.FileInfo) -> Unit = {}
     ): BluetoothMessage?
 
     fun closeConnection()

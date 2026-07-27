@@ -394,6 +394,24 @@ class CommunicationService : Service() {
             out.write(ByteArray(CHUNK_SIZE) { 0xFF.toByte() })
             out.flush()
             Log.d(TAG, "EOF sentinel sent for ${fileInfo.fileName}")
+
+            // Log completed WiFi Direct transfer to history DB for sender
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                try {
+                    historyRepository.addEntry(
+                        TransferHistoryEntity(
+                            fileName = fileInfo.fileName ?: "Unknown",
+                            mimeType = fileInfo.format?.let { classifyFileType(it) },
+                            fileSizeBytes = totalSize,
+                            isSender = true,
+                            transferMethod = "WiFi-Direct",
+                            remoteDeviceName = remoteDeviceName ?: "Unknown Device"
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to save sender history entry", e)
+                }
+            }
         }
     }
 
