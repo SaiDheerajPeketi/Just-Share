@@ -21,6 +21,9 @@ import com.invincible.jedishare.data.db.TransferHistoryEntity
 import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.chat.FileInfo
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -34,6 +37,15 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
+
+data class WifiTransferUpdate(
+    val progress: Int,
+    val fileName: String,
+    val fileSize: Long,
+    val currentFileIndex: Int,
+    val totalFiles: Int,
+    val remoteDeviceName: String?
+)
 
 /**
  * Android Service for WiFi-Direct file transfer over raw TCP sockets.
@@ -74,7 +86,15 @@ class CommunicationService : Service() {
         const val EXTRAS_FILE_SIZE           = "com.invincible.jedishare.EXTRAS_FILE_SIZE"
         const val EXTRAS_CURRENT_FILE_INDEX  = "com.invincible.jedishare.EXTRAS_CURRENT_FILE_INDEX"
         const val EXTRAS_TOTAL_FILES         = "com.invincible.jedishare.EXTRAS_TOTAL_FILES"
+        const val EXTRAS_REMOTE_DEVICE_NAME  = "com.invincible.jedishare.EXTRAS_REMOTE_DEVICE_NAME"
         const val BROADCAST_SENDING_UPDATE   = "com.invincible.jedishare.SENDING_UPDATE"
+
+        private val _transferUpdates = MutableStateFlow<WifiTransferUpdate?>(null)
+        val transferUpdates: StateFlow<WifiTransferUpdate?> = _transferUpdates.asStateFlow()
+
+        fun clearTransferUpdate() {
+            _transferUpdates.value = null
+        }
 
         private const val SOCKET_WAIT_TIMEOUT_MS = 10_000L
         private const val SOCKET_WAIT_STEP_MS = 100L
@@ -333,6 +353,7 @@ class CommunicationService : Service() {
                     currentFileIndex = currentIndex,
                     totalFiles = 0
                 )
+                Log.d(TAG, "Received: $fileName ($bytesReceived bytes)")
                 currentIndex++
             }
         }
@@ -374,9 +395,9 @@ class CommunicationService : Service() {
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
             // Stream file bytes
+            var bytesSent = 0L
             contentResolver.openInputStream(uri)?.use { inputStream ->
                 val buffer = ByteArray(CHUNK_SIZE)
-                var bytesSent = 0L
                 var bytesRead: Int
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                     out.write(buffer, 0, bytesRead)
@@ -388,6 +409,7 @@ class CommunicationService : Service() {
 
             out.flush()
             broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles)
+            Log.d(TAG, "Sent: ${fileInfo.fileName} ($bytesSent bytes)")
             currentIndex++
 
             // Log completed WiFi Direct transfer to history DB for sender
@@ -442,12 +464,22 @@ class CommunicationService : Service() {
         currentFileIndex: Int,
         totalFiles: Int
     ) {
+        val update = WifiTransferUpdate(
+            progress = progress,
+            fileName = fileName ?: "",
+            fileSize = fileSize,
+            currentFileIndex = currentFileIndex,
+            totalFiles = totalFiles,
+            remoteDeviceName = remoteDeviceName
+        )
+        _transferUpdates.value = update
         sendBroadcast(Intent(BROADCAST_SENDING_UPDATE).apply {
             putExtra(EXTRAS_PROGRESS_STATE, progress)
-            putExtra(EXTRAS_FILE_NAME, fileName ?: "")
+            putExtra(EXTRAS_FILE_NAME, update.fileName)
             putExtra(EXTRAS_FILE_SIZE, fileSize)
             putExtra(EXTRAS_CURRENT_FILE_INDEX, currentFileIndex)
             putExtra(EXTRAS_TOTAL_FILES, totalFiles)
+            putExtra(EXTRAS_REMOTE_DEVICE_NAME, remoteDeviceName)
         })
     }
 
