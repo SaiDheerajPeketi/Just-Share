@@ -175,13 +175,15 @@ fun DiscoverDevicesScreen(
         }
     }
 
+    val displayTitle = if (isSender) "Send files" else "Receive files"
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
     ) {
         BackBar(
-            title = title,
+            title = displayTitle,
             onBack = onBack,
             rightEl = {
                 Box(
@@ -203,81 +205,206 @@ fun DiscoverDevicesScreen(
         Column(
             modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                RadarAnim(scanning = scanning)
-                Spacer(modifier = Modifier.height(12.dp))
+            if (isSender) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    RadarAnim(scanning = scanning)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = if (scanning) "Scanning for nearby devices…" else "Scan complete",
+                        style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium),
+                        color = if (scanning) colors.red else colors.mutedFg
+                    )
+                }
+
                 Text(
-                    text = if (scanning) "Scanning for nearby devices…" else "Scan complete",
-                    style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium),
-                    color = if (scanning) colors.red else colors.mutedFg
+                    text = "AVAILABLE DEVICES (${discovered.size})",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.mutedFg,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-            }
 
-            Text(
-                text = "AVAILABLE DEVICES (${discovered.size})",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.mutedFg,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(colors.cardBg)
-                    .border(1.dp, colors.border, RoundedCornerShape(24.dp))
-            ) {
-                if (discovered.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("No devices found", color = colors.mutedFg)
-                    }
-                } else {
-                    discovered.forEachIndexed { index, device ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    transferViewModel.setConnectedDeviceName(device.name)
-                                    if (transferMethod == "bt") {
-                                        device.btDevice?.let {
-                                            if (device.isPaired) {
-                                                btViewModel.connectToDevice(it)
-                                            } else {
-                                                btViewModel.pairDevice(it)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(colors.cardBg)
+                        .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                ) {
+                    if (discovered.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Text("No devices found", color = colors.mutedFg)
+                        }
+                    } else {
+                        discovered.forEachIndexed { index, device ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        transferViewModel.setConnectedDeviceName(device.name)
+                                        if (transferMethod == "bt") {
+                                            device.btDevice?.let {
+                                                if (device.isPaired) {
+                                                    btViewModel.connectToDevice(it)
+                                                } else {
+                                                    btViewModel.pairDevice(it)
+                                                }
                                             }
+                                        } else {
+                                            device.wifiDevice?.let { wifiViewModel.connectToDevice(it) }
                                         }
-                                    } else {
-                                        device.wifiDevice?.let { wifiViewModel.connectToDevice(it) }
                                     }
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(40.dp).background(colors.lightRed, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Smartphone, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
                                 }
-                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = device.name, style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black)
+                                    Text(text = device.id, style = MaterialTheme.typography.caption, color = colors.mutedFg)
+                                }
+                                StatusDot(status = "online")
+                                if (transferMethod == "bt" && !device.isPaired) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(Icons.Default.BluetoothSearching, contentDescription = "Pair", tint = colors.red, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                            if (index < discovered.lastIndex) {
+                                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Receiver UI
+                var timeLeft by remember { mutableStateOf(300) }
+                LaunchedEffect(Unit) {
+                    while (timeLeft > 0) {
+                        delay(1000)
+                        timeLeft--
+                    }
+                }
+                
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp)
+                            .background(colors.red.copy(alpha = 0.05f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(110.dp)
+                                .background(colors.red.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .background(colors.red, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Text("Waiting for sender...", style = MaterialTheme.typography.h1.copy(fontSize = 24.sp), color = colors.black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "This device is now visible to nearby Bluetooth devices",
+                        style = MaterialTheme.typography.body2,
+                        color = colors.mutedFg,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(40.dp))
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(colors.cardBg)
+                            .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
-                                modifier = Modifier.size(40.dp).background(colors.lightRed, CircleShape),
+                                modifier = Modifier.size(48.dp).background(colors.lightRed, RoundedCornerShape(12.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Smartphone, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Smartphone, contentDescription = null, tint = colors.red)
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(text = device.name, style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black)
-                                Text(text = device.id, style = MaterialTheme.typography.caption, color = colors.mutedFg)
+                                Text("VISIBLE AS", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp), color = colors.mutedFg)
+                                Text(android.os.Build.MODEL ?: "This Device", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold), color = colors.black)
                             }
-                            StatusDot(status = "online")
-                            if (transferMethod == "bt" && !device.isPaired) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(Icons.Default.BluetoothSearching, contentDescription = "Pair", tint = colors.red, modifier = Modifier.size(18.dp))
+                            Box(
+                                modifier = Modifier.background(colors.green.copy(alpha = 0.1f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(6.dp).background(colors.green, CircleShape))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Live", color = colors.green, style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold))
+                                }
                             }
                         }
-                        if (index < discovered.lastIndex) {
-                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Visibility", style = MaterialTheme.typography.caption, color = colors.mutedFg)
+                                val mins = timeLeft / 60
+                                val secs = timeLeft % 60
+                                Text(
+                                    String.format("%02d:%02d", mins, secs),
+                                    style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
+                                    color = if (timeLeft > 0) colors.red else colors.mutedFg
+                                )
+                            }
                         }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(48.dp))
+                    
+                    if (timeLeft == 0) {
+                        com.invincible.jedishare.ui.components.PillButton(
+                            label = "Restart Visibility",
+                            onClick = { 
+                                timeLeft = 300
+                                btViewModel.requestDiscoverable()
+                            },
+                            size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        com.invincible.jedishare.ui.components.PillButton(
+                            label = "Stop Advertising",
+                            onClick = onBack,
+                            variant = com.invincible.jedishare.ui.components.PillButtonVariant.OUTLINE,
+                            size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
