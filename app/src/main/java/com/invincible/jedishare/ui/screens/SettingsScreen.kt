@@ -186,9 +186,10 @@ fun SettingsScreen(
                         onChange = { encRequired = !encRequired },
                         trackOnColor = colors.red, // App theme red track
                         trackOffColor = Color(0xFFE0E0E0),
-                        thumbOnColor = Color(0xFF2962FF), // Blue thumb
+                        thumbOnColor = Color.White, // White thumb
                         thumbOffColor = Color.White,
-                        thumbIcon = Icons.Default.Check
+                        thumbIcon = Icons.Default.Check,
+                        thumbIconTint = colors.red
                     )
                 }
 
@@ -245,26 +246,35 @@ fun CustomToggle(
     trackOffColor: Color,
     thumbOnColor: Color,
     thumbOffColor: Color,
-    thumbIcon: androidx.compose.ui.graphics.vector.ImageVector? = null
+    thumbIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    thumbIconTint: Color = Color.White
 ) {
+    val animatedTrackColor by androidx.compose.animation.animateColorAsState(targetValue = if (on) trackOnColor else trackOffColor)
+    val animatedThumbColor by androidx.compose.animation.animateColorAsState(targetValue = if (on) thumbOnColor else thumbOffColor)
+    val thumbOffset by androidx.compose.animation.core.animateDpAsState(targetValue = if (on) 22.dp else 2.dp)
+
     Box(
         modifier = Modifier
             .size(width = 46.dp, height = 24.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (on) trackOnColor else trackOffColor)
-            .clickable(onClick = onChange),
-        contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart
+            .background(animatedTrackColor)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onChange
+            )
     ) {
         Box(
             modifier = Modifier
-                .padding(2.dp)
+                .padding(start = thumbOffset)
+                .align(Alignment.CenterStart)
                 .size(20.dp)
                 .shadow(1.dp, CircleShape)
-                .background(if (on) thumbOnColor else thumbOffColor, CircleShape),
+                .background(animatedThumbColor, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (on && thumbIcon != null) {
-                Icon(thumbIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Icon(thumbIcon, contentDescription = null, tint = thumbIconTint, modifier = Modifier.size(14.dp))
             }
         }
     }
