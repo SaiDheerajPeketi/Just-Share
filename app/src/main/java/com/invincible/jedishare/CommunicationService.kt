@@ -431,10 +431,10 @@ class CommunicationService : Service() {
             put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 when {
-                    mimeType.startsWith("image/") -> put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/JediShare")
-                    mimeType.startsWith("audio/") -> put(MediaStore.Audio.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MUSIC}/JediShare")
-                    mimeType.startsWith("video/") -> put(MediaStore.Video.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MOVIES}/JediShare")
-                    else                          -> put(MediaStore.Downloads.RELATIVE_PATH,     "${Environment.DIRECTORY_DOWNLOADS}/JediShare")
+                    mimeType.startsWith("image/") -> put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/JustShare")
+                    mimeType.startsWith("audio/") -> put(MediaStore.Audio.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MUSIC}/JustShare")
+                    mimeType.startsWith("video/") -> put(MediaStore.Video.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MOVIES}/JustShare")
+                    else                          -> put(MediaStore.Downloads.RELATIVE_PATH,     "${Environment.DIRECTORY_DOWNLOADS}/JustShare")
                 }
             }
         }
