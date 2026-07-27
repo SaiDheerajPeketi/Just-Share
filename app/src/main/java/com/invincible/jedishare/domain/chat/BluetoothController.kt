@@ -21,6 +21,7 @@ interface BluetoothController {
 
     fun startDiscovery()
     fun stopDiscovery()
+    fun pairDevice(device: BluetoothDevice)
 
     /** Opens a server socket and emits connection/transfer results as a cold Flow. */
     fun startBluetoothServer(): Flow<ConnectionResult>
