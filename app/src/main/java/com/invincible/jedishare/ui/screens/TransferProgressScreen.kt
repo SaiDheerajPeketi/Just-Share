@@ -144,7 +144,7 @@ fun TransferProgressScreen(
                         LinearProgressIndicator(
                             progress = progress / 100f,
                             color = colors.red,
-                            backgroundColor = colors.lightRed,
+                            backgroundColor = colors.red.copy(alpha = 0.15f),
                             modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape)
                         )
                     }
@@ -164,7 +164,7 @@ fun TransferProgressScreen(
                     .height(48.dp),
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = colors.darkRed,
+                    backgroundColor = colors.red,
                     contentColor = Color.White
                 ),
                 elevation = ButtonDefaults.elevation(0.dp)
