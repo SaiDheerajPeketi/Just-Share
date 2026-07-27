@@ -432,7 +432,8 @@ fun DiscoverDevicesScreen(
                             Spacer(modifier = Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("VISIBLE AS", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp), color = colors.mutedFg)
-                                Text(android.os.Build.MODEL ?: "This Device", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold), color = colors.black)
+                                val deviceName = if (transferMethod == "bt") btState.thisDeviceName.takeIf { it.isNotBlank() } else wifiState.thisDeviceName.takeIf { it.isNotBlank() }
+                                Text(deviceName ?: android.os.Build.MODEL ?: "This Device", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold), color = colors.black)
                             }
                             val badgeBg = if (isDiscoverable) colors.green.copy(alpha = 0.1f) else colors.mutedFg.copy(alpha = 0.1f)
                             val badgeFg = if (isDiscoverable) colors.green else colors.mutedFg
