@@ -370,10 +370,14 @@ fun DiscoverDevicesScreen(
                     }
                     
                     Spacer(modifier = Modifier.height(32.dp))
-                    Text("Waiting for sender...", style = MaterialTheme.typography.h1.copy(fontSize = 24.sp), color = colors.black)
+                    Text(
+                        text = if (isDiscoverable) "Waiting for sender..." else "Visibility Stopped", 
+                        style = MaterialTheme.typography.h1.copy(fontSize = 24.sp), 
+                        color = colors.black
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "This device is now visible to nearby Bluetooth devices",
+                        text = if (isDiscoverable) "This device is now visible to nearby Bluetooth devices" else "Start visibility so other devices can find you",
                         style = MaterialTheme.typography.body2,
                         color = colors.mutedFg,
                         textAlign = TextAlign.Center,
@@ -404,13 +408,15 @@ fun DiscoverDevicesScreen(
                                 Text("VISIBLE AS", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp), color = colors.mutedFg)
                                 Text(android.os.Build.MODEL ?: "This Device", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold), color = colors.black)
                             }
+                            val badgeBg = if (isDiscoverable) colors.green.copy(alpha = 0.1f) else colors.mutedFg.copy(alpha = 0.1f)
+                            val badgeFg = if (isDiscoverable) colors.green else colors.mutedFg
                             Box(
-                                modifier = Modifier.background(colors.green.copy(alpha = 0.1f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp)
+                                modifier = Modifier.background(badgeBg, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(6.dp).background(colors.green, CircleShape))
+                                    Box(modifier = Modifier.size(6.dp).background(badgeFg, CircleShape))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Live", color = colors.green, style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold))
+                                    Text(if (isDiscoverable) "Live" else "Hidden", color = badgeFg, style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold))
                                 }
                             }
                         }
