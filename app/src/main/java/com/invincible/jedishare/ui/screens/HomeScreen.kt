@@ -1,7 +1,7 @@
 package com.invincible.jedishare.ui.screens
 
 import com.invincible.jedishare.presentation.TransferViewModel
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +75,26 @@ fun HomeScreen(
     val colors = JediShareTheme.colors
     var transferMethod by remember { mutableStateOf("bt") }
 
+    val infiniteTransition = rememberInfiniteTransition(label = "arrow_anim")
+    val upArrowOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "up_arrow"
+    )
+    val downArrowOffset by infiniteTransition.animateFloat(
+        initialValue = -8f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "down_arrow"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -92,11 +112,11 @@ fun HomeScreen(
             ) {
                 Column {
                     Text(text = "Good morning", style = MaterialTheme.typography.body2, color = colors.mutedFg)
-                    Text(text = "Just Share", style = MaterialTheme.typography.h2, color = colors.black)
+                    Text(text = "Just Share", style = MaterialTheme.typography.h1.copy(fontWeight = FontWeight.Bold), color = colors.black)
                 }
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(48.dp)
                         .background(colors.lightRed, CircleShape)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -105,7 +125,7 @@ fun HomeScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Bolt, contentDescription = "Scan QR", tint = colors.red, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Bolt, contentDescription = "Scan QR", tint = colors.red, modifier = Modifier.size(24.dp))
                 }
             }
 
@@ -119,7 +139,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(24.dp))
-                        .background(colors.cardBg)
+                        .background(Color.White)
                         .border(1.dp, colors.border, RoundedCornerShape(24.dp))
                 ) {
                     Box(
@@ -128,11 +148,11 @@ fun HomeScreen(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) { transferMethod = "bt" }
-                            .background(if (transferMethod == "bt") colors.lightRed else Color.Transparent, RoundedCornerShape(24.dp))
-                            .padding(horizontal = 24.dp, vertical = 8.dp),
+                            .background(if (transferMethod == "bt") colors.red else Color.Transparent, RoundedCornerShape(24.dp))
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Bluetooth", color = if (transferMethod == "bt") colors.red else colors.mutedFg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Bluetooth", color = if (transferMethod == "bt") Color.White else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Box(
                         modifier = Modifier
@@ -140,16 +160,16 @@ fun HomeScreen(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) { transferMethod = "wifi" }
-                            .background(if (transferMethod == "wifi") colors.lightRed else Color.Transparent, RoundedCornerShape(24.dp))
-                            .padding(horizontal = 24.dp, vertical = 8.dp),
+                            .background(if (transferMethod == "wifi") colors.red else Color.Transparent, RoundedCornerShape(24.dp))
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Wi-Fi Direct", color = if (transferMethod == "wifi") colors.red else colors.mutedFg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Wi-Fi Direct", color = if (transferMethod == "wifi") Color.White else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // SEND Card
             CardButton(
@@ -159,15 +179,17 @@ fun HomeScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(8.dp, RoundedCornerShape(24.dp))
-                    .clip(RoundedCornerShape(24.dp))
+                    .height(180.dp)
+                    .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = colors.red.copy(alpha = 0.5f))
+                    .clip(RoundedCornerShape(32.dp))
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxSize()
                         .background(colors.red)
                         .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
@@ -175,11 +197,16 @@ fun HomeScreen(
                             .background(Color.White.copy(alpha = 0.2f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                        Icon(
+                            Icons.Default.ArrowUpward, 
+                            contentDescription = null, 
+                            tint = Color.White, 
+                            modifier = Modifier.size(32.dp).offset(y = upArrowOffset.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "SEND", style = MaterialTheme.typography.h2, color = Color.White, letterSpacing = 1.sp)
-                    Text(text = "Share files with nearby devices", style = MaterialTheme.typography.body2, color = Color.White.copy(alpha = 0.75f), modifier = Modifier.padding(top = 4.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(text = "SEND", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = Color.White, letterSpacing = 1.sp)
+                    Text(text = "Share files with nearby devices", style = MaterialTheme.typography.body2, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.padding(top = 4.dp))
                 }
             }
 
@@ -193,66 +220,85 @@ fun HomeScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(32.dp))
             ) {
+                // Shader gradient background for Receive card
+                val radialGradient = Brush.radialGradient(
+                    colors = listOf(colors.lightRed, Color.White),
+                    radius = 500f
+                )
+                
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.cardBg)
-                        .border(2.dp, colors.red, RoundedCornerShape(24.dp))
+                        .fillMaxSize()
+                        .background(Color.White)
+                        .border(2.dp, colors.red, RoundedCornerShape(32.dp))
+                        .background(radialGradient)
                         .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .background(colors.lightRed, CircleShape),
+                            .background(colors.red.copy(alpha = 0.15f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = colors.red, modifier = Modifier.size(32.dp))
+                        Icon(
+                            Icons.Default.ArrowDownward, 
+                            contentDescription = null, 
+                            tint = colors.red, 
+                            modifier = Modifier.size(32.dp).offset(y = downArrowOffset.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "RECEIVE", style = MaterialTheme.typography.h2, color = colors.red, letterSpacing = 1.sp)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(text = "RECEIVE", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = colors.red, letterSpacing = 1.sp)
                     Text(text = "Accept files from nearby devices", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(top = 4.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             // Quick actions row
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(), 
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 Row(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(colors.cardBg)
+                        .background(Color.White)
                         .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = { onNavigateToScreen("scan-qr") }
                         )
-                        .padding(12.dp),
+                        .padding(vertical = 16.dp, horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.QrCode, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.QrCode, contentDescription = null, tint = colors.red, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("QR Connect", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium), color = colors.black, maxLines = 1)
+                    Text("QR Connect", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black, maxLines = 1)
                 }
 
                 Row(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(colors.cardBg)
+                        .background(Color.White)
                         .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                         .clickable { }
-                        .padding(12.dp),
+                        .padding(vertical = 16.dp, horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = colors.red, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Secure Mode", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium), color = colors.black, maxLines = 1)
+                    Text("Secure Mode", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black, maxLines = 1)
                 }
             }
         }
