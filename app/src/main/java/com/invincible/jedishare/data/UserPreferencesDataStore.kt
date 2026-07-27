@@ -30,6 +30,11 @@ class UserPreferencesDataStore @Inject constructor(
         val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
         val KEY_DEFAULT_TRANSFER_METHOD = stringPreferencesKey("default_transfer_method")
         val KEY_CHUNK_SIZE_KB = intPreferencesKey("chunk_size_kb")
+        val KEY_FIRST_LAUNCH = booleanPreferencesKey("first_launch")
+    }
+
+    val isFirstLaunch: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_FIRST_LAUNCH] ?: true
     }
 
     val isDarkModeEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -57,5 +62,9 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setChunkSizeKb(sizeKb: Int) {
         Timber.d("UserPreferencesDataStore - setChunkSizeKb called")
         context.dataStore.edit { prefs -> prefs[KEY_CHUNK_SIZE_KB] = sizeKb }
+    }
+
+    suspend fun markFirstLaunchComplete() {
+        context.dataStore.edit { prefs -> prefs[KEY_FIRST_LAUNCH] = false }
     }
 }
