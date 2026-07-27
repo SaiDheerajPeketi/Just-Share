@@ -76,18 +76,7 @@ fun HistoryScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onNavigateToNavRoute("home") }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = colors.black)
-            }
+            Box(modifier = Modifier.size(24.dp))
             Text("Transfer History", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold), color = colors.black)
             Text(
                 text = "Clear All", 
