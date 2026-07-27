@@ -1,6 +1,10 @@
 package com.invincible.jedishare.ui.screens
 
+import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.wifi.p2p.WifiP2pManager
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -187,21 +191,23 @@ fun DiscoverDevicesScreen(
         BackBar(
             title = displayTitle,
             onBack = onBack,
-            rightEl = {
-                Box(
-                    modifier = Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { scanning = true }
-                ) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = if (scanning) colors.red else colors.mutedFg,
-                        modifier = Modifier.size(24.dp)
-                    )
+            rightEl = if (isSender) {
+                {
+                    Box(
+                        modifier = Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { scanning = true }
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = if (scanning) colors.red else colors.mutedFg,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
-            }
+            } else null
         )
 
         Column(
@@ -288,11 +294,37 @@ fun DiscoverDevicesScreen(
                 }
             } else {
                 // Receiver UI
-                var timeLeft by remember { mutableStateOf(300) }
-                LaunchedEffect(Unit) {
-                    while (timeLeft > 0) {
+                var isDiscoverable by remember { mutableStateOf(false) }
+                var timeLeft by remember { mutableStateOf(0) }
+                
+                DisposableEffect(Unit) {
+                    val receiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            if (intent?.action == BluetoothAdapter.ACTION_SCAN_MODE_CHANGED) {
+                                val mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, BluetoothAdapter.ERROR)
+                                if (mode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+                                    isDiscoverable = true
+                                    timeLeft = 300
+                                } else {
+                                    isDiscoverable = false
+                                    timeLeft = 0
+                                }
+                            }
+                        }
+                    }
+                    context.registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED))
+                    onDispose {
+                        context.unregisterReceiver(receiver)
+                    }
+                }
+                
+                LaunchedEffect(isDiscoverable) {
+                    while (isDiscoverable && timeLeft > 0) {
                         delay(1000)
                         timeLeft--
+                        if (timeLeft == 0) {
+                            isDiscoverable = false
+                        }
                     }
                 }
                 
@@ -389,11 +421,10 @@ fun DiscoverDevicesScreen(
                     
                     Spacer(modifier = Modifier.height(48.dp))
                     
-                    if (timeLeft == 0) {
+                    if (!isDiscoverable || timeLeft == 0) {
                         com.invincible.jedishare.ui.components.PillButton(
                             label = "Restart Visibility",
                             onClick = { 
-                                timeLeft = 300
                                 btViewModel.requestDiscoverable()
                             },
                             size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
@@ -402,7 +433,7 @@ fun DiscoverDevicesScreen(
                     } else {
                         com.invincible.jedishare.ui.components.PillButton(
                             label = "Stop Advertising",
-                            onClick = onBack,
+                            onClick = { isDiscoverable = false },
                             variant = com.invincible.jedishare.ui.components.PillButtonVariant.OUTLINE,
                             size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
                             modifier = Modifier.fillMaxWidth()
