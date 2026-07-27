@@ -5,20 +5,21 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 
+/**
+ * Receives transfer progress broadcasts from [CommunicationService] (WiFi Direct path).
+ * Logs progress — the Activity's LaunchedEffect already observes connection state via ViewModel.
+ */
 class WiFiDirectServiceBroadcastReceiver(
     private val activity: WifiDirectDeviceSelectActivity
-): BroadcastReceiver() {
+) : BroadcastReceiver() {
+
     override fun onReceive(context: Context?, intent: Intent?) {
-        if (intent != null) {
-            when(intent.action){
-                activity.SENDING_UPDATE -> {
-                    val progress = intent.getIntExtra("com.invincible.jedishare.EXTRAS_PROGRESS_STATE", 100)
-                    val fileName = intent.getStringExtra("com.invincible.jedishare.EXTRAS_FILE_NAME")
-                    val filesize = intent.getLongExtra("com.invincible.jedishare.EXTRAS_FILE_SIZE",0)
-                    activity.connectionText = progress.toString() + " $fileName + $filesize"
-                    Log.d(activity.TAG, "onReceive: $progress")
-                }
-            }
-        }
+        intent ?: return
+        if (intent.action != CommunicationService.BROADCAST_SENDING_UPDATE) return
+
+        val progress  = intent.getIntExtra(CommunicationService.EXTRAS_PROGRESS_STATE, 0)
+        val fileName  = intent.getStringExtra(CommunicationService.EXTRAS_FILE_NAME) ?: ""
+        val fileSize  = intent.getLongExtra(CommunicationService.EXTRAS_FILE_SIZE, 0L)
+        Log.d("WifiServiceReceiver", "Progress: $progress% — $fileName ($fileSize bytes)")
     }
 }

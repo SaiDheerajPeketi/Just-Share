@@ -17,12 +17,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import com.invincible.jedishare.presentation.SettingsViewModel
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import com.invincible.jedishare.ui.theme.MyRed
 import com.invincible.jedishare.ui.theme.MyRedSecondaryLight
 import com.invincible.jedishare.ui.theme.Roboto
-import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * Settings screen backed by [SettingsViewModel] + DataStore.
@@ -174,4 +175,4 @@ private fun SettingRow(
         }
         trailing()
     }
-import dagger.hilt.android.AndroidEntryPoint
+}

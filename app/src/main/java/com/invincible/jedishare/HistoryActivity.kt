@@ -31,6 +31,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * History screen showing all past file transfers.
@@ -188,4 +189,4 @@ private fun HistoryItem(
             }
         }
     }
-import java.util.Locale
+}
