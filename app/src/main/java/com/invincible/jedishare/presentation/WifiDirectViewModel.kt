@@ -163,6 +163,14 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
+    fun stopDiscovery() {
+        Timber.d("WifiDirectViewModel - stopDiscovery called")
+        if (_uiState.value.isDiscovering) {
+            wifiP2pManager?.stopPeerDiscovery(wifiP2pChannel, actionListener)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     fun connectToDevice(device: WifiP2pDevice) {
         Timber.d("WifiDirectViewModel - connectToDevice called")
         val config = WifiP2pConfig().apply { deviceAddress = device.deviceAddress }
