@@ -74,6 +74,13 @@ fun HomeScreen(
 ) {
     val colors = JediShareTheme.colors
     var transferMethod by remember { mutableStateOf("bt") }
+    
+    val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+    val greeting = when (currentHour) {
+        in 0..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        else -> "Good evening"
+    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "arrow_anim")
     val upArrowOffset by infiniteTransition.animateFloat(
@@ -111,8 +118,8 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(text = "Good morning", style = MaterialTheme.typography.body2, color = colors.mutedFg)
-                    Text(text = "Just Share", style = MaterialTheme.typography.h1.copy(fontWeight = FontWeight.Bold), color = colors.black)
+                    Text(text = greeting, style = MaterialTheme.typography.body2, color = colors.mutedFg)
+                    Text(text = "Just Share", style = MaterialTheme.typography.h1, color = colors.black)
                 }
                 Box(
                     modifier = Modifier
