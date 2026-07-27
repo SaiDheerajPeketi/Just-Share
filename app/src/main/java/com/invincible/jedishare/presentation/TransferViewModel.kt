@@ -22,6 +22,7 @@ data class UnifiedDevice(
     val id: String,
     val name: String,
     val isWifiDirect: Boolean,
+    val isPaired: Boolean = true,
     val btDevice: BluetoothDevice? = null,
     val wifiDevice: WifiP2pDevice? = null
 )

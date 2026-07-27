@@ -14,6 +14,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Wifi
@@ -104,9 +105,16 @@ fun DiscoverDevicesScreen(
 
     // Unify discovered devices
     val discovered = if (transferMethod == "bt") {
-        val allBtDevices = (btState.scannedDevices + btState.pairedDevices).distinctBy { it.address }
+        val pairedAddresses = btState.pairedDevices.map { it.address }.toSet()
+        val allBtDevices = (btState.pairedDevices + btState.scannedDevices).distinctBy { it.address }
         allBtDevices.map { 
-            UnifiedDevice(it.address, it.name ?: "Unknown Device", false, btDevice = it)
+            UnifiedDevice(
+                id = it.address,
+                name = it.name ?: "Unknown Device",
+                isWifiDirect = false,
+                isPaired = it.address in pairedAddresses,
+                btDevice = it
+            )
         }
     } else {
         wifiState.peers.map {
@@ -139,10 +147,13 @@ fun DiscoverDevicesScreen(
 
     LaunchedEffect(scanning) {
         if (scanning) {
-            if (transferMethod == "bt") btViewModel.startScan()
-            else if (transferMethod == "wifi") wifiViewModel.startDiscovery()
-            delay(3000)
+            repeat(if (transferMethod == "bt") 3 else 1) {
+                if (transferMethod == "bt") btViewModel.startScan()
+                else if (transferMethod == "wifi") wifiViewModel.startDiscovery()
+                delay(10000)
+            }
             scanning = false
+            if (transferMethod == "bt") btViewModel.stopScan()
         }
     }
     
@@ -231,7 +242,13 @@ fun DiscoverDevicesScreen(
                                 .clickable {
                                     transferViewModel.setConnectedDeviceName(device.name)
                                     if (transferMethod == "bt") {
-                                        device.btDevice?.let { btViewModel.connectToDevice(it) }
+                                        device.btDevice?.let {
+                                            if (device.isPaired) {
+                                                btViewModel.connectToDevice(it)
+                                            } else {
+                                                btViewModel.pairDevice(it)
+                                            }
+                                        }
                                     } else {
                                         device.wifiDevice?.let { wifiViewModel.connectToDevice(it) }
                                     }
@@ -251,6 +268,10 @@ fun DiscoverDevicesScreen(
                                 Text(text = device.id, style = MaterialTheme.typography.caption, color = colors.mutedFg)
                             }
                             StatusDot(status = "online")
+                            if (transferMethod == "bt" && !device.isPaired) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(Icons.Default.BluetoothSearching, contentDescription = "Pair", tint = colors.red, modifier = Modifier.size(18.dp))
+                            }
                         }
                         if (index < discovered.lastIndex) {
                             Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))

@@ -146,6 +146,7 @@ class BluetoothViewModel @Inject constructor(
 
     fun startScan() = bluetoothController.startDiscovery()
     fun stopScan() = bluetoothController.stopDiscovery()
+    fun pairDevice(device: BluetoothDeviceDomain) = bluetoothController.pairDevice(device)
 
     fun sendMessage(message: String) {
         Timber.d("BluetoothViewModel - stopScan called")

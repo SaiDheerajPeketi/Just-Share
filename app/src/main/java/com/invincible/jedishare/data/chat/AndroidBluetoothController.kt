@@ -5,6 +5,7 @@ import timber.log.Timber
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
@@ -61,6 +62,7 @@ class AndroidBluetoothController(
     private var dataTransferService: BluetoothDataTransferService? = null
     private var currentServerSocket: BluetoothServerSocket? = null
     private var currentClientSocket: BluetoothSocket? = null
+    private var isFoundDeviceReceiverRegistered = false
 
     private val _isConnected = MutableStateFlow(false)
     override val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
@@ -116,10 +118,16 @@ class AndroidBluetoothController(
     override fun startDiscovery() {
         Timber.d("AndroidBluetoothController - startDiscovery called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
-        context.registerReceiver(
-            foundDeviceReceiver,
-            IntentFilter(android.bluetooth.BluetoothDevice.ACTION_FOUND)
-        )
+        if (bluetoothAdapter?.isDiscovering == true) {
+            bluetoothAdapter?.cancelDiscovery()
+        }
+        if (!isFoundDeviceReceiverRegistered) {
+            context.registerReceiver(
+                foundDeviceReceiver,
+                IntentFilter(android.bluetooth.BluetoothDevice.ACTION_FOUND)
+            )
+            isFoundDeviceReceiverRegistered = true
+        }
         updatePairedDevices()
         bluetoothAdapter?.startDiscovery()
     }
@@ -128,6 +136,17 @@ class AndroidBluetoothController(
         Timber.d("AndroidBluetoothController - stopDiscovery called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
         bluetoothAdapter?.cancelDiscovery()
+    }
+
+    override fun pairDevice(device: BluetoothDeviceDomain) {
+        Timber.d("AndroidBluetoothController - pairDevice called")
+        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
+        val remoteDevice = bluetoothAdapter?.getRemoteDevice(device.address) ?: return
+        if (remoteDevice.bondState != BluetoothDevice.BOND_BONDED) {
+            remoteDevice.createBond()
+        } else {
+            updatePairedDevices()
+        }
     }
 
     // ── Server / Client Flows ─────────────────────────────────────────────────
@@ -299,7 +318,12 @@ class AndroidBluetoothController(
 
     override fun release() {
         Timber.d("AndroidBluetoothController - release called")
-        try { context.unregisterReceiver(foundDeviceReceiver) } catch (e: Exception) { Log.w(TAG, "foundDeviceReceiver already unregistered") }
+        try {
+            context.unregisterReceiver(foundDeviceReceiver)
+            isFoundDeviceReceiverRegistered = false
+        } catch (e: Exception) {
+            Log.w(TAG, "foundDeviceReceiver already unregistered")
+        }
         try { context.unregisterReceiver(bluetoothStateReceiver) } catch (e: Exception) { Log.w(TAG, "bluetoothStateReceiver already unregistered") }
         try { context.unregisterReceiver(bondStateReceiver) } catch (e: Exception) { Log.w(TAG, "bondStateReceiver already unregistered") }
         closeConnection()
