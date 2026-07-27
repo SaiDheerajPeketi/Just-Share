@@ -39,7 +39,8 @@ data class UnifiedTransferState(
     val currentFileName: String = "",
     val totalFiles: Int = 0,
     val currentFileIndex: Int = 0,
-    val isTransferComplete: Boolean = false
+    val isTransferComplete: Boolean = false,
+    val hasTransferStarted: Boolean = false
 )
 
 @HiltViewModel
@@ -80,11 +81,40 @@ class TransferViewModel @Inject constructor(
     }
 
     fun setUris(uris: List<Uri>) {
-        _state.update { it.copy(urisToShare = uris) }
+        _state.update {
+            it.copy(
+                urisToShare = uris,
+                progressPercent = 0f,
+                currentFileName = "",
+                currentFileIndex = 0,
+                isTransferComplete = false,
+                hasTransferStarted = false
+            )
+        }
     }
     
     fun setConnectedDeviceName(name: String) {
         _state.update { it.copy(connectedDeviceName = name, isConnected = true) }
+    }
+
+    fun markTransferStarted() {
+        _state.update { it.copy(hasTransferStarted = true, isTransferComplete = false) }
+    }
+
+    fun resetTransfer() {
+        _state.update {
+            it.copy(
+                isConnected = false,
+                connectedDeviceName = null,
+                urisToShare = emptyList(),
+                progressPercent = 0f,
+                currentFileName = "",
+                totalFiles = 0,
+                currentFileIndex = 0,
+                isTransferComplete = false,
+                hasTransferStarted = false
+            )
+        }
     }
 
     override fun onCleared() {

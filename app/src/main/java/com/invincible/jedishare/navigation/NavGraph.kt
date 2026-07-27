@@ -112,7 +112,15 @@ fun AppNavGraph(
                 transferViewModel = transferViewModel,
                 btViewModel = btViewModel,
                 onBack = { navController.popBackStack() },
-                onNavigateToScreen = { route -> navController.navigate(route) }
+                onNavigateToScreen = { route ->
+                    if (route == Screen.Home.route) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(route)
+                    }
+                }
             )
         }
         composable(Screen.History.route) {

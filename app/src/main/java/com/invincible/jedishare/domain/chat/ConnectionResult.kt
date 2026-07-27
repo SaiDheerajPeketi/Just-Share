@@ -10,7 +10,7 @@ import timber.log.Timber
  */
 sealed interface ConnectionResult {
     /** The physical Bluetooth connection has been successfully established. */
-    object ConnectionEstablished : ConnectionResult
+    data class ConnectionEstablished(val remoteDeviceName: String? = null) : ConnectionResult
 
     /** A chunk of file data was received. */
     data class TransferSucceeded(val message: ByteArray) : ConnectionResult

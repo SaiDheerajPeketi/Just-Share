@@ -100,6 +100,7 @@ fun DiscoverDevicesScreen(
     // Collect states based on method
     val btState by btViewModel.state.collectAsState()
     val wifiState by wifiViewModel.uiState.collectAsState()
+    val transferState by transferViewModel.state.collectAsState()
 
     // Unify discovered devices
     val discovered = if (transferMethod == "bt") {
@@ -123,7 +124,7 @@ fun DiscoverDevicesScreen(
         }
         
         // Start appropriate service based on Sender/Receiver
-        val uris = transferViewModel.state.value.urisToShare
+        val uris = transferState.urisToShare
         if (transferMethod == "bt") {
             if (uris.isNotEmpty()) {
                 btViewModel.setUriList(uris)
@@ -146,14 +147,16 @@ fun DiscoverDevicesScreen(
     }
     
     // Auto navigation when connected
-    LaunchedEffect(btState.isConnected, wifiState.isConnected) {
-        if (btState.isConnected && transferMethod == "bt") {
-            val uris = transferViewModel.state.value.urisToShare
+    LaunchedEffect(btState.isConnected, wifiState.isConnected, transferState.hasTransferStarted) {
+        if (btState.isConnected && transferMethod == "bt" && !transferState.hasTransferStarted) {
+            val uris = transferState.urisToShare
+            transferViewModel.markTransferStarted()
             if (uris.isNotEmpty()) {
                 btViewModel.sendMessage("start") // triggers file sending
             }
             onNavigateToScreen("transfer-progress")
-        } else if (wifiState.isConnected && transferMethod == "wifi") {
+        } else if (wifiState.isConnected && transferMethod == "wifi" && !transferState.hasTransferStarted) {
+            transferViewModel.markTransferStarted()
             // Wifi triggers sending via CommunicationService, usually done in connectionInfoListener
             onNavigateToScreen("transfer-progress")
         }

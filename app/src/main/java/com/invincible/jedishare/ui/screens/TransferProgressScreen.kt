@@ -44,7 +44,7 @@ fun TransferProgressScreen(
     val colors = JediShareTheme.colors
     val state by transferViewModel.state.collectAsState()
     val btProgress by btViewModel.transferProgress.collectAsState()
-    val btState by btViewModel.statee.collectAsState()
+    val btConnectedDeviceName by btViewModel.connectedDeviceNameState.collectAsState()
     
     val isSender = state.urisToShare.isNotEmpty()
     val method = state.method
@@ -116,7 +116,11 @@ fun TransferProgressScreen(
             Text(if (isDone) "Transfer Complete" else "Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(state.connectedDeviceName ?: "Unknown Device", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold), color = colors.black)
+                Text(
+                    btConnectedDeviceName ?: state.connectedDeviceName ?: "Unknown Device",
+                    style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold),
+                    color = colors.black
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Box(modifier = Modifier.size(8.dp).background(colors.green, CircleShape))
             }
@@ -194,7 +198,17 @@ fun TransferProgressScreen(
 
         Column(modifier = Modifier.padding(16.dp)) {
             Button(
-                onClick = { onBack() },
+                onClick = {
+                    if (isDone) {
+                        btViewModel.disconnectFromDevice()
+                        btViewModel.resetTransferState()
+                        transferViewModel.resetTransfer()
+                        onNavigateToScreen("home")
+                    } else {
+                        btViewModel.disconnectFromDevice()
+                        onBack()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),

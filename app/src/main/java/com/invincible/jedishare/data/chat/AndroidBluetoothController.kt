@@ -138,7 +138,7 @@ class AndroidBluetoothController(
                 val service = BluetoothDataTransferService(currentClientSocket!!)
                 dataTransferService = service
                 _isConnected.update { true }
-                emit(ConnectionResult.ConnectionEstablished)
+                emit(ConnectionResult.ConnectionEstablished(currentClientSocket?.remoteDevice?.name))
                 currentServerSocket?.close()
                 emitAll(
                     service.listenForIncomingMessages().map { incomingData ->
@@ -172,7 +172,7 @@ class AndroidBluetoothController(
                 val service = BluetoothDataTransferService(secureSocket)
                 dataTransferService = service
                 _isConnected.update { true }
-                emit(ConnectionResult.ConnectionEstablished)
+                emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
                 emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
             } catch (secureEx: IOException) {
                 Log.w(TAG, "Secure connect failed, trying insecure fallback: ${secureEx.message}")
@@ -193,7 +193,7 @@ class AndroidBluetoothController(
                         val service = BluetoothDataTransferService(insecureSocket)
                         dataTransferService = service
                         _isConnected.update { true }
-                        emit(ConnectionResult.ConnectionEstablished)
+                        emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
                         emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
                     } catch (insecureEx: IOException) {
                         insecureSocket.close()

@@ -82,6 +82,9 @@ class BluetoothViewModel @Inject constructor(
     private val _incomingFileNameState = MutableStateFlow<String?>(null)
     val incomingFileNameState: StateFlow<String?> = _incomingFileNameState.asStateFlow()
 
+    private val _connectedDeviceNameState = MutableStateFlow<String?>(null)
+    val connectedDeviceNameState: StateFlow<String?> = _connectedDeviceNameState.asStateFlow()
+
     /** Emits the chunk iteration count (sender side) for the progress bar. */
     private val _iterationCountFlow = MutableSharedFlow<Long>()
     fun getIterationCountFlow(): SharedFlow<Long> = _iterationCountFlow.asSharedFlow()
@@ -97,6 +100,17 @@ class BluetoothViewModel @Inject constructor(
     }
     fun getUriList(): List<Uri> = _uriList.value
 
+    fun resetTransferState() {
+        _uriList.value = emptyList()
+        _incomingFileName = null
+        _incomingFileNameState.value = null
+        _incomingMimeType = null
+        _incomingFileSize = 0L
+        _currentFileSize.value = 0L
+        _currFileCount.value = 0
+        _transferProgress.value = TransferProgressState()
+    }
+
     // ── Tracks current incoming file metadata (for history logging) ────────────
     private var _incomingFileName: String? = null
     private var _incomingMimeType: String? = null
@@ -108,6 +122,7 @@ class BluetoothViewModel @Inject constructor(
     fun connectToDevice(device: BluetoothDeviceDomain) {
         Timber.d("BluetoothViewModel - connectToDevice called")
         _connectedDeviceName = device.name
+        _connectedDeviceNameState.value = device.name
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
             .connectToDevice(device)
@@ -199,6 +214,10 @@ class BluetoothViewModel @Inject constructor(
         return onEach { result ->
             when (result) {
                 is ConnectionResult.ConnectionEstablished -> {
+                    result.remoteDeviceName?.let { remoteName ->
+                        _connectedDeviceName = remoteName
+                        _connectedDeviceNameState.value = remoteName
+                    }
                     isFirstChunk = true
                     fileUri = null
                     _incomingFileName = null
