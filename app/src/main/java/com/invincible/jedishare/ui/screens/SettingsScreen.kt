@@ -251,7 +251,7 @@ fun CustomToggle(
 ) {
     val animatedTrackColor by androidx.compose.animation.animateColorAsState(targetValue = if (on) trackOnColor else trackOffColor)
     val animatedThumbColor by androidx.compose.animation.animateColorAsState(targetValue = if (on) thumbOnColor else thumbOffColor)
-    val thumbOffset by androidx.compose.animation.core.animateDpAsState(targetValue = if (on) 22.dp else 2.dp)
+    val thumbOffset by androidx.compose.animation.core.animateDpAsState(targetValue = if (on) 24.dp else 2.dp)
 
     Box(
         modifier = Modifier
