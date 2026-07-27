@@ -63,7 +63,11 @@ class FileTransferRepository @Inject constructor(
             mimeType.startsWith("image/") -> MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
             mimeType.startsWith("audio/") -> MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
             mimeType.startsWith("video/") -> MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-            else -> MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            else -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            } else {
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            }
         }
 
         try {

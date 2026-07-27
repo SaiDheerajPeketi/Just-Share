@@ -1,5 +1,7 @@
 package com.invincible.jedishare.ui.screens
 
+import android.content.Context
+import android.net.wifi.p2p.WifiP2pManager
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,9 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.invincible.jedishare.presentation.BluetoothViewModel
+import com.invincible.jedishare.presentation.TransferViewModel
+import com.invincible.jedishare.presentation.UnifiedDevice
+import com.invincible.jedishare.presentation.WifiDirectViewModel
 import com.invincible.jedishare.ui.components.BackBar
 import com.invincible.jedishare.ui.components.StatusDot
 import com.invincible.jedishare.ui.theme.JediShareTheme
@@ -78,23 +86,78 @@ fun RadarAnim(scanning: Boolean) {
 @Composable
 fun DiscoverDevicesScreen(
     title: String,
+    transferMethod: String,
+    transferViewModel: TransferViewModel,
+    btViewModel: BluetoothViewModel = hiltViewModel(),
+    wifiViewModel: WifiDirectViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
+    val context = LocalContext.current
     var scanning by remember { mutableStateOf(true) }
+    
+    // Collect states based on method
+    val btState by btViewModel.state.collectAsState()
+    val wifiState by wifiViewModel.uiState.collectAsState()
+
+    // Unify discovered devices
+    val discovered = if (transferMethod == "bt") {
+        val allBtDevices = (btState.scannedDevices + btState.pairedDevices).distinctBy { it.address }
+        allBtDevices.map { 
+            UnifiedDevice(it.address, it.name ?: "Unknown Device", false, btDevice = it)
+        }
+    } else {
+        wifiState.peers.map {
+            UnifiedDevice(it.deviceAddress, it.deviceName ?: "Unknown Device", true, wifiDevice = it)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (transferMethod == "wifi") {
+            val manager = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
+            if (manager != null) {
+                val channel = manager.initialize(context, context.mainLooper, null)
+                wifiViewModel.initialize(manager, channel)
+            }
+        }
+        
+        // Start appropriate service based on Sender/Receiver
+        val uris = transferViewModel.state.value.urisToShare
+        if (transferMethod == "bt") {
+            if (uris.isNotEmpty()) {
+                btViewModel.setUriList(uris)
+                btViewModel.startScan()
+            } else {
+                btViewModel.waitForIncomingConnections()
+            }
+        } else if (transferMethod == "wifi") {
+            wifiViewModel.startDiscovery()
+        }
+    }
 
     LaunchedEffect(scanning) {
         if (scanning) {
+            if (transferMethod == "bt") btViewModel.startScan()
+            else if (transferMethod == "wifi") wifiViewModel.startDiscovery()
             delay(3000)
             scanning = false
         }
     }
-
-    val discovered = listOf(
-        Pair("Marcus's Galaxy S24", "AC:DE:48:00:11:22"),
-        Pair("Sarah's Pixel 8", "B4:F6:1C:33:44:55")
-    )
+    
+    // Auto navigation when connected
+    LaunchedEffect(btState.isConnected, wifiState.isConnected) {
+        if (btState.isConnected && transferMethod == "bt") {
+            val uris = transferViewModel.state.value.urisToShare
+            if (uris.isNotEmpty()) {
+                btViewModel.sendMessage("start") // triggers file sending
+            }
+            onNavigateToScreen("transfer-progress")
+        } else if (wifiState.isConnected && transferMethod == "wifi") {
+            // Wifi triggers sending via CommunicationService, usually done in connectionInfoListener
+            onNavigateToScreen("transfer-progress")
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -153,29 +216,42 @@ fun DiscoverDevicesScreen(
                     .background(colors.cardBg)
                     .border(1.dp, colors.border, RoundedCornerShape(24.dp))
             ) {
-                discovered.forEachIndexed { index, device ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToScreen("transfer-progress") }
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier.size(40.dp).background(colors.lightRed, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Smartphone, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = device.first, style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black)
-                            Text(text = device.second, style = MaterialTheme.typography.caption, color = colors.mutedFg)
-                        }
-                        StatusDot(status = "online")
+                if (discovered.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Text("No devices found", color = colors.mutedFg)
                     }
-                    if (index < discovered.lastIndex) {
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
+                } else {
+                    discovered.forEachIndexed { index, device ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    transferViewModel.setConnectedDeviceName(device.name)
+                                    if (transferMethod == "bt") {
+                                        device.btDevice?.let { btViewModel.connectToDevice(it) }
+                                    } else {
+                                        device.wifiDevice?.let { wifiViewModel.connectToDevice(it) }
+                                    }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier.size(40.dp).background(colors.lightRed, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Smartphone, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(text = device.name, style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black)
+                                Text(text = device.id, style = MaterialTheme.typography.caption, color = colors.mutedFg)
+                            }
+                            StatusDot(status = "online")
+                        }
+                        if (index < discovered.lastIndex) {
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
+                        }
                     }
                 }
             }

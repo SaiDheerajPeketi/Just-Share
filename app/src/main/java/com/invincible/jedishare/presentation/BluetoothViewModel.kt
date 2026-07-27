@@ -149,6 +149,12 @@ class BluetoothViewModel @Inject constructor(
                     _transferProgress.update { it.copy(totalBytes = size, bytesSent = 0L) }
                 },
                 onFileCountUpdated = { count -> _currFileCount.value = count },
+                onFileInfoResolved = { fileInfo ->
+                    _incomingFileNameState.value = fileInfo.fileName
+                    _incomingFileName = fileInfo.fileName
+                    _incomingMimeType = fileInfo.mimeType
+                    _incomingFileSize = fileInfo.size?.toLongOrNull() ?: 0L
+                },
                 onBytesSent = { bytesRead ->
                     _transferProgress.update { it.copy(bytesSent = it.bytesSent + bytesRead) }
                 },
@@ -218,7 +224,7 @@ class BluetoothViewModel @Inject constructor(
                             _incomingFileName = fileInfo.fileName
                             _incomingFileNameState.value = fileInfo.fileName
                             _incomingMimeType = fileInfo.mimeType
-                            _incomingFileSize = fileInfo.size?.toLong() ?: 0L
+                            _incomingFileSize = fileInfo.size?.toLongOrNull() ?: 0L
                             _currentFileSize.value = _incomingFileSize
                             _transferProgress.update { it.copy(totalBytes = _incomingFileSize, bytesReceived = 0L) }
                             fileUri = fileTransferRepository.createMediaStoreEntry(fileInfo)

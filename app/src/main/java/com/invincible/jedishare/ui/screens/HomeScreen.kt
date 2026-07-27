@@ -1,5 +1,6 @@
 package com.invincible.jedishare.ui.screens
 
+import com.invincible.jedishare.presentation.TransferViewModel
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -64,8 +65,10 @@ fun CardButton(
     }
 }
 
+
 @Composable
 fun HomeScreen(
+    transferViewModel: TransferViewModel,
     onNavigateToNavRoute: (String) -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
@@ -150,7 +153,10 @@ fun HomeScreen(
 
             // SEND Card
             CardButton(
-                onClick = { onNavigateToScreen("select-files/$transferMethod") },
+                onClick = { 
+                    transferViewModel.setMethod(transferMethod)
+                    onNavigateToScreen("select-files/$transferMethod") 
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(8.dp, RoundedCornerShape(24.dp))
@@ -181,7 +187,10 @@ fun HomeScreen(
 
             // RECEIVE Card
             CardButton(
-                onClick = { onNavigateToScreen("discover-$transferMethod") },
+                onClick = { 
+                    transferViewModel.setMethod(transferMethod)
+                    onNavigateToScreen("discover-$transferMethod") 
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
