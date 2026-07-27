@@ -8,13 +8,17 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.net.wifi.p2p.WifiP2pDevice
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.invincible.jedishare.CommunicationService
+import com.invincible.jedishare.WifiTransferUpdate
 import com.invincible.jedishare.domain.chat.BluetoothDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.core.content.ContextCompat
 
@@ -57,23 +61,16 @@ class TransferViewModel @Inject constructor(
     private val progressReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == CommunicationService.BROADCAST_SENDING_UPDATE) {
-                val progress = intent.getIntExtra(CommunicationService.EXTRAS_PROGRESS_STATE, 0)
-                val fileName = intent.getStringExtra(CommunicationService.EXTRAS_FILE_NAME) ?: ""
-                val fileSize = intent.getLongExtra(CommunicationService.EXTRAS_FILE_SIZE, 0L)
-                val fileIndex = intent.getIntExtra(CommunicationService.EXTRAS_CURRENT_FILE_INDEX, 0)
-                val totalFiles = intent.getIntExtra(CommunicationService.EXTRAS_TOTAL_FILES, 0)
-                _state.update { 
-                    it.copy(
-                        progressPercent = progress.toFloat(),
-                        currentFileName = fileName,
-                        currentFileSizeBytes = fileSize,
-                        currentFileIndex = fileIndex,
-                        totalFiles = if (totalFiles > 0) totalFiles else it.totalFiles,
-                        isTransferComplete = progress == 100 && (
-                            totalFiles == 0 || fileIndex >= totalFiles - 1
-                        )
-                    ) 
-                }
+                applyWifiProgress(
+                    WifiTransferUpdate(
+                        progress = intent.getIntExtra(CommunicationService.EXTRAS_PROGRESS_STATE, 0),
+                        fileName = intent.getStringExtra(CommunicationService.EXTRAS_FILE_NAME) ?: "",
+                        fileSize = intent.getLongExtra(CommunicationService.EXTRAS_FILE_SIZE, 0L),
+                        currentFileIndex = intent.getIntExtra(CommunicationService.EXTRAS_CURRENT_FILE_INDEX, 0),
+                        totalFiles = intent.getIntExtra(CommunicationService.EXTRAS_TOTAL_FILES, 0),
+                        remoteDeviceName = intent.getStringExtra(CommunicationService.EXTRAS_REMOTE_DEVICE_NAME)
+                    )
+                )
             }
         }
     }
@@ -85,6 +82,27 @@ class TransferViewModel @Inject constructor(
             IntentFilter(CommunicationService.BROADCAST_SENDING_UPDATE),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
+        viewModelScope.launch {
+            CommunicationService.transferUpdates
+                .filterNotNull()
+                .collect(::applyWifiProgress)
+        }
+    }
+
+    private fun applyWifiProgress(update: WifiTransferUpdate) {
+        _state.update {
+            it.copy(
+                progressPercent = update.progress.toFloat(),
+                currentFileName = update.fileName,
+                currentFileSizeBytes = update.fileSize,
+                currentFileIndex = update.currentFileIndex,
+                totalFiles = if (update.totalFiles > 0) update.totalFiles else it.totalFiles,
+                connectedDeviceName = update.remoteDeviceName ?: it.connectedDeviceName,
+                isTransferComplete = update.progress == 100 && (
+                    update.totalFiles == 0 || update.currentFileIndex >= update.totalFiles - 1
+                )
+            )
+        }
     }
 
     fun setMethod(method: String) {
@@ -118,6 +136,7 @@ class TransferViewModel @Inject constructor(
     }
 
     fun resetTransfer() {
+        CommunicationService.clearTransferUpdate()
         _state.update {
             it.copy(
                 isConnected = false,
