@@ -63,6 +63,7 @@ class WifiDirectViewModel @Inject constructor(
     private var wifiP2pChannel: WifiP2pManager.Channel? = null
     private var receiver: com.invincible.jedishare.WiFiDirectBroadcastReceiver? = null
     private var communicationServiceStarted = false
+    private var isSenderRole = true
     private val p2pRetryDelaysMs = listOf(300L, 700L, 1_200L, 2_000L)
 
     /** Shared ActionListener for discovery operations. */
@@ -130,10 +131,17 @@ class WifiDirectViewModel @Inject constructor(
 
     // ── P2P State Updates (called from WiFiDirectBroadcastReceiver) ────────────
 
+    fun setTransferRole(isSender: Boolean) {
+        Timber.d("WifiDirectViewModel - setTransferRole called")
+        isSenderRole = isSender
+    }
+
     fun onWifiDirectEnabled(enabled: Boolean) {
         Timber.d("WifiDirectViewModel - onWifiDirectEnabled called")
         _uiState.update { it.copy(isWifiDirectEnabled = enabled) }
-        if (enabled) startDiscovery()
+        if (enabled) {
+            if (isSenderRole) startDiscovery() else startHosting()
+        }
         else {
             _uiState.update { it.copy(peers = emptyList(), isConnected = false, isDiscovering = false) }
             stopCommunicationService()
@@ -173,7 +181,11 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - startDiscovery called")
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
-        if (_uiState.value.isWifiDirectEnabled && !_uiState.value.isDiscovering && !_uiState.value.isConnected) {
+        if (_uiState.value.isWifiDirectEnabled &&
+            !_uiState.value.isDiscovering &&
+            !_uiState.value.isConnected &&
+            _uiState.value.connectionStatus != "hosting"
+        ) {
             manager.discoverPeers(channel, actionListener)
         }
     }
@@ -185,6 +197,66 @@ class WifiDirectViewModel @Inject constructor(
         val channel = wifiP2pChannel ?: return
         if (_uiState.value.isDiscovering) {
             manager.stopPeerDiscovery(channel, actionListener)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startHosting() {
+        Timber.d("WifiDirectViewModel - startHosting called")
+        val manager = wifiP2pManager ?: return
+        val channel = wifiP2pChannel ?: return
+        if (!_uiState.value.isWifiDirectEnabled || _uiState.value.isConnected || _uiState.value.connectionStatus == "hosting") {
+            return
+        }
+        _uiState.update { it.copy(connectionStatus = "hosting", errorMessage = null) }
+        viewModelScope.launch {
+            if (_uiState.value.isDiscovering) {
+                runP2pAction(
+                    label = "stopPeerDiscovery before createGroup",
+                    retryReasons = setOf(WifiP2pManager.BUSY)
+                ) { listener ->
+                    manager.stopPeerDiscovery(channel, listener)
+                }
+                delay(300L)
+            }
+
+            runP2pAction(
+                label = "cancelConnect before createGroup",
+                retryReasons = setOf(WifiP2pManager.BUSY)
+            ) { listener ->
+                manager.cancelConnect(channel, listener)
+            }
+
+            runP2pAction(
+                label = "removeGroup before createGroup",
+                retryReasons = setOf(WifiP2pManager.BUSY)
+            ) { listener ->
+                manager.removeGroup(channel, listener)
+            }
+
+            delay(500L)
+
+            val failure = runP2pAction(
+                label = "createGroup",
+                retryReasons = setOf(WifiP2pManager.BUSY, WifiP2pManager.ERROR)
+            ) { listener ->
+                manager.createGroup(channel, listener)
+            }
+
+            if (failure == null) {
+                _uiState.update {
+                    it.copy(
+                        isDiscovering = false,
+                        connectionStatus = "hosting",
+                        errorMessage = null
+                    )
+                }
+                requestConnectionInfo()
+            } else {
+                val msg = "Wi-Fi Direct hosting failed: ${failureReason(failure)}"
+                Log.e(TAG, msg)
+                _uiState.update { it.copy(connectionStatus = "", errorMessage = msg) }
+            }
         }
     }
 
