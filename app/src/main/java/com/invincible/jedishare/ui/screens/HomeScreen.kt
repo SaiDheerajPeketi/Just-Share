@@ -191,19 +191,12 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.ArrowUpward, 
-                            contentDescription = null, 
-                            tint = Color.White, 
-                            modifier = Modifier.size(32.dp).offset(y = upArrowOffset.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Default.ArrowUpward, 
+                        contentDescription = null, 
+                        tint = Color.White, 
+                        modifier = Modifier.size(32.dp).offset(y = upArrowOffset.dp)
+                    )
                     Spacer(modifier = Modifier.height(20.dp))
                     Text(text = "SEND", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = Color.White, letterSpacing = 1.sp)
                     Text(text = "Share files with nearby devices", style = MaterialTheme.typography.body2, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.padding(top = 4.dp))
@@ -223,35 +216,21 @@ fun HomeScreen(
                     .height(180.dp)
                     .clip(RoundedCornerShape(32.dp))
             ) {
-                // Shader gradient background for Receive card
-                val radialGradient = Brush.radialGradient(
-                    colors = listOf(colors.lightRed, Color.White),
-                    radius = 500f
-                )
-                
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.White)
                         .border(2.dp, colors.red, RoundedCornerShape(32.dp))
-                        .background(radialGradient)
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .background(colors.red.copy(alpha = 0.15f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.ArrowDownward, 
-                            contentDescription = null, 
-                            tint = colors.red, 
-                            modifier = Modifier.size(32.dp).offset(y = downArrowOffset.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Default.ArrowDownward, 
+                        contentDescription = null, 
+                        tint = colors.red, 
+                        modifier = Modifier.size(32.dp).offset(y = downArrowOffset.dp)
+                    )
                     Spacer(modifier = Modifier.height(20.dp))
                     Text(text = "RECEIVE", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = colors.red, letterSpacing = 1.sp)
                     Text(text = "Accept files from nearby devices", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(top = 4.dp))
