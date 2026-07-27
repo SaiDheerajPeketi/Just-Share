@@ -16,10 +16,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import javax.inject.Inject
 
 /**
@@ -59,6 +63,7 @@ class WifiDirectViewModel @Inject constructor(
     private var wifiP2pChannel: WifiP2pManager.Channel? = null
     private var receiver: com.invincible.jedishare.WiFiDirectBroadcastReceiver? = null
     private var communicationServiceStarted = false
+    private val p2pRetryDelaysMs = listOf(300L, 700L, 1_200L, 2_000L)
 
     /** Shared ActionListener for discovery operations. */
     private val actionListener = object : WifiP2pManager.ActionListener {
@@ -194,12 +199,8 @@ class WifiDirectViewModel @Inject constructor(
             wps.setup = WpsInfo.PBC
             groupOwnerIntent = 0
         }
-        stopDiscoveryBeforeConnect(manager, channel) {
-            cancelPendingConnect(manager, channel) {
-                removeStaleGroup(manager, channel) {
-                    connectAfterCleanup(manager, channel, config)
-                }
-            }
+        viewModelScope.launch {
+            prepareAndConnect(manager, channel, config)
         }
     }
 
@@ -274,81 +275,90 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun stopDiscoveryBeforeConnect(
-        manager: WifiP2pManager,
-        channel: WifiP2pManager.Channel,
-        next: () -> Unit
-    ) {
-        if (!_uiState.value.isDiscovering) {
-            next()
-            return
-        }
-        manager.stopPeerDiscovery(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                Log.d(TAG, "stopPeerDiscovery before connect success")
-                next()
-            }
-
-            override fun onFailure(reason: Int) {
-                Log.w(TAG, "stopPeerDiscovery before connect failed: ${failureReason(reason)}")
-                next()
-            }
-        })
-    }
-
-    private fun cancelPendingConnect(
-        manager: WifiP2pManager,
-        channel: WifiP2pManager.Channel,
-        next: () -> Unit
-    ) {
-        manager.cancelConnect(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                Log.d(TAG, "cancelConnect before connect success")
-                next()
-            }
-
-            override fun onFailure(reason: Int) {
-                Log.d(TAG, "cancelConnect before connect skipped: ${failureReason(reason)}")
-                next()
-            }
-        })
-    }
-
-    private fun removeStaleGroup(
-        manager: WifiP2pManager,
-        channel: WifiP2pManager.Channel,
-        next: () -> Unit
-    ) {
-        manager.removeGroup(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                Log.d(TAG, "removeGroup before connect success")
-                next()
-            }
-
-            override fun onFailure(reason: Int) {
-                Log.d(TAG, "removeGroup before connect skipped: ${failureReason(reason)}")
-                next()
-            }
-        })
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun connectAfterCleanup(
+    private suspend fun prepareAndConnect(
         manager: WifiP2pManager,
         channel: WifiP2pManager.Channel,
         config: WifiP2pConfig
     ) {
-        manager.connect(channel, config, object : WifiP2pManager.ActionListener {
+        if (_uiState.value.isDiscovering) {
+            runP2pAction(
+                label = "stopPeerDiscovery before connect",
+                retryReasons = setOf(WifiP2pManager.BUSY)
+            ) { listener ->
+                manager.stopPeerDiscovery(channel, listener)
+            }
+            delay(300L)
+        }
+
+        runP2pAction(
+            label = "cancelConnect before connect",
+            retryReasons = setOf(WifiP2pManager.BUSY)
+        ) { listener ->
+            manager.cancelConnect(channel, listener)
+        }
+
+        runP2pAction(
+            label = "removeGroup before connect",
+            retryReasons = setOf(WifiP2pManager.BUSY)
+        ) { listener ->
+            manager.removeGroup(channel, listener)
+        }
+
+        delay(500L)
+
+        val connectFailure = runP2pAction(
+            label = "connect",
+            retryReasons = setOf(WifiP2pManager.BUSY, WifiP2pManager.ERROR)
+        ) { listener ->
+            manager.connect(channel, config, listener)
+        }
+
+        if (connectFailure == null) {
+            Log.d(TAG, "connect request accepted")
+            _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
+        } else {
+            val msg = "Wi-Fi Direct connect failed: ${failureReason(connectFailure)}"
+            Log.e(TAG, msg)
+            _uiState.update { it.copy(connectionStatus = "", errorMessage = msg) }
+            startDiscovery()
+        }
+    }
+
+    private suspend fun runP2pAction(
+        label: String,
+        retryReasons: Set<Int>,
+        action: (WifiP2pManager.ActionListener) -> Unit
+    ): Int? {
+        var failureReason: Int? = null
+        repeat(p2pRetryDelaysMs.size + 1) { attempt ->
+            failureReason = awaitP2pAction(action)
+            val reason = failureReason
+            if (reason == null) {
+                Log.d(TAG, "$label success")
+                return null
+            }
+
+            Log.d(TAG, "$label failed: ${failureReason(reason)}")
+            val shouldRetry = reason in retryReasons && attempt < p2pRetryDelaysMs.size
+            if (!shouldRetry) {
+                return reason
+            }
+
+            delay(p2pRetryDelaysMs[attempt])
+        }
+        return failureReason
+    }
+
+    private suspend fun awaitP2pAction(
+        action: (WifiP2pManager.ActionListener) -> Unit
+    ): Int? = suspendCancellableCoroutine { continuation ->
+        action(object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
-                Log.d(TAG, "connect request accepted")
-                _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
+                if (continuation.isActive) continuation.resume(null)
             }
 
             override fun onFailure(reason: Int) {
-                val msg = "Wi-Fi Direct connect failed: ${failureReason(reason)}"
-                Log.e(TAG, msg)
-                _uiState.update { it.copy(connectionStatus = "", errorMessage = msg) }
-                startDiscovery()
+                if (continuation.isActive) continuation.resume(reason)
             }
         })
     }
