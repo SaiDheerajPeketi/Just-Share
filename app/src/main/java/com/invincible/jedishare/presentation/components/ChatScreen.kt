@@ -46,6 +46,7 @@ import com.invincible.jedishare.ui.theme.MyRedSecondary
 import com.invincible.jedishare.ui.theme.MyRedSecondaryLight
 import com.invincible.jedishare.ui.theme.MyRedSecondaryLight2
 import com.invincible.jedishare.ui.theme.Roboto
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * Shows the active transfer progress for a list of files.
@@ -365,4 +366,4 @@ fun CustomProgressIndicator(
 private fun animateAlignmentAsState(targetBiasValue: Float): State<BiasAlignment> {
     val bias by animateFloatAsState(targetBiasValue)
     return derivedStateOf { BiasAlignment(horizontalBias = bias, verticalBias = 0f) }
-import com.invincible.jedishare.ui.theme.Roboto
+}

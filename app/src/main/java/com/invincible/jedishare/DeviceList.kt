@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.invincible.jedishare.presentation.BluetoothViewModel
 import com.invincible.jedishare.presentation.components.ChatScreen
 import com.invincible.jedishare.presentation.components.DeviceScreen
@@ -125,4 +126,4 @@ class DeviceList : ComponentActivity() {
             }
         }
     }
-import dagger.hilt.android.AndroidEntryPoint
+}

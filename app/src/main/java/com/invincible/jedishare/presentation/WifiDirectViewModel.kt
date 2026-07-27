@@ -147,12 +147,12 @@ class WifiDirectViewModel @Inject constructor(
         wifiP2pManager?.let { mgr ->
             wifiP2pChannel?.let { ch ->
                 mgr.cancelConnect(ch, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() = Log.d(TAG, "cancelConnect success")
-                    override fun onFailure(r: Int) = Log.d(TAG, "cancelConnect failed: $r")
+                    override fun onSuccess() { Log.d(TAG, "cancelConnect success") }
+                    override fun onFailure(r: Int) { Log.d(TAG, "cancelConnect failed: $r") }
                 })
                 mgr.removeGroup(ch, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() = Log.d(TAG, "removeGroup success")
-                    override fun onFailure(r: Int) = Log.d(TAG, "removeGroup failed: $r")
+                    override fun onSuccess() { Log.d(TAG, "removeGroup success") }
+                    override fun onFailure(r: Int) { Log.d(TAG, "removeGroup failed: $r") }
                 })
             }
         }
