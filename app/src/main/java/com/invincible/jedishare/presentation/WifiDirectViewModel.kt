@@ -85,13 +85,44 @@ class WifiDirectViewModel @Inject constructor(
         _uiState.update { it.copy(peers = peers) }
     }
 
+    @SuppressLint("MissingPermission")
     val connectionInfoListener = WifiP2pManager.ConnectionInfoListener { info ->
         Log.d(TAG, "ConnectionInfo: $info")
-        if (info.groupFormed) {
-            _uiState.update { it.copy(isConnected = true, connectionStatus = "connected", errorMessage = null) }
-            startCommunicationService(info)
-        } else {
-            _uiState.update { it.copy(isConnected = false, connectionStatus = "") }
+        if (!info.groupFormed) {
+            _uiState.update {
+                it.copy(
+                    isConnected = false,
+                    connectionStatus = if (isSenderRole) "" else "hosting"
+                )
+            }
+            return@ConnectionInfoListener
+        }
+
+        startCommunicationService(info)
+        if (!info.isGroupOwner) {
+            _uiState.update {
+                it.copy(isConnected = true, connectionStatus = "connected", errorMessage = null)
+            }
+            return@ConnectionInfoListener
+        }
+
+        val manager = wifiP2pManager
+        val channel = wifiP2pChannel
+        if (manager == null || channel == null) {
+            _uiState.update { it.copy(isConnected = false, connectionStatus = "hosting") }
+            return@ConnectionInfoListener
+        }
+
+        manager.requestGroupInfo(channel) { group ->
+            val hasConnectedClient = group?.clientList?.isNotEmpty() == true
+            Log.d(TAG, "GroupInfo: connectedClients=${group?.clientList?.size ?: 0}")
+            _uiState.update {
+                it.copy(
+                    isConnected = hasConnectedClient,
+                    connectionStatus = if (hasConnectedClient) "connected" else "hosting",
+                    errorMessage = null
+                )
+            }
         }
     }
 
