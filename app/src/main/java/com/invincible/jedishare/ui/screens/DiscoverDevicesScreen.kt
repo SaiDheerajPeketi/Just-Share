@@ -129,6 +129,7 @@ fun DiscoverDevicesScreen(
 
     LaunchedEffect(Unit) {
         if (transferMethod == "wifi") {
+            wifiViewModel.setTransferRole(isSender)
             val manager = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
             if (manager != null) {
                 val channel = manager.initialize(context, context.mainLooper, null)
@@ -147,7 +148,11 @@ fun DiscoverDevicesScreen(
                 btViewModel.waitForIncomingConnections()
             }
         } else if (transferMethod == "wifi") {
-            wifiViewModel.startDiscovery()
+            if (isSender) {
+                wifiViewModel.startDiscovery()
+            } else {
+                wifiViewModel.startHosting()
+            }
         }
     }
 
@@ -155,7 +160,7 @@ fun DiscoverDevicesScreen(
         if (scanning) {
             repeat(if (transferMethod == "bt" && isSender) 3 else 1) {
                 if (transferMethod == "bt" && isSender) btViewModel.startScan()
-                else if (transferMethod == "wifi") wifiViewModel.startDiscovery()
+                else if (transferMethod == "wifi" && isSender) wifiViewModel.startDiscovery()
                 delay(10000)
             }
             scanning = false
@@ -319,7 +324,11 @@ fun DiscoverDevicesScreen(
                 var btDiscoverable by remember { mutableStateOf(false) }
                 var btTimeLeft by remember { mutableStateOf(0) }
                 
-                val isDiscoverable = if (transferMethod == "bt") btDiscoverable else wifiState.isDiscovering
+                val isDiscoverable = if (transferMethod == "bt") {
+                    btDiscoverable
+                } else {
+                    wifiState.connectionStatus == "hosting" || wifiState.isConnected
+                }
                 val timeLeft = if (transferMethod == "bt") btTimeLeft else -1 // -1 means infinite/managed by system for wifi
                 
                 if (transferMethod == "bt") {
@@ -482,7 +491,7 @@ fun DiscoverDevicesScreen(
                                 if (transferMethod == "bt") {
                                     btViewModel.requestDiscoverable()
                                 } else {
-                                    wifiViewModel.startDiscovery()
+                                    wifiViewModel.startHosting()
                                 }
                             },
                             size = com.invincible.jedishare.ui.components.PillButtonSize.LG,
@@ -496,9 +505,7 @@ fun DiscoverDevicesScreen(
                                     btDiscoverable = false
                                     btTimeLeft = 0
                                 } else {
-                                    // There is no direct "stop visibility" for wifi direct easily mapped here, 
-                                    // but we can stop discovery
-                                    wifiViewModel.stopDiscovery()
+                                    wifiViewModel.disconnectP2P()
                                 }
                             },
                             variant = com.invincible.jedishare.ui.components.PillButtonVariant.OUTLINE,
