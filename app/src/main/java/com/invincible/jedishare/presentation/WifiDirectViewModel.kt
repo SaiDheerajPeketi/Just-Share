@@ -160,6 +160,11 @@ class WifiDirectViewModel @Inject constructor(
         _uiState.update { it.copy(thisDeviceName = name ?: "") }
     }
 
+    fun onDisconnected() {
+        Timber.d("WifiDirectViewModel - onDisconnected called")
+        _uiState.update { it.copy(isConnected = false, connectionStatus = "") }
+    }
+
     fun onPeersChanged() {
         Timber.d("WifiDirectViewModel - onPeersChanged called")
         wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)

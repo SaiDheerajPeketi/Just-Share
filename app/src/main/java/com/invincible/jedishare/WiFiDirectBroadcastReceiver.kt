@@ -53,7 +53,7 @@ class WiFiDirectBroadcastReceiver(
                     viewModel.onConnectionChanged()
                 } else {
                     Log.d(TAG, "Wi-Fi Direct disconnected")
-                    viewModel.disconnectP2P()
+                    viewModel.onDisconnected()
                 }
             }
 
