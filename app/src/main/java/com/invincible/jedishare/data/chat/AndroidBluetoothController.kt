@@ -149,6 +149,21 @@ class AndroidBluetoothController(
         }
     }
 
+    override fun requestDiscoverable(durationSeconds: Int) {
+        Timber.d("AndroidBluetoothController - requestDiscoverable called")
+        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S &&
+            !hasPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
+        ) return
+
+        val intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, durationSeconds)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { context.startActivity(intent) }
+            .onFailure { Log.e(TAG, "Could not request Bluetooth discoverability", it) }
+    }
+
     // ── Server / Client Flows ─────────────────────────────────────────────────
 
     override fun startBluetoothServer(): Flow<ConnectionResult> = flow {

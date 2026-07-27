@@ -102,6 +102,7 @@ fun DiscoverDevicesScreen(
     val btState by btViewModel.state.collectAsState()
     val wifiState by wifiViewModel.uiState.collectAsState()
     val transferState by transferViewModel.state.collectAsState()
+    val isSender = transferState.urisToShare.isNotEmpty()
 
     // Unify discovered devices
     val discovered = if (transferMethod == "bt") {
@@ -132,12 +133,13 @@ fun DiscoverDevicesScreen(
         }
         
         // Start appropriate service based on Sender/Receiver
-        val uris = transferState.urisToShare
         if (transferMethod == "bt") {
-            if (uris.isNotEmpty()) {
-                btViewModel.setUriList(uris)
+            if (isSender) {
+                btViewModel.setUriList(transferState.urisToShare)
                 btViewModel.startScan()
             } else {
+                btViewModel.stopScan()
+                btViewModel.requestDiscoverable()
                 btViewModel.waitForIncomingConnections()
             }
         } else if (transferMethod == "wifi") {
@@ -147,13 +149,13 @@ fun DiscoverDevicesScreen(
 
     LaunchedEffect(scanning) {
         if (scanning) {
-            repeat(if (transferMethod == "bt") 3 else 1) {
-                if (transferMethod == "bt") btViewModel.startScan()
+            repeat(if (transferMethod == "bt" && isSender) 3 else 1) {
+                if (transferMethod == "bt" && isSender) btViewModel.startScan()
                 else if (transferMethod == "wifi") wifiViewModel.startDiscovery()
                 delay(10000)
             }
             scanning = false
-            if (transferMethod == "bt") btViewModel.stopScan()
+            if (transferMethod == "bt" && isSender) btViewModel.stopScan()
         }
     }
     
