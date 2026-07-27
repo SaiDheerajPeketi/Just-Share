@@ -62,9 +62,6 @@ class MainActivity : ComponentActivity() {
         Timber.d("MainActivity - onCreate called")
         super.onCreate(savedInstanceState)
 
-        // Request all required runtime permissions in one shot
-        requestMultiplePermissions.launch(permissionsToRequest)
-
         val startRoute = intent.getStringExtra("start_route") ?: com.invincible.jedishare.navigation.Screen.Splash.route
         val initialUris = intent.getParcelableArrayListExtra<Uri>("urilist")?.toList().orEmpty()
         val initialMethod = when (startRoute) {

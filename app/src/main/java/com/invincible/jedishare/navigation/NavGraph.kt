@@ -13,6 +13,7 @@ import com.invincible.jedishare.presentation.BluetoothViewModel
 import com.invincible.jedishare.presentation.TransferViewModel
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Onboarding : Screen("onboarding")
     object Permissions : Screen("permissions")
     object Home : Screen("home")
     object SelectFiles : Screen("select-files/{method}") {
@@ -69,8 +70,23 @@ fun AppNavGraph(
         }
     ) {
         composable(Screen.Splash.route) {
-            com.invincible.jedishare.ui.screens.SplashScreen(onContinue = { 
-                navController.navigate(Screen.Permissions.route) 
+            com.invincible.jedishare.ui.screens.SplashScreen(onNavigateNext = { isFirstLaunch -> 
+                if (isFirstLaunch) {
+                    navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                } else {
+                    navController.navigate(Screen.Permissions.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            })
+        }
+        composable(Screen.Onboarding.route) {
+            com.invincible.jedishare.ui.screens.OnboardingScreen(onContinue = { 
+                navController.navigate(Screen.Permissions.route) {
+                    popUpTo(Screen.Onboarding.route) { inclusive = true }
+                }
             })
         }
         composable(Screen.Permissions.route) {
