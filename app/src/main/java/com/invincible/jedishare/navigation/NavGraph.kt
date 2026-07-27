@@ -1,7 +1,9 @@
 package com.invincible.jedishare.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import android.net.Uri
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -30,8 +32,17 @@ fun AppNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Splash.route,
     transferViewModel: TransferViewModel = hiltViewModel(),
-    btViewModel: BluetoothViewModel = hiltViewModel()
+    btViewModel: BluetoothViewModel = hiltViewModel(),
+    initialUris: List<Uri> = emptyList(),
+    initialMethod: String? = null
 ) {
+    LaunchedEffect(initialUris, initialMethod) {
+        initialMethod?.let { transferViewModel.setMethod(it) }
+        if (initialUris.isNotEmpty()) {
+            transferViewModel.setUris(initialUris)
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,

@@ -2,6 +2,7 @@ package com.invincible.jedishare
 
 import android.Manifest
 import android.bluetooth.BluetoothManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -65,6 +66,12 @@ class MainActivity : ComponentActivity() {
         requestMultiplePermissions.launch(permissionsToRequest)
 
         val startRoute = intent.getStringExtra("start_route") ?: com.invincible.jedishare.navigation.Screen.Splash.route
+        val initialUris = intent.getParcelableArrayListExtra<Uri>("urilist")?.toList().orEmpty()
+        val initialMethod = when (startRoute) {
+            com.invincible.jedishare.navigation.Screen.DiscoverWifi.route -> "wifi"
+            com.invincible.jedishare.navigation.Screen.DiscoverBT.route -> "bt"
+            else -> null
+        }
 
         setContent {
             JediShareTheme {
@@ -73,7 +80,11 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(MaterialTheme.colors.background)
                 ) {
-                    AppNavGraph(startDestination = startRoute)
+                    AppNavGraph(
+                        startDestination = startRoute,
+                        initialUris = initialUris,
+                        initialMethod = initialMethod
+                    )
                 }
             }
         }

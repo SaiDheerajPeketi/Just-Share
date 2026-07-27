@@ -24,6 +24,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.EOFException
 import java.io.IOException
 import java.io.InputStream
 import java.net.InetSocketAddress
@@ -76,6 +77,8 @@ class CommunicationService : Service() {
         const val EXTRAS_TOTAL_FILES         = "com.invincible.jedishare.EXTRAS_TOTAL_FILES"
         const val BROADCAST_SENDING_UPDATE   = "com.invincible.jedishare.SENDING_UPDATE"
 
+        private const val SOCKET_WAIT_TIMEOUT_MS = 10_000L
+        private const val SOCKET_WAIT_STEP_MS = 100L
         private const val NOTIF_CHANNEL_ID = "jedishare_transfer"
         private const val NOTIF_ID = 42
 
@@ -85,10 +88,11 @@ class CommunicationService : Service() {
         private const val IS_SENDING    = 3
     }
 
-    private val serviceState      = AtomicInteger(NOT_CONNECTED)
-    private val executorService: ExecutorService = Executors.newCachedThreadPool()
+    private val serviceState = AtomicInteger(NOT_CONNECTED)
+    private var executorService: ExecutorService = Executors.newCachedThreadPool()
     private var communicationSocket: Socket?      = null
     private var serverSocket: ServerSocket?       = null
+    @Volatile
     private var dataOutputStream: DataOutputStream? = null
 
     // Tracks remote device name for history logging
@@ -152,7 +156,8 @@ class CommunicationService : Service() {
                 if (state == CONNECTED || state == IS_SENDING || state == CONNECTING) {
                     return START_NOT_STICKY
                 }
-                executorService.execute {
+                startForegroundNotification()
+                ensureExecutor().execute {
                     serviceState.set(CONNECTING)
                     val port    = intent.getIntExtra(EXTRAS_GROUP_OWNER_PORT, 8888)
                     val address = intent.getStringExtra(EXTRAS_GROUP_OWNER_ADDRESS)
@@ -171,7 +176,8 @@ class CommunicationService : Service() {
                 }
             }
             ACTION_SEND_MSG -> {
-                executorService.execute {
+                startForegroundNotification()
+                ensureExecutor().execute {
                     try {
                         sendFiles(intent)
                     } catch (e: IOException) {
@@ -196,13 +202,12 @@ class CommunicationService : Service() {
             serverSocket!!.accept()
         } catch (e: SocketTimeoutException) {
             Log.w(TAG, "Server: accept timed out")
-            return
+            throw e
         } finally {
             serverSocket?.close()
             serverSocket = null
         }
         Log.d(TAG, "Server: client connected")
-        startForegroundNotification()   // Required for API 34+ dataSync foreground service
         messageReadingLoop(deviceName)
     }
 
@@ -217,10 +222,9 @@ class CommunicationService : Service() {
             Log.e(TAG, "Client: connect failed — ${e.message}")
             communicationSocket?.close()
             communicationSocket = null
-            return
+            throw e
         }
         Log.d(TAG, "Client: connected")
-        startForegroundNotification()   // Required for API 34+ dataSync foreground service
         messageReadingLoop(deviceName)
     }
 
@@ -229,11 +233,11 @@ class CommunicationService : Service() {
     /**
      * Handshake + receive loop.
      *
-     * Protocol per file (mirrors sendFiles):
-     *  1. First 8KB block → FileInfo JSON (metadata)
-     *  2. Subsequent blocks → raw file bytes
-     *  3. A full CHUNK_SIZE block filled with 0xFF → EOF sentinel
-     *     Triggers MediaStore flush and resets for next file.
+     * Protocol per file mirrors Bluetooth:
+     *  1. 4-byte metadata length.
+     *  2. Serialized FileInfo JSON.
+     *  3. 8-byte file size.
+     *  4. Exactly file-size bytes of raw content.
      */
     @Throws(IOException::class)
     private fun messageReadingLoop(deviceName: String?) {
@@ -249,96 +253,91 @@ class CommunicationService : Service() {
             serviceState.set(CONNECTED)
 
             val buffer = ByteArray(CHUNK_SIZE)
-            val progressIntent = Intent(BROADCAST_SENDING_UPDATE)
-            var isFirstChunk = true
-            var fileUri: Uri? = null
-            var fileSize = 0L
-            var fileName = ""
-            var bytesReceived = 0L
+            var currentIndex = 0
 
             while (true) {
-                val bytesRead = try {
-                    dataInput.read(buffer)
+                val metaSize = try {
+                    dataInput.readInt()
+                } catch (e: EOFException) {
+                    Log.d(TAG, "Remote closed Wi-Fi Direct stream")
+                    break
                 } catch (e: IOException) {
-                    Log.e(TAG, "Read failed", e)
+                    Log.e(TAG, "Read metadata size failed", e)
                     break
                 }
-                if (bytesRead <= 0) continue
-                val chunk = buffer.copyOfRange(0, bytesRead)
 
-                when {
-                    // EOF sentinel: full chunk of 0xFF
-                    bytesRead == CHUNK_SIZE && chunk.all { it == 0xFF.toByte() } -> {
-                        Log.d(TAG, "EOF sentinel — file '$fileName' complete")
-                        // TODO-15: Log completed WiFi Direct transfer to history DB
-                        val snap_fileName = fileName
-                        val snap_fileSize = fileSize
-                        val snap_mimeType = fileUri?.let {
-                            contentResolver.getType(it)
-                        }
-                        try {
-                            kotlinx.coroutines.runBlocking {
-                                historyRepository.addEntry(
-                                    TransferHistoryEntity(
-                                        fileName         = snap_fileName,
-                                        mimeType         = snap_mimeType,
-                                        fileSizeBytes    = snap_fileSize,
-                                        isSender         = false,
-                                        transferMethod   = "WiFi-Direct",
-                                        remoteDeviceName = remoteDeviceName
-                                    )
-                                )
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to save history entry", e)
-                        }
-                        // Broadcast 100% completion
-                        progressIntent.apply {
-                            putExtra(EXTRAS_PROGRESS_STATE, 100)
-                            putExtra(EXTRAS_FILE_NAME, fileName)
-                            putExtra(EXTRAS_FILE_SIZE, fileSize)
-                        }
-                        sendBroadcast(progressIntent)
-                        // Reset for next file
-                        isFirstChunk = true
-                        fileUri = null
-                        bytesReceived = 0L
-                    }
+                if (metaSize <= 0 || metaSize > 64 * 1024) {
+                    Log.e(TAG, "Invalid metadata size: $metaSize")
+                    break
+                }
 
-                    isFirstChunk -> {
-                        // Parse FileInfo metadata
-                        isFirstChunk = false
-                        val fileInfo = chunk.toFileInfo()
-                        Log.d(TAG, "Incoming file: $fileInfo")
-                        fileInfo?.let {
-                            fileSize = it.size?.toLong() ?: 0L
-                            fileName = it.fileName ?: "received_file"
-                            fileUri = createMediaStoreEntry(it)
+                val metaBytes = ByteArray(metaSize)
+                dataInput.readFully(metaBytes)
+                val fileInfo = metaBytes.toFileInfo()
+                if (fileInfo == null) {
+                    Log.e(TAG, "Could not parse incoming file metadata")
+                    break
+                }
 
-                            progressIntent.apply {
-                                putExtra(EXTRAS_PROGRESS_STATE, 0)
-                                putExtra(EXTRAS_FILE_NAME, it.fileName)
-                                putExtra(EXTRAS_FILE_SIZE, fileSize)
-                            }
-                            sendBroadcast(progressIntent)
-                        }
-                    }
+                val fileSize = dataInput.readLong().coerceAtLeast(0L)
+                val fileName = fileInfo.fileName ?: "received_file"
+                val fileUri = createMediaStoreEntry(fileInfo)
+                var bytesReceived = 0L
 
-                    else -> {
-                        // Write file chunk
-                        fileUri?.let { uri ->
-                            contentResolver.openOutputStream(uri, "wa")?.use { it.write(chunk) }
-                        }
-                        bytesReceived += chunk.size
-                        val progress = if (fileSize > 0) (bytesReceived * 100 / fileSize).toInt() else 0
-                        progressIntent.apply {
-                            putExtra(EXTRAS_PROGRESS_STATE, progress.coerceIn(0, 99)) // 100 only on EOF
-                            putExtra(EXTRAS_FILE_NAME, fileName)
-                            putExtra(EXTRAS_FILE_SIZE, fileSize)
-                        }
-                        sendBroadcast(progressIntent)
+                broadcastProgress(
+                    progress = 0,
+                    fileName = fileName,
+                    fileSize = fileSize,
+                    currentFileIndex = currentIndex,
+                    totalFiles = 0
+                )
+
+                contentResolver.openOutputStream(fileUri ?: throw IOException("Could not create destination for $fileName"), "wa").use { output ->
+                    var remaining = fileSize
+                    while (remaining > 0) {
+                        val toRead = minOf(buffer.size.toLong(), remaining).toInt()
+                        val bytesRead = dataInput.read(buffer, 0, toRead)
+                        if (bytesRead == -1) throw EOFException("Stream ended while receiving $fileName")
+                        output?.write(buffer, 0, bytesRead)
+                        remaining -= bytesRead
+                        bytesReceived += bytesRead
+
+                        val progress = if (fileSize > 0) (bytesReceived * 100 / fileSize).toInt() else 100
+                        broadcastProgress(
+                            progress = progress.coerceIn(0, 99),
+                            fileName = fileName,
+                            fileSize = fileSize,
+                            currentFileIndex = currentIndex,
+                            totalFiles = 0
+                        )
                     }
                 }
+
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    try {
+                        historyRepository.addEntry(
+                            TransferHistoryEntity(
+                                fileName = fileName,
+                                mimeType = fileInfo.mimeType,
+                                fileSizeBytes = fileSize,
+                                isSender = false,
+                                transferMethod = "WiFi-Direct",
+                                remoteDeviceName = remoteDeviceName
+                            )
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to save receiver history entry", e)
+                    }
+                }
+
+                broadcastProgress(
+                    progress = 100,
+                    fileName = fileName,
+                    fileSize = fileSize,
+                    currentFileIndex = currentIndex,
+                    totalFiles = 0
+                )
+                currentIndex++
             }
         }
     }
@@ -348,39 +347,34 @@ class CommunicationService : Service() {
     /**
      * Sends all URIs in the intent over the active socket.
      *
-     * Protocol per file:
-     *  1. Send serialized FileInfo JSON (first block).
-     *  2. Stream raw file bytes in [CHUNK_SIZE] chunks.
-     *  3. Send full [CHUNK_SIZE] block of 0xFF as EOF sentinel.
+     * Protocol per file mirrors Bluetooth:
+     *  1. Send 4-byte metadata length.
+     *  2. Send serialized FileInfo JSON.
+     *  3. Send 8-byte file size.
+     *  4. Stream exactly file-size bytes.
      *
-     * Fix: removed the 5s pre-send delay and the per-chunk runBlocking/delay calls.
+     * Fix: removed the 5s pre-send delay, sentinel EOF, and per-chunk runBlocking/delay calls.
      */
     @Throws(IOException::class)
     private fun sendFiles(intent: Intent) {
         Timber.d("CommunicationService - sendFiles called")
         val uris = intent.getParcelableArrayListExtra<Uri>("urilist") ?: return
-        val out  = dataOutputStream ?: return
-
-        val progressIntent = Intent(BROADCAST_SENDING_UPDATE)
+        if (uris.isEmpty()) return
+        val out = waitForOutputStream() ?: throw IOException("Wi-Fi Direct socket is not connected")
 
         val totalFiles = uris.size
         var currentIndex = 0
         for (uri in uris) {
             val fileInfo = getFileDetailsFromUri(uri, contentResolver)
             val totalSize = fileInfo.size?.toLong() ?: 0L
+            val metaBytes = fileInfo.toByteArray() ?: throw IOException("Failed to serialize FileInfo")
 
-            // Send metadata header
-            fileInfo.toByteArray()?.let { out.write(it) } ?: Log.e(TAG, "Failed to serialize FileInfo")
+            out.writeInt(metaBytes.size)
+            out.write(metaBytes)
+            out.writeLong(totalSize)
             out.flush()
 
-            progressIntent.apply {
-                putExtra(EXTRAS_PROGRESS_STATE, 0)
-                putExtra(EXTRAS_FILE_NAME, fileInfo.fileName)
-                putExtra(EXTRAS_FILE_SIZE, totalSize)
-                putExtra(EXTRAS_CURRENT_FILE_INDEX, currentIndex)
-                putExtra(EXTRAS_TOTAL_FILES, totalFiles)
-            }
-            sendBroadcast(progressIntent)
+            broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
             // Stream file bytes
@@ -392,31 +386,24 @@ class CommunicationService : Service() {
                     out.write(buffer, 0, bytesRead)
                     bytesSent += bytesRead
                     val progress = if (totalSize > 0) (bytesSent * 100 / totalSize).toInt() else 0
-                    progressIntent.putExtra(EXTRAS_PROGRESS_STATE, progress.coerceIn(0, 99))
-                    sendBroadcast(progressIntent)
+                    broadcastProgress(progress.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles)
                 }
             } ?: Log.e(TAG, "Could not open InputStream for $uri")
 
-            // Broadcast 100% before EOF
-            progressIntent.putExtra(EXTRAS_PROGRESS_STATE, 100)
-            sendBroadcast(progressIntent)
-
-            // EOF sentinel
-            out.write(ByteArray(CHUNK_SIZE) { 0xFF.toByte() })
             out.flush()
-            Log.d(TAG, "EOF sentinel sent for ${fileInfo.fileName}")
+            broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles)
             currentIndex++
 
             // Log completed WiFi Direct transfer to history DB for sender
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 try {
                     historyRepository.addEntry(
-                        TransferHistoryEntity(
-                            fileName = fileInfo.fileName ?: "Unknown",
-                            mimeType = fileInfo.format?.let { classifyFileType(it) },
-                            fileSizeBytes = totalSize,
-                            isSender = true,
-                            transferMethod = "WiFi-Direct",
+                            TransferHistoryEntity(
+                                fileName = fileInfo.fileName ?: "Unknown",
+                                mimeType = fileInfo.mimeType,
+                                fileSizeBytes = totalSize,
+                                isSender = true,
+                                transferMethod = "WiFi-Direct",
                             remoteDeviceName = remoteDeviceName ?: "Unknown Device"
                         )
                     )
@@ -428,6 +415,45 @@ class CommunicationService : Service() {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun waitForOutputStream(): DataOutputStream? {
+        val deadline = System.currentTimeMillis() + SOCKET_WAIT_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline) {
+            dataOutputStream?.let { return it }
+            if (serviceState.get() == NOT_CONNECTED) return null
+            try {
+                Thread.sleep(SOCKET_WAIT_STEP_MS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return null
+            }
+        }
+        return dataOutputStream
+    }
+
+    @Synchronized
+    private fun ensureExecutor(): ExecutorService {
+        if (executorService.isShutdown || executorService.isTerminated) {
+            executorService = Executors.newCachedThreadPool()
+        }
+        return executorService
+    }
+
+    private fun broadcastProgress(
+        progress: Int,
+        fileName: String?,
+        fileSize: Long,
+        currentFileIndex: Int,
+        totalFiles: Int
+    ) {
+        sendBroadcast(Intent(BROADCAST_SENDING_UPDATE).apply {
+            putExtra(EXTRAS_PROGRESS_STATE, progress)
+            putExtra(EXTRAS_FILE_NAME, fileName ?: "")
+            putExtra(EXTRAS_FILE_SIZE, fileSize)
+            putExtra(EXTRAS_CURRENT_FILE_INDEX, currentFileIndex)
+            putExtra(EXTRAS_TOTAL_FILES, totalFiles)
+        })
+    }
 
     /**
      * Creates a MediaStore entry for the incoming file.

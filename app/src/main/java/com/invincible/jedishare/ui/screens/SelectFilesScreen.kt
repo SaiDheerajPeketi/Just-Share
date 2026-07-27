@@ -204,6 +204,7 @@ fun SelectFilesScreen(
             PillButton(
                 label = if (selectedUris.isNotEmpty()) "Send ${selectedUris.size} file${if (selectedUris.size > 1) "s" else ""}" else "Select files above",
                 onClick = { 
+                    transferViewModel.setMethod(method)
                     transferViewModel.setUris(selectedUris)
                     onNavigateToScreen("discover-$method") 
                 },
