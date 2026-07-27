@@ -134,7 +134,7 @@ fun SettingsScreen(
                     Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Bluetooth", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
-                    CustomRadioButton(selected = transferMethod == "bluetooth", color = Color(0xFFB71C1C))
+                    CustomRadioButton(selected = transferMethod == "bluetooth", color = colors.red)
                 }
                 
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Color(0xFFF0F0F0)))
@@ -153,7 +153,7 @@ fun SettingsScreen(
                     Icon(Icons.Default.Wifi, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Wi-Fi Direct", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
-                    CustomRadioButton(selected = transferMethod == "wifi", color = Color(0xFFB71C1C))
+                    CustomRadioButton(selected = transferMethod == "wifi", color = colors.red)
                 }
             }
             
@@ -184,7 +184,7 @@ fun SettingsScreen(
                     CustomToggle(
                         on = encRequired,
                         onChange = { encRequired = !encRequired },
-                        trackOnColor = Color(0xFFB71C1C), // Red track
+                        trackOnColor = colors.red, // App theme red track
                         trackOffColor = Color(0xFFE0E0E0),
                         thumbOnColor = Color(0xFF2962FF), // Blue thumb
                         thumbOffColor = Color.White,

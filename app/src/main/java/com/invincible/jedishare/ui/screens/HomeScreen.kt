@@ -218,7 +218,11 @@ fun HomeScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .background(colors.cardBg)
                         .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                        .clickable { }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onNavigateToScreen("scan-qr") }
+                        )
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
