@@ -67,131 +67,149 @@ fun SettingsScreen(
             modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
             // Appearance Section
-            Text(
-                text = "APPEARANCE",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.mutedFg,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.cardBg, RoundedCornerShape(24.dp))
-                    .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                    .background(colors.cardBg, RoundedCornerShape(16.dp))
+                    .padding(vertical = 16.dp)
             ) {
+                Text(
+                    text = "APPEARANCE",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF5A4A45),
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, bottom = 16.dp)
+                )
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.RemoveRedEye, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = "Dark Mode", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
+                    Text(text = "Dark Mode", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
                     CustomToggle(
                         on = isDarkMode,
                         onChange = {
                             coroutineScope.launch {
                                 dataStore.setDarkMode(!isDarkMode)
                             }
-                        }
+                        },
+                        trackOnColor = colors.red,
+                        trackOffColor = Color(0xFFE0E0E0),
+                        thumbOnColor = Color.White,
+                        thumbOffColor = Color.White
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
             
-            Spacer(modifier = Modifier.height(20.dp))
-            
-            // Transfer Section
-            Text(
-                text = "TRANSFER",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.mutedFg,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-            )
+            // Transfer Defaults Section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.cardBg, RoundedCornerShape(24.dp))
-                    .border(1.dp, colors.border, RoundedCornerShape(24.dp))
-                    .padding(16.dp)
+                    .background(colors.cardBg, RoundedCornerShape(16.dp))
+                    .padding(vertical = 16.dp)
             ) {
-                Text(text = "Default Transfer Method", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black, modifier = Modifier.padding(bottom = 12.dp))
+                Text(
+                    text = "TRANSFER DEFAULTS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF5A4A45),
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, bottom = 16.dp)
+                )
                 
                 // Bluetooth Option
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (transferMethod == "bluetooth") colors.lightRed else colors.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, if (transferMethod == "bluetooth") colors.red else colors.border, RoundedCornerShape(16.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { transferMethod = "bluetooth" }
-                        .padding(12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Bluetooth, contentDescription = null, tint = if (transferMethod == "bluetooth") colors.red else colors.mutedFg, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = "Bluetooth", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium), color = if (transferMethod == "bluetooth") colors.red else colors.black, modifier = Modifier.weight(1f))
-                    if (transferMethod == "bluetooth") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = colors.red, modifier = Modifier.size(16.dp))
-                    }
+                    Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(text = "Bluetooth", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
+                    CustomRadioButton(selected = transferMethod == "bluetooth", color = Color(0xFFB71C1C))
                 }
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Color(0xFFF0F0F0)))
                 
                 // Wi-Fi Direct Option
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (transferMethod == "wifi") colors.lightRed else colors.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, if (transferMethod == "wifi") colors.red else colors.border, RoundedCornerShape(16.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { transferMethod = "wifi" }
-                        .padding(12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Wifi, contentDescription = null, tint = if (transferMethod == "wifi") colors.red else colors.mutedFg, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = "Wi-Fi Direct", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium), color = if (transferMethod == "wifi") colors.red else colors.black, modifier = Modifier.weight(1f))
-                    if (transferMethod == "wifi") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = colors.red, modifier = Modifier.size(16.dp))
-                    }
+                    Icon(Icons.Default.Wifi, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(text = "Wi-Fi Direct", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
+                    CustomRadioButton(selected = transferMethod == "wifi", color = Color(0xFFB71C1C))
                 }
             }
             
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
-            // Privacy & Security Section
-            Text(
-                text = "PRIVACY & SECURITY",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.mutedFg,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-            )
+            // Security Section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.cardBg, RoundedCornerShape(24.dp))
-                    .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                    .background(colors.cardBg, RoundedCornerShape(16.dp))
+                    .padding(vertical = 16.dp)
             ) {
+                Text(
+                    text = "SECURITY",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF5A4A45),
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, bottom = 16.dp)
+                )
+                
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Shield, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = "Always require encryption", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
+                    Text(text = "Always require encryption\nverification", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, lineHeight = 20.sp), color = colors.black, modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(16.dp))
                     CustomToggle(
                         on = encRequired,
-                        onChange = { encRequired = !encRequired }
+                        onChange = { encRequired = !encRequired },
+                        trackOnColor = Color(0xFFB71C1C), // Red track
+                        trackOffColor = Color(0xFFE0E0E0),
+                        thumbOnColor = Color(0xFF2962FF), // Blue thumb
+                        thumbOffColor = Color.White,
+                        thumbIcon = Icons.Default.Check
                     )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Color(0xFFF0F0F0)))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { /* Handle Trusted Devices */ }
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(androidx.compose.material.icons.filled.Devices, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(text = "Trusted Devices", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -201,13 +219,38 @@ fun SettingsScreen(
 }
 
 @Composable
-fun CustomToggle(on: Boolean, onChange: () -> Unit) {
-    val colors = JediShareTheme.colors
+fun CustomRadioButton(selected: Boolean, color: Color) {
     Box(
         modifier = Modifier
-            .size(width = 48.dp, height = 24.dp)
+            .size(20.dp)
+            .border(2.dp, if (selected) color else Color(0xFFBDBDBD), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(color, CircleShape)
+            )
+        }
+    }
+}
+
+@Composable
+fun CustomToggle(
+    on: Boolean, 
+    onChange: () -> Unit,
+    trackOnColor: Color,
+    trackOffColor: Color,
+    thumbOnColor: Color,
+    thumbOffColor: Color,
+    thumbIcon: androidx.compose.ui.graphics.vector.ImageVector? = null
+) {
+    Box(
+        modifier = Modifier
+            .size(width = 46.dp, height = 24.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (on) colors.red else Color(0xFFCCCCCC))
+            .background(if (on) trackOnColor else trackOffColor)
             .clickable(onClick = onChange),
         contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart
     ) {
@@ -215,8 +258,13 @@ fun CustomToggle(on: Boolean, onChange: () -> Unit) {
             modifier = Modifier
                 .padding(2.dp)
                 .size(20.dp)
-                .shadow(2.dp, CircleShape)
-                .background(Color.White, CircleShape)
-        )
+                .shadow(1.dp, CircleShape)
+                .background(if (on) thumbOnColor else thumbOffColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (on && thumbIcon != null) {
+                Icon(thumbIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+            }
+        }
     }
 }
