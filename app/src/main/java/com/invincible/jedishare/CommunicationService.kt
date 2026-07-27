@@ -30,7 +30,6 @@ import java.io.InputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
-import java.net.SocketTimeoutException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -196,13 +195,10 @@ class CommunicationService : Service() {
     @Throws(IOException::class)
     private fun startServer(port: Int, deviceName: String?) {
         Timber.d("CommunicationService - startServer called")
-        serverSocket = ServerSocket(port).apply { soTimeout = 60_000 }
+        serverSocket = ServerSocket(port)
         Log.d(TAG, "Server: waiting for connection on port $port")
         communicationSocket = try {
             serverSocket!!.accept()
-        } catch (e: SocketTimeoutException) {
-            Log.w(TAG, "Server: accept timed out")
-            throw e
         } finally {
             serverSocket?.close()
             serverSocket = null

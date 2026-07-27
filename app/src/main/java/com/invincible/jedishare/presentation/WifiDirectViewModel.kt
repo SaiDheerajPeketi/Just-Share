@@ -211,7 +211,22 @@ class WifiDirectViewModel @Inject constructor(
             return
         }
         _uiState.update { it.copy(connectionStatus = "hosting", errorMessage = null) }
-        manager.discoverPeers(channel, actionListener)
+        viewModelScope.launch {
+            val failure = runP2pAction(
+                label = "createGroup",
+                retryReasons = setOf(WifiP2pManager.BUSY)
+            ) { listener ->
+                manager.createGroup(channel, listener)
+            }
+
+            if (failure == null) {
+                requestConnectionInfo()
+            } else {
+                val msg = "Wi-Fi Direct hosting failed: ${failureReason(failure)}"
+                Log.e(TAG, msg)
+                _uiState.update { it.copy(connectionStatus = "", errorMessage = msg) }
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -219,10 +234,24 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - connectToDevice called")
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
+        if (_uiState.value.isConnected || _uiState.value.connectionStatus == "connecting") return
+
+        val currentPeer = _uiState.value.peers.firstOrNull {
+            it.deviceAddress == device.deviceAddress
+        }
+        if (currentPeer == null) {
+            _uiState.update {
+                it.copy(errorMessage = "Device is no longer available. Refreshing nearby devices.")
+            }
+            startDiscovery()
+            return
+        }
+
         _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
         val config = WifiP2pConfig().apply {
-            deviceAddress = device.deviceAddress
+            deviceAddress = currentPeer.deviceAddress
             wps.setup = WpsInfo.PBC
+            groupOwnerIntent = WifiP2pConfig.GROUP_OWNER_INTENT_MIN
         }
         viewModelScope.launch {
             prepareAndConnect(manager, channel, config)
@@ -305,21 +334,9 @@ class WifiDirectViewModel @Inject constructor(
         channel: WifiP2pManager.Channel,
         config: WifiP2pConfig
     ) {
-        if (_uiState.value.isDiscovering) {
-            runP2pAction(
-                label = "stopPeerDiscovery before connect",
-                retryReasons = setOf(WifiP2pManager.BUSY)
-            ) { listener ->
-                manager.stopPeerDiscovery(channel, listener)
-            }
-            delay(300L)
-        }
-
-        delay(700L)
-
         val connectFailure = runP2pAction(
             label = "connect",
-            retryReasons = setOf(WifiP2pManager.BUSY, WifiP2pManager.ERROR)
+            retryReasons = setOf(WifiP2pManager.BUSY)
         ) { listener ->
             manager.connect(channel, config, listener)
         }
