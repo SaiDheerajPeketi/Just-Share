@@ -119,23 +119,13 @@ fun ChatScreen(
                 Icon(imageVector = Icons.Default.Close, contentDescription = "Disconnect")
             }
         }
-        if (!isFromWifi) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val message = rememberSaveable { mutableStateOf("") }
-                IconButton(onClick = {
-                    if (uriList != null && viewModel != null) {
-                        viewModel.setUriList(uriList)
-                    }
-                    uriList?.firstOrNull()?.let { onSendMessage(it.toString()) }
-                    message.value = ""
-                }) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = "Send")
-                }
-            }
+    // Auto-start transfer for Bluetooth when files are selected
+    LaunchedEffect(uriList) {
+        if (!isFromWifi && !uriList.isNullOrEmpty() && viewModel != null) {
+            viewModel.setUriList(uriList)
+            uriList.firstOrNull()?.let { onSendMessage(it.toString()) }
         }
+    }
     }
 }
 
