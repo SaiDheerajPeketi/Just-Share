@@ -21,9 +21,8 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,7 +72,8 @@ fun HomeScreen(
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
-    var transferMethod by remember { mutableStateOf("bt") }
+    val transferState by transferViewModel.state.collectAsStateWithLifecycle()
+    val transferMethod = transferState.method
     
     val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
     val greeting = when (currentHour) {
@@ -154,7 +154,7 @@ fun HomeScreen(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { transferMethod = "bt" }
+                            ) { transferViewModel.setMethod("bt") }
                             .background(if (transferMethod == "bt") colors.red else Color.Transparent, RoundedCornerShape(24.dp))
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                         contentAlignment = Alignment.Center
@@ -166,7 +166,7 @@ fun HomeScreen(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { transferMethod = "wifi" }
+                            ) { transferViewModel.setMethod("wifi") }
                             .background(if (transferMethod == "wifi") colors.red else Color.Transparent, RoundedCornerShape(24.dp))
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                         contentAlignment = Alignment.Center
@@ -181,7 +181,6 @@ fun HomeScreen(
             // SEND Card
             CardButton(
                 onClick = { 
-                    transferViewModel.setMethod(transferMethod)
                     onNavigateToScreen("select-files/$transferMethod") 
                 },
                 modifier = Modifier

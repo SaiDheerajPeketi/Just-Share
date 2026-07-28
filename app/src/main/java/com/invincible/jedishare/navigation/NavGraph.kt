@@ -157,7 +157,8 @@ fun AppNavGraph(
         }
         composable(Screen.Settings.route) {
             com.invincible.jedishare.ui.screens.SettingsScreen(
-                onNavigateToNavRoute = { route -> navController.navigate(route) }
+                onNavigateToNavRoute = { route -> navController.navigate(route) },
+                transferViewModel = transferViewModel
             )
         }
         composable(Screen.ScanQr.route) {
