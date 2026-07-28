@@ -34,7 +34,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
-    onNavigateToNavRoute: (String) -> Unit
+    onNavigateToNavRoute: (String) -> Unit,
+    transferViewModel: com.invincible.jedishare.presentation.TransferViewModel
 ) {
     val colors = JediShareTheme.colors
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -47,7 +48,8 @@ fun SettingsScreen(
     val coroutineScope = rememberCoroutineScope()
     val isDarkMode by dataStore.isDarkModeEnabled.collectAsStateWithLifecycle(initialValue = androidx.compose.foundation.isSystemInDarkTheme())
     
-    var transferMethod by remember { mutableStateOf("bluetooth") }
+    val transferState by transferViewModel.state.collectAsStateWithLifecycle()
+    val transferMethod = transferState.method
     var encRequired by remember { mutableStateOf(false) }
 
     Column(
@@ -127,14 +129,14 @@ fun SettingsScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { transferMethod = "bluetooth" }
+                        ) { transferViewModel.setMethod("bt") }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Bluetooth", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
-                    CustomRadioButton(selected = transferMethod == "bluetooth", color = colors.red)
+                    CustomRadioButton(selected = transferMethod == "bt", color = colors.red)
                 }
                 
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Color(0xFFF0F0F0)))
@@ -146,7 +148,7 @@ fun SettingsScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { transferMethod = "wifi" }
+                        ) { transferViewModel.setMethod("wifi") }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
