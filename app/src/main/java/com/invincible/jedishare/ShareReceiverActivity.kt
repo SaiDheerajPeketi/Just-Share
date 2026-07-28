@@ -42,7 +42,17 @@ class ShareReceiverActivity : ComponentActivity() {
                 putParcelableArrayListExtra("urilist", uris)
                 putExtra("start_route", if (method == "wifi") "discover-wifi" else "discover-bt")
                 action = intent.action
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                
+                // Attach ClipData to propagate URI read permissions
+                if (uris.isNotEmpty()) {
+                    val clip = android.content.ClipData.newUri(contentResolver, "shared_files", uris.first())
+                    for (i in 1 until uris.size) {
+                        clip.addItem(android.content.ClipData.Item(uris[i]))
+                    }
+                    clipData = clip
+                }
+                
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
             startActivity(nextIntent)
             finish()
