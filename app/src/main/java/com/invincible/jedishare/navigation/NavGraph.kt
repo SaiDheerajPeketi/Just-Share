@@ -62,7 +62,8 @@ fun AppNavGraph(
             androidx.compose.animation.fadeOut(
                 animationSpec = androidx.compose.animation.core.tween(300)
             )
-        }
+        },
+        sizeTransform = { null }
     ) {
         composable(Screen.Splash.route) {
             val context = androidx.compose.ui.platform.LocalContext.current
