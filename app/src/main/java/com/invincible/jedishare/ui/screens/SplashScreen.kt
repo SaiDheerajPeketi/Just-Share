@@ -50,9 +50,8 @@ fun SplashScreen(
         Image(
             painter = painterResource(id = R.drawable.app_logo_full),
             contentDescription = "App Logo",
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .aspectRatio(1f) // Actually, the image is 1024x1024 so it's a square
+            modifier = Modifier.fillMaxSize(),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
     }
 }
