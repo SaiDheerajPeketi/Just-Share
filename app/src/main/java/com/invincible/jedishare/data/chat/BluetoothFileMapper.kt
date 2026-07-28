@@ -36,9 +36,9 @@ fun ByteArray.toFileInfo(): FileInfo? = runCatching {
     Timber.d("version - toFileInfo called")
     val json = JSONObject(this.decodeToString())
     FileInfo(
-        fileName = json.optString("fileName").takeIf { it.isNotEmpty() },
-        format   = json.optString("format").takeIf   { it.isNotEmpty() },
-        size     = json.optString("size").takeIf     { it.isNotEmpty() },
-        mimeType = json.optString("mimeType").takeIf { it.isNotEmpty() }
+        fileName = json.optString("fileName").takeIf { it.isNotEmpty() && it != "null" },
+        format   = json.optString("format").takeIf   { it.isNotEmpty() && it != "null" },
+        size     = json.optString("size").takeIf     { it.isNotEmpty() && it != "null" },
+        mimeType = json.optString("mimeType").takeIf { it.isNotEmpty() && it != "null" }
     )
 }.onFailure { Log.e(TAG, "FileInfo deserialization failed", it) }.getOrNull()
