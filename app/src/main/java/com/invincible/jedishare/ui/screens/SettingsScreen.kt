@@ -129,7 +129,7 @@ fun SettingsScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { transferViewModel.setMethod("bt") }
+                        ) { transferViewModel.setMethod("bt", save = true) }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -148,7 +148,7 @@ fun SettingsScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { transferViewModel.setMethod("wifi") }
+                        ) { transferViewModel.setMethod("wifi", save = true) }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
