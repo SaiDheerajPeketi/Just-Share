@@ -76,13 +76,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
         notifGranted = checkPerms(notifPerms)
         
         if (storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)) {
-            onContinue()
-        }
-    }
-
-    LaunchedEffect(hasRequired) {
-        if (hasRequired) {
-            onContinue()
+            // Permissions granted, button will update to Continue
         }
     }
 
