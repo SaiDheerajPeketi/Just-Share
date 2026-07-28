@@ -37,12 +37,7 @@ fun AppNavGraph(
     initialUris: List<Uri> = emptyList(),
     initialMethod: String? = null
 ) {
-    LaunchedEffect(initialUris, initialMethod) {
-        initialMethod?.let { transferViewModel.setMethod(it) }
-        if (initialUris.isNotEmpty()) {
-            transferViewModel.setUris(initialUris)
-        }
-    }
+    // Initial state is now populated directly in MainActivity before AppNavGraph is composed.
 
     NavHost(
         navController = navController,
