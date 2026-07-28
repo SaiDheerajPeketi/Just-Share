@@ -332,6 +332,17 @@ class CommunicationService : Service() {
                         )
                     }
                 }
+                
+                fileUri?.let { uri ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        try {
+                            val updateValues = ContentValues().apply { put(MediaStore.Files.FileColumns.IS_PENDING, 0) }
+                            contentResolver.update(uri, updateValues, null, null)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to clear IS_PENDING for $uri", e)
+                        }
+                    }
+                }
 
                 kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                     try {
@@ -503,6 +514,7 @@ class CommunicationService : Service() {
             put(MediaStore.Files.FileColumns.DISPLAY_NAME, fileName)
             put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Files.FileColumns.IS_PENDING, 1)
                 when {
                     mimeType.startsWith("image/") -> put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/JustShare")
                     mimeType.startsWith("audio/") -> put(MediaStore.Audio.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MUSIC}/JustShare")
