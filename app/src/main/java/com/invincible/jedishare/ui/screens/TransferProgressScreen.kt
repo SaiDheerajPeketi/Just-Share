@@ -237,9 +237,11 @@ fun TransferProgressScreen(
         }
 
         Column(modifier = Modifier.padding(16.dp)) {
+            var navigatingAway by remember { mutableStateOf(false) }
             Button(
                 onClick = {
                     if (isDone) {
+                        navigatingAway = true
                         btViewModel.disconnectFromDevice()
                         btViewModel.resetTransferState()
                         transferViewModel.resetTransfer()
@@ -259,9 +261,10 @@ fun TransferProgressScreen(
                 ),
                 elevation = ButtonDefaults.elevation(0.dp)
             ) {
-                Icon(if (isDone) Icons.Default.Home else Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
+                val showHome = isDone || navigatingAway
+                Icon(if (showHome) Icons.Default.Home else Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (isDone) "Go Home" else "Disconnect", fontWeight = FontWeight.SemiBold)
+                Text(if (showHome) "Go Home" else "Disconnect", fontWeight = FontWeight.SemiBold)
             }
         }
     }
