@@ -327,7 +327,8 @@ class CommunicationService : Service() {
                             fileName = fileName,
                             fileSize = fileSize,
                             currentFileIndex = currentIndex,
-                            totalFiles = 0
+                            totalFiles = 0,
+                            mimeType = fileInfo.mimeType
                         )
                     }
                 }
@@ -354,7 +355,8 @@ class CommunicationService : Service() {
                     fileName = fileName,
                     fileSize = fileSize,
                     currentFileIndex = currentIndex,
-                    totalFiles = 0
+                    totalFiles = 0,
+                    mimeType = fileInfo.mimeType
                 )
                 Log.d(TAG, "Received: $fileName ($bytesReceived bytes)")
                 currentIndex++
