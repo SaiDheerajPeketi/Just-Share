@@ -69,6 +69,12 @@ fun PermissionsScreen(onContinue: () -> Unit) {
 
     val hasRequired = storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)
 
+    LaunchedEffect(hasRequired) {
+        if (hasRequired) {
+            onContinue()
+        }
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         storageGranted = checkPerms(storagePerms)
         btGranted = checkPerms(btPerms)

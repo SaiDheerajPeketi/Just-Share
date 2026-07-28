@@ -316,8 +316,11 @@ class AndroidBluetoothController(
         if (dataTransferService == null) return@withContext null
 
         var fileCount = 0
-        for (uri in uriList) {
-            val fileInfo: FileInfo = getFileDetailsFromUri(uri, context.contentResolver)
+        val allFileInfos = uriList.map { getFileDetailsFromUri(it, context.contentResolver) }
+        for (i in uriList.indices) {
+            val uri = uriList[i]
+            val baseFileInfo = allFileInfos[i]
+            val fileInfo = if (i == 0) baseFileInfo.copy(manifest = allFileInfos) else baseFileInfo
             onFileInfoResolved(fileInfo)
             onFileSizeResolved(fileInfo.size?.toLongOrNull() ?: 1L)
 

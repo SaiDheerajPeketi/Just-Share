@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +36,8 @@ data class TransferFile(
     val icon: ImageVector,
     val mimeType: String? = null,
     val isDone: Boolean,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val progress: Float
 )
 
 
@@ -56,6 +59,7 @@ fun TransferProgressScreen(
     
     val isSender = state.urisToShare.isNotEmpty()
     val method = state.method
+    var navigatingAway by remember { mutableStateOf(false) }
     
     val progress = if (method == "bt") {
         if (isSender) btProgress.sentPercent.toFloat() else btProgress.receivedPercent.toFloat()
@@ -65,7 +69,7 @@ fun TransferProgressScreen(
     
     val btCurrFileCount by btViewModel.currFileCount.collectAsState()
 
-    val isDone = if (method == "bt") {
+    val isDone = navigatingAway || if (method == "bt") {
         if (isSender) {
             state.urisToShare.isNotEmpty() && btCurrFileCount >= state.urisToShare.size
         } else {
@@ -80,10 +84,83 @@ fun TransferProgressScreen(
     }
     val btFileInfo by btViewModel.fileInfoState.collectAsState()
     val btIncomingFileName by btViewModel.incomingFileNameState.collectAsState()
+    val btIncomingManifest by btViewModel.incomingManifestState.collectAsState()
+
+    val receiverFiles = remember { mutableStateListOf<TransferFile>() }
+
+    val manifest = if (method == "wifi") state.fileInfos.ifEmpty { null } else btIncomingManifest
+
+    LaunchedEffect(manifest) {
+        if (!isSender && manifest != null && receiverFiles.isEmpty()) {
+            manifest.forEach { fileInfo: com.invincible.jedishare.domain.chat.FileInfo ->
+                val sizeLong = fileInfo.size?.toLongOrNull() ?: 0L
+                receiverFiles.add(
+                    TransferFile(
+                        name = fileInfo.fileName ?: "Unknown",
+                        size = if (sizeLong > 0) formatSize(sizeLong) else "Unknown",
+                        icon = getIconForMimeType(fileInfo.mimeType),
+                        mimeType = fileInfo.mimeType,
+                        isDone = false,
+                        isActive = false,
+                        progress = 0f
+                    )
+                )
+            }
+        }
+    }
+
+    val btIncomingMimeType by btViewModel.incomingMimeTypeState.collectAsState()
+    val incomingMimeType = if (method == "wifi") state.incomingMimeType else btIncomingMimeType
+    val incomingName = if (method == "wifi") {
+        state.currentFileName.takeIf { it.isNotBlank() }
+    } else {
+        btIncomingFileName
+    }
+    val incomingSize = if (method == "wifi") state.currentFileSizeBytes else btFileInfo
+    val currentFileIndex = if (method == "wifi") state.currentFileIndex else btCurrFileCount
+
+    LaunchedEffect(incomingName, incomingSize, incomingMimeType, progress, isDone) {
+        if (!incomingName.isNullOrBlank()) {
+            val existingIndex = if (currentFileIndex in receiverFiles.indices && receiverFiles[currentFileIndex].name == incomingName) {
+                currentFileIndex
+            } else {
+                // Fallback to name matching, preferring an active or not-yet-done file
+                val idx = receiverFiles.indexOfFirst { it.name == incomingName && !it.isDone }
+                if (idx == -1) receiverFiles.indexOfLast { it.name == incomingName } else idx
+            }
+            
+            val fileIsDone = isDone || progress >= 100f
+            val updatedFile = TransferFile(
+                name = incomingName,
+                size = if (incomingSize > 0) formatSize(incomingSize) else "Unknown",
+                icon = getIconForMimeType(incomingMimeType),
+                mimeType = incomingMimeType,
+                isDone = fileIsDone,
+                isActive = !fileIsDone,
+                progress = progress
+            )
+            
+            if (existingIndex >= 0) {
+                // Ensure all previous files are marked as done (handles StateFlow conflation)
+                for (i in 0 until existingIndex) {
+                    if (!receiverFiles[i].isDone) {
+                        receiverFiles[i] = receiverFiles[i].copy(isDone = true, isActive = false, progress = 100f)
+                    }
+                }
+                receiverFiles[existingIndex] = updatedFile
+            } else {
+                // Mark all previous files as done
+                for (i in receiverFiles.indices) {
+                    receiverFiles[i] = receiverFiles[i].copy(isDone = true, isActive = false, progress = 100f)
+                }
+                receiverFiles.add(updatedFile)
+            }
+        }
+    }
 
     // If there is no active file being broadcasted yet, show an empty list or the mock list with updated state
     // We can map the urisToShare from the state to display all files that were selected.
-    val files = if (state.urisToShare.isNotEmpty()) {
+    val files = if (isSender) {
         state.urisToShare.mapIndexed { index, uri ->
             val isActive = state.currentFileName.isNotEmpty() && uri.toString().contains(state.currentFileName) 
                            || (state.currentFileName.isEmpty() && index == 0 && !isDone)
@@ -99,29 +176,24 @@ fun TransferProgressScreen(
                 icon = getIconForMimeType(fileInfo?.mimeType),
                 mimeType = fileInfo?.mimeType,
                 isDone = isDone || (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)),
-                isActive = isActive
+                isActive = isActive,
+                progress = if (isActive) progress else if (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)) 100f else 0f
             )
         }
     } else {
-        val btIncomingMimeType by btViewModel.incomingMimeTypeState.collectAsState()
-        val incomingMimeType = if (method == "wifi") state.incomingMimeType else btIncomingMimeType
-        val incomingName = if (method == "wifi") {
-            state.currentFileName.takeIf { it.isNotBlank() }
-        } else {
-            btIncomingFileName
-        }
-        val incomingSize = if (method == "wifi") state.currentFileSizeBytes else btFileInfo
-        // Fallback for receiving side (we might not know all incoming files beforehand)
-        listOf(
-            TransferFile(
-                name = incomingName ?: "Incoming File...",
-                size = if (incomingSize > 0) formatSize(incomingSize) else "Unknown",
-                icon = getIconForMimeType(incomingMimeType),
-                mimeType = incomingMimeType,
-                isDone = isDone,
-                isActive = !isDone
+        receiverFiles.ifEmpty {
+            listOf(
+                TransferFile(
+                    name = "Waiting for files...",
+                    size = "0 B",
+                    icon = Icons.AutoMirrored.Filled.InsertDriveFile,
+                    mimeType = null,
+                    isDone = false,
+                    isActive = true,
+                    progress = 0f
+                )
             )
-        )
+        }
     }
 
     Column(
@@ -144,7 +216,7 @@ fun TransferProgressScreen(
                     .background(colors.red.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(if (isDone) Icons.Default.Check else Icons.Default.Send, contentDescription = null, tint = colors.red, modifier = Modifier.size(40.dp))
+                Icon(if (isDone) Icons.Default.Check else Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = colors.red, modifier = Modifier.size(40.dp))
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(if (isDone) "Transfer Complete" else "Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
@@ -213,7 +285,7 @@ fun TransferProgressScreen(
                         if (file.isDone) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.green, modifier = Modifier.size(18.dp))
                         } else if (file.isActive) {
-                            Text(text = "${progress.toInt()}%", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold), color = colors.red)
+                            Text(text = "${file.progress.toInt()}%", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold), color = colors.red)
                         } else {
                             Box(modifier = Modifier.size(18.dp).border(2.dp, colors.mutedFg, CircleShape))
                         }
@@ -222,7 +294,7 @@ fun TransferProgressScreen(
                     if (file.isActive && !file.isDone) {
                         Spacer(modifier = Modifier.height(12.dp))
                         LinearProgressIndicator(
-                            progress = progress / 100f,
+                            progress = file.progress / 100f,
                             color = colors.red,
                             backgroundColor = colors.red.copy(alpha = 0.15f),
                             modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape)
@@ -237,7 +309,6 @@ fun TransferProgressScreen(
         }
 
         Column(modifier = Modifier.padding(16.dp)) {
-            var navigatingAway by remember { mutableStateOf(false) }
             Button(
                 onClick = {
                     if (isDone) {

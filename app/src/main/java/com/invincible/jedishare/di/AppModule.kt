@@ -59,7 +59,9 @@ object AppModule {
             context,
             JediShareDatabase::class.java,
             JediShareDatabase.DATABASE_NAME
-        ).build()
+        )
+        .fallbackToDestructiveMigration()
+        .build()
 
     @Provides
     @Singleton

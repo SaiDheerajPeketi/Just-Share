@@ -64,7 +64,7 @@ class WifiDirectViewModel @Inject constructor(
     private var receiver: com.invincible.jedishare.WiFiDirectBroadcastReceiver? = null
     private var communicationServiceStarted = false
     private var isSenderRole = true
-    private val p2pRetryDelaysMs = listOf(300L, 700L, 1_200L, 2_000L)
+    private val p2pRetryDelaysMs = listOf(300L, 700L, 1_200L, 2_000L, 3_000L, 4_000L)
 
     /** Shared ActionListener for discovery operations. */
     private val actionListener = object : WifiP2pManager.ActionListener {

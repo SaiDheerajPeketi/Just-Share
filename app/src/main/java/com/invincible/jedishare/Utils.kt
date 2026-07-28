@@ -109,7 +109,7 @@ fun getFileDetailsFromUri(uri: Uri, contentResolver: ContentResolver): FileInfo 
     }
 
 
-    return FileInfo(fileName, format, size, mimeType)
+    return FileInfo(fileName, format, size, mimeType, uri.toString())
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
