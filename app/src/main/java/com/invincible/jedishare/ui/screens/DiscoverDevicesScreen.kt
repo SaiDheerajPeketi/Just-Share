@@ -211,6 +211,19 @@ fun DiscoverDevicesScreen(
         Column(
             modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
         ) {
+            val errorMessage = if (transferMethod == "bt") btState.errorMessage else wifiState.errorMessage
+            if (errorMessage != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                        .background(colors.lightRed, RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(text = errorMessage, color = colors.red, style = MaterialTheme.typography.body2)
+                }
+            }
+
             if (isSender) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),

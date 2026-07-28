@@ -215,8 +215,11 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - startDiscovery called")
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
-        if (_uiState.value.isWifiDirectEnabled &&
-            !_uiState.value.isDiscovering &&
+        if (!_uiState.value.isWifiDirectEnabled) {
+            _uiState.update { it.copy(errorMessage = "Wi-Fi is disabled. Please turn on Wi-Fi and try again.") }
+            return
+        }
+        if (!_uiState.value.isDiscovering &&
             !_uiState.value.isConnected
         ) {
             manager.discoverPeers(channel, actionListener)
@@ -238,7 +241,11 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - startHosting called")
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
-        if (!_uiState.value.isWifiDirectEnabled || _uiState.value.isConnected || _uiState.value.connectionStatus == "hosting") {
+        if (!_uiState.value.isWifiDirectEnabled) {
+            _uiState.update { it.copy(errorMessage = "Wi-Fi is disabled. Please turn on Wi-Fi and try again.") }
+            return
+        }
+        if (_uiState.value.isConnected || _uiState.value.connectionStatus == "hosting") {
             return
         }
         _uiState.update { it.copy(connectionStatus = "hosting", errorMessage = null) }
