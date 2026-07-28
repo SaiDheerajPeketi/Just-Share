@@ -179,3 +179,42 @@ fun PermissionsScreen(onContinue: () -> Unit) {
         }
     }
 }
+
+fun hasRequiredPermissions(context: android.content.Context): Boolean {
+    val storagePerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    } else {
+        listOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
+
+    val btPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE)
+    } else {
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+
+    val wifiPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        listOf(Manifest.permission.NEARBY_WIFI_DEVICES)
+    } else {
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+
+    val notifPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        listOf(Manifest.permission.POST_NOTIFICATIONS)
+    } else {
+        emptyList()
+    }
+
+    fun checkPerms(perms: List<String>) = perms.all { 
+        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED 
+    }
+
+    val storageGranted = checkPerms(storagePerms)
+    val btGranted = checkPerms(btPerms)
+    val wifiGranted = checkPerms(wifiPerms)
+    val notifGranted = checkPerms(notifPerms)
+
+    return storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)
+}

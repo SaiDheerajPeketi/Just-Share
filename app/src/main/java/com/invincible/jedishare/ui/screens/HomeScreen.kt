@@ -102,8 +102,12 @@ fun HomeScreen(
         label = "down_arrow"
     )
 
-    Column(
-        modifier = Modifier
+    com.invincible.jedishare.ui.components.RequireHardware(
+        requireWifi = true,
+        requireBluetooth = true
+    ) {
+        Column(
+            modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
     ) {
@@ -291,4 +295,5 @@ fun HomeScreen(
 
         BottomNav(activeRoute = "home", onNavigate = onNavigateToNavRoute)
     }
+}
 }
