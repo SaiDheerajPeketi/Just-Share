@@ -333,20 +333,20 @@ class AndroidBluetoothController(
 
             val metaBytes = fileInfo.toByteArray() ?: ByteArray(0)
             val metaSizeBuffer = java.nio.ByteBuffer.allocate(4).putInt(metaBytes.size).array()
-            dataTransferService?.sendMessage(metaSizeBuffer)
-            dataTransferService?.sendMessage(metaBytes)
+            if (dataTransferService?.sendMessage(metaSizeBuffer) == false) throw TransferFailedException()
+            if (dataTransferService?.sendMessage(metaBytes) == false) throw TransferFailedException()
 
             if (inputStream == null) {
                 Log.e(TAG, "File skipped (deleted or inaccessible): $uri")
                 val skipBuffer = java.nio.ByteBuffer.allocate(8).putLong(-1L).array()
-                dataTransferService?.sendMessage(skipBuffer)
+                if (dataTransferService?.sendMessage(skipBuffer) == false) throw TransferFailedException()
                 onFileCountUpdated(++fileCount)
                 continue
             }
 
             val fileSize = fileInfo.size?.toLongOrNull() ?: 0L
             val fileSizeBuffer = java.nio.ByteBuffer.allocate(8).putLong(fileSize).array()
-            dataTransferService?.sendMessage(fileSizeBuffer)
+            if (dataTransferService?.sendMessage(fileSizeBuffer) == false) throw TransferFailedException()
 
             try {
                 inputStream.use { stream ->
@@ -358,9 +358,9 @@ class AndroidBluetoothController(
                     while (stream.read(buffer).also { bytesRead = it } != -1) {
                         // Send 4-byte chunk size
                         val chunkSizeBytes = java.nio.ByteBuffer.allocate(4).putInt(bytesRead).array()
-                        dataTransferService?.sendMessage(chunkSizeBytes)
+                        if (dataTransferService?.sendMessage(chunkSizeBytes) == false) throw TransferFailedException()
                         // Send chunk data
-                        dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
+                        if (dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead)) == false) throw TransferFailedException()
                         
                         bytesSent += bytesRead
                         val progress = if (fileSize > 0) ((bytesSent * 100) / fileSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
@@ -373,8 +373,12 @@ class AndroidBluetoothController(
                     
                     // Send 0-sized chunk to mark EOF
                     val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
-                    dataTransferService?.sendMessage(eofMarker)
+                    if (dataTransferService?.sendMessage(eofMarker) == false) throw TransferFailedException()
                 }
+            } catch (e: TransferFailedException) {
+                Log.e(TAG, "Socket closed or transfer failed: $uri", e)
+                onBytesSent(-1L)
+                return@withContext null
             } catch (e: Exception) {
                 Log.e(TAG, "Failed reading file mid-transfer: $uri", e)
                 val cancelMarker = java.nio.ByteBuffer.allocate(4).putInt(-1).array()

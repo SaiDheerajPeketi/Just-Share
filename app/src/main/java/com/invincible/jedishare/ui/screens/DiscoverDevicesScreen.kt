@@ -155,15 +155,17 @@ fun DiscoverDevicesScreen(
     }
 
     LaunchedEffect(scanning) {
-        if (scanning) {
-            repeat(if (transferMethod == "bt" && isSender) 3 else 1) {
-                if (transferMethod == "bt" && isSender) btViewModel.startScan()
+        if (transferMethod == "bt" && scanning) {
+            repeat(if (isSender) 3 else 1) {
+                if (isSender) btViewModel.startScan()
                 delay(10000)
             }
             scanning = false
-            if (transferMethod == "bt" && isSender) btViewModel.stopScan()
+            if (isSender) btViewModel.stopScan()
         }
     }
+    
+    val actualScanning = if (transferMethod == "wifi") wifiState.isDiscovering else scanning
     
     // Auto navigation when connected
     LaunchedEffect(btState.isConnected, wifiState.isConnected, transferState.hasTransferStarted) {
@@ -230,12 +232,12 @@ fun DiscoverDevicesScreen(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    RadarAnim(scanning = scanning)
+                    RadarAnim(scanning = actualScanning)
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = if (scanning) "Scanning for nearby devices…" else "Scan complete",
+                        text = if (actualScanning) "Scanning for nearby devices…" else "Scan complete",
                         style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium),
-                        color = if (scanning) colors.red else colors.mutedFg
+                        color = if (actualScanning) colors.red else colors.mutedFg
                     )
                 }
 

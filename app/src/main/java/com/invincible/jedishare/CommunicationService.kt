@@ -371,6 +371,7 @@ class CommunicationService : Service() {
                             Log.e(TAG, "Failed to delete partial file", delEx)
                         }
                     }
+                    broadcastProgress(-1, fileInfo.fileName ?: "received_file", fileSize, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, null)
                     throw e
                 }
                 
@@ -380,6 +381,7 @@ class CommunicationService : Service() {
                             contentResolver.delete(uri, null, null)
                         } catch (e: Exception) {}
                     }
+                    broadcastProgress(-1, fileInfo.fileName ?: "received_file", fileSize, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, null)
                     throw IOException("Connection closed before EOF marker")
                 }
                 
@@ -501,11 +503,19 @@ class CommunicationService : Service() {
                     outputStream.write(eofMarker)
                     outputStream.flush()
                 }
+            } catch (e: IOException) {
+                Log.e(TAG, "Socket closed during transfer: $uri", e)
+                broadcastProgress(-1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed reading file mid-transfer: $uri", e)
                 val cancelMarker = java.nio.ByteBuffer.allocate(4).putInt(-1).array()
-                outputStream.write(cancelMarker)
-                outputStream.flush()
+                try {
+                    outputStream.write(cancelMarker)
+                    outputStream.flush()
+                } catch (ioe: IOException) {
+                    // Ignore, connection probably already closed
+                }
                 broadcastProgress(-1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
                 currentIndex++
                 continue

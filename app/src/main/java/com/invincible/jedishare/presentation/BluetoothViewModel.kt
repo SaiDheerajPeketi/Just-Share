@@ -336,6 +336,7 @@ class BluetoothViewModel @Inject constructor(
                     fileUri?.let { uri -> 
                         viewModelScope.launch { fileTransferRepository.deleteFile(uri) }
                     }
+                    _transferProgress.update { it.copy(bytesReceived = -1L, bytesSent = -1L) }
                     _state.update {
                         it.copy(isConnected = false, isConnecting = false, errorMessage = result.message)
                     }
@@ -348,6 +349,7 @@ class BluetoothViewModel @Inject constructor(
                 viewModelScope.launch { fileTransferRepository.deleteFile(uri) }
             }
             bluetoothController.closeConnection()
+            _transferProgress.update { it.copy(bytesReceived = -1L, bytesSent = -1L) }
             _state.update { it.copy(isConnected = false, isConnecting = false) }
         }.launchIn(kotlinx.coroutines.CoroutineScope(viewModelScope.coroutineContext + kotlinx.coroutines.Dispatchers.IO))
     }

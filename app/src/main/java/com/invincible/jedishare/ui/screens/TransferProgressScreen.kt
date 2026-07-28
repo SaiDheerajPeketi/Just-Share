@@ -63,7 +63,11 @@ fun TransferProgressScreen(
     var navigatingAway by remember { mutableStateOf(false) }
     
     val progress = if (method == "bt") {
-        if (isSender) btProgress.sentPercent.toFloat() else btProgress.receivedPercent.toFloat()
+        if (isSender) {
+            if (btProgress.bytesSent < 0L) -1f else btProgress.sentPercent.toFloat()
+        } else {
+            if (btProgress.bytesReceived < 0L) -1f else btProgress.receivedPercent.toFloat()
+        }
     } else {
         state.progressPercent
     }
