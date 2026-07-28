@@ -38,6 +38,7 @@ class FileTransferRepository @Inject constructor(
             put(MediaStore.Files.FileColumns.DISPLAY_NAME, fileName)
             put(MediaStore.Files.FileColumns.MIME_TYPE, mimeType)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Files.FileColumns.IS_PENDING, 1)
                 when {
                     mimeType.startsWith("image/") -> put(
                         MediaStore.Images.Media.RELATIVE_PATH,
@@ -79,6 +80,7 @@ class FileTransferRepository @Inject constructor(
     }
 
     private var currentOutputStream: java.io.OutputStream? = null
+    private var currentFileUri: Uri? = null
 
     /**
      * Opens an output stream to the given MediaStore URI.
@@ -87,7 +89,10 @@ class FileTransferRepository @Inject constructor(
         Timber.d("FileTransferRepository - openFile called")
         try {
             currentOutputStream = contentResolver.openOutputStream(fileUri, "wa")
-            currentOutputStream != null
+            if (currentOutputStream != null) {
+                currentFileUri = fileUri
+                true
+            } else false
         } catch (e: Exception) {
             Log.e("FileTransferRepository", "Failed to open output stream for $fileUri", e)
             false
@@ -108,7 +113,7 @@ class FileTransferRepository @Inject constructor(
     }
 
     /**
-     * Closes the currently open MediaStore entry.
+     * Closes the currently open MediaStore entry and clears the IS_PENDING flag.
      */
     suspend fun closeFile() = withContext(Dispatchers.IO) {
         Timber.d("FileTransferRepository - closeFile called")
@@ -118,6 +123,19 @@ class FileTransferRepository @Inject constructor(
             Log.e("FileTransferRepository", "Failed to close output stream", e)
         } finally {
             currentOutputStream = null
+            
+            // Clear IS_PENDING flag so the media scanner can index the completed file
+            currentFileUri?.let { uri ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    try {
+                        val values = ContentValues().apply { put(MediaStore.Files.FileColumns.IS_PENDING, 0) }
+                        contentResolver.update(uri, values, null, null)
+                    } catch (e: Exception) {
+                        Log.e("FileTransferRepository", "Failed to clear IS_PENDING flag for $uri", e)
+                    }
+                }
+            }
+            currentFileUri = null
         }
     }
 }
