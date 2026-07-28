@@ -19,8 +19,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import androidx.core.content.ContextCompat
+import com.invincible.jedishare.data.UserPreferencesDataStore
 
 data class UnifiedDevice(
     val id: String,
@@ -52,7 +54,8 @@ data class UnifiedTransferState(
 
 @HiltViewModel
 class TransferViewModel @Inject constructor(
-    application: Application
+    application: Application,
+    private val dataStore: UserPreferencesDataStore
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(UnifiedTransferState())
@@ -83,6 +86,9 @@ class TransferViewModel @Inject constructor(
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
         viewModelScope.launch {
+            val initialMethod = dataStore.defaultTransferMethod.first()
+            _state.update { it.copy(method = initialMethod) }
+            
             CommunicationService.transferUpdates
                 .filterNotNull()
                 .collect(::applyWifiProgress)
@@ -107,6 +113,9 @@ class TransferViewModel @Inject constructor(
 
     fun setMethod(method: String) {
         _state.update { it.copy(method = method) }
+        viewModelScope.launch {
+            dataStore.setDefaultTransferMethod(method)
+        }
     }
 
     fun setUris(uris: List<Uri>) {
