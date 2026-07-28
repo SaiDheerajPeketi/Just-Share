@@ -36,6 +36,7 @@ fun SplashScreen(
 
     LaunchedEffect(isFirstLaunch) {
         if (isFirstLaunch != null) {
+            kotlinx.coroutines.delay(1500)
             onNavigateNext(isFirstLaunch!!)
         }
     }
