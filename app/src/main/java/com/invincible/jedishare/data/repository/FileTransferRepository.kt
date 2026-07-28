@@ -78,23 +78,46 @@ class FileTransferRepository @Inject constructor(
         }
     }
 
+    private var currentOutputStream: java.io.OutputStream? = null
+
     /**
-     * Appends a chunk of bytes to an existing MediaStore entry in append mode ("wa").
-     *
-     * @param fileUri The URI returned by [createMediaStoreEntry].
-     * @param chunk The byte array chunk to append.
-     * @return True if the write succeeded, false otherwise.
+     * Opens an output stream to the given MediaStore URI.
      */
-    suspend fun appendChunkToFile(fileUri: Uri, chunk: ByteArray): Boolean = withContext(Dispatchers.IO) {
-        Timber.d("FileTransferRepository - appendChunkToFile called")
+    suspend fun openFile(fileUri: Uri): Boolean = withContext(Dispatchers.IO) {
+        Timber.d("FileTransferRepository - openFile called")
         try {
-            contentResolver.openOutputStream(fileUri, "wa")?.use { outputStream ->
-                outputStream.write(chunk)
-            }
+            currentOutputStream = contentResolver.openOutputStream(fileUri, "wa")
+            currentOutputStream != null
+        } catch (e: Exception) {
+            Log.e("FileTransferRepository", "Failed to open output stream for $fileUri", e)
+            false
+        }
+    }
+
+    /**
+     * Appends a chunk of bytes to the currently open MediaStore entry.
+     */
+    suspend fun appendChunkToFile(chunk: ByteArray): Boolean = withContext(Dispatchers.IO) {
+        try {
+            currentOutputStream?.write(chunk)
             true
         } catch (e: Exception) {
-            Log.e("FileTransferRepository", "Failed to write chunk to $fileUri", e)
+            Log.e("FileTransferRepository", "Failed to write chunk", e)
             false
+        }
+    }
+
+    /**
+     * Closes the currently open MediaStore entry.
+     */
+    suspend fun closeFile() = withContext(Dispatchers.IO) {
+        Timber.d("FileTransferRepository - closeFile called")
+        try {
+            currentOutputStream?.close()
+        } catch (e: Exception) {
+            Log.e("FileTransferRepository", "Failed to close output stream", e)
+        } finally {
+            currentOutputStream = null
         }
     }
 }

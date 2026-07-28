@@ -257,11 +257,12 @@ class BluetoothViewModel @Inject constructor(
                             _transferProgress.update { it.copy(totalBytes = _incomingFileSize, bytesReceived = 0L) }
                             fileUri = fileTransferRepository.createMediaStoreEntry(fileInfo)
                             Log.d("BluetoothViewModel", "MediaStore entry created: $fileUri")
+                            fileUri?.let { fileTransferRepository.openFile(it) }
                         }
                     } else {
                         // Subsequent chunks are raw file bytes
-                        val currentUri = fileUri ?: return@onEach
-                        val success = fileTransferRepository.appendChunkToFile(currentUri, result.message)
+                        if (fileUri == null) return@onEach
+                        val success = fileTransferRepository.appendChunkToFile(result.message)
                         if (success) {
                             val received = _transferProgress.value.bytesReceived + result.message.size
                             _transferProgress.update { it.copy(bytesReceived = received) }
@@ -276,6 +277,7 @@ class BluetoothViewModel @Inject constructor(
                     val mimeType = _incomingMimeType
                     val deviceName = _connectedDeviceName
                     viewModelScope.launch {
+                        fileTransferRepository.closeFile()
                         historyRepository.addEntry(
                             TransferHistoryEntity(
                                 fileName        = fileName,
@@ -301,6 +303,7 @@ class BluetoothViewModel @Inject constructor(
 
                 is ConnectionResult.Error -> {
                     Log.e("BluetoothViewModel", "Connection error: ${result.message}")
+                    viewModelScope.launch { fileTransferRepository.closeFile() }
                     _state.update {
                         it.copy(isConnected = false, isConnecting = false, errorMessage = result.message)
                     }
@@ -308,6 +311,7 @@ class BluetoothViewModel @Inject constructor(
             }
         }.catch { throwable ->
             Log.e("BluetoothViewModel", "Connection flow error", throwable)
+            fileTransferRepository.closeFile()
             bluetoothController.closeConnection()
             _state.update { it.copy(isConnected = false, isConnecting = false) }
         }.launchIn(viewModelScope)
