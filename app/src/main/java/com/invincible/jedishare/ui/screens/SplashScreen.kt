@@ -51,7 +51,7 @@ fun SplashScreen(
             painter = painterResource(id = R.drawable.app_logo_full),
             contentDescription = "App Logo",
             modifier = Modifier.fillMaxSize(),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit
         )
     }
 }
