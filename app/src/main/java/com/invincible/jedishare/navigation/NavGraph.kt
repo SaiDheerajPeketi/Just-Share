@@ -39,6 +39,29 @@ fun AppNavGraph(
 ) {
     // Initial state is now populated directly in MainActivity before AppNavGraph is composed.
 
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val currentRoute = navController.currentDestination?.route
+                val excludedRoutes = listOf(Screen.Splash.route, Screen.Onboarding.route, Screen.Permissions.route)
+                if (currentRoute != null && currentRoute !in excludedRoutes) {
+                    if (!com.invincible.jedishare.ui.screens.hasRequiredPermissions(context)) {
+                        navController.navigate(Screen.Permissions.route) {
+                            popUpTo(0)
+                        }
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,

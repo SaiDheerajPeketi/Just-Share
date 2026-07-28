@@ -200,11 +200,15 @@ fun TransferProgressScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
+    com.invincible.jedishare.ui.components.RequireHardware(
+        requireWifi = method == "wifi",
+        requireBluetooth = method == "bt"
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.surface)
+        ) {
         BackBar(title = "Transfer Progress", onBack = null)
 
         Column(
@@ -342,6 +346,7 @@ fun TransferProgressScreen(
                 Icon(if (showHome) Icons.Default.Home else Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(if (showHome) "Go Home" else "Disconnect", fontWeight = FontWeight.SemiBold)
+            }
             }
         }
     }

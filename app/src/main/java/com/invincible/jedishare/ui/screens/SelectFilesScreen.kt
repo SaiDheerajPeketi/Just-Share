@@ -83,11 +83,15 @@ fun SelectFilesScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
+    com.invincible.jedishare.ui.components.RequireHardware(
+        requireWifi = method == "wifi",
+        requireBluetooth = method == "bt"
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.surface)
+        ) {
         BackBar(title = "Select Files", onBack = onBack)
 
         // Tab Row
@@ -245,4 +249,5 @@ fun SelectFilesScreen(
             )
         }
     }
+}
 }

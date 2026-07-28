@@ -148,11 +148,9 @@ fun DiscoverDevicesScreen(
                 btViewModel.waitForIncomingConnections()
             }
         } else if (transferMethod == "wifi") {
-            if (isSender) {
-                wifiViewModel.startDiscovery()
-            } else {
-                wifiViewModel.startHosting()
-            }
+            wifiViewModel.setTransferRole(isSender)
+            // Note: startDiscovery() and startHosting() are automatically called 
+            // by WifiDirectBroadcastReceiver once it confirms Wi-Fi is enabled.
         }
     }
 
@@ -160,7 +158,6 @@ fun DiscoverDevicesScreen(
         if (scanning) {
             repeat(if (transferMethod == "bt" && isSender) 3 else 1) {
                 if (transferMethod == "bt" && isSender) btViewModel.startScan()
-                else if (transferMethod == "wifi" && isSender) wifiViewModel.startDiscovery()
                 delay(10000)
             }
             scanning = false
@@ -197,8 +194,12 @@ fun DiscoverDevicesScreen(
 
     val displayTitle = if (isSender) "Send files" else "Receive files"
 
-    Column(
-        modifier = Modifier
+    com.invincible.jedishare.ui.components.RequireHardware(
+        requireWifi = transferMethod == "wifi",
+        requireBluetooth = transferMethod == "bt"
+    ) {
+        Column(
+            modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
     ) {
@@ -530,4 +531,5 @@ fun DiscoverDevicesScreen(
             }
         }
     }
+}
 }
