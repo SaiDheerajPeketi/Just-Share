@@ -1,74 +1,55 @@
 package com.invincible.jedishare.presentation
 
 import timber.log.Timber
-
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.invincible.jedishare.data.repository.MediaRepository
+import com.invincible.jedishare.domain.chat.FileInfo
+import com.invincible.jedishare.getFileDetailsFromUri
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 /**
  * ViewModel for the file selection screen.
- * Owns the selected URI list and drives media loading via [MediaRepository].
- *
- * MVVM fix: SelectFile.kt (Activity) no longer queries MediaStore directly in onCreate.
+ * Owns the selected URI list and resolves FileInfo.
  */
 @HiltViewModel
 class SelectFileViewModel @Inject constructor(
-    private val mediaRepository: MediaRepository
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    // ── Images ─────────────────────────────────────────────────────────────────
-    private val _images = MutableStateFlow<List<Image>>(emptyList())
-    val images: StateFlow<List<Image>> = _images.asStateFlow()
+    // ── Selected Files (user's file picker selection) ───────────────────────────
+    private val _selectedFiles = MutableStateFlow<List<Pair<Uri, FileInfo>>>(emptyList())
+    val selectedFiles: StateFlow<List<Pair<Uri, FileInfo>>> = _selectedFiles.asStateFlow()
 
-    // ── Videos ─────────────────────────────────────────────────────────────────
-    private val _videos = MutableStateFlow<List<Video>>(emptyList())
-    val videos: StateFlow<List<Video>> = _videos.asStateFlow()
-
-    // ── Audio ──────────────────────────────────────────────────────────────────
-    private val _audios = MutableStateFlow<List<Audio>>(emptyList())
-    val audios: StateFlow<List<Audio>> = _audios.asStateFlow()
-
-    // ── Selected URIs (user's file picker selection) ───────────────────────────
-    private val _selectedUris = MutableStateFlow<List<Uri>>(emptyList())
-    val selectedUris: StateFlow<List<Uri>> = _selectedUris.asStateFlow()
-
-    init {
-        loadMedia()
-    }
-
-    /** Adds newly picked URIs to the existing selection. */
+    /** Adds newly picked URIs to the existing selection, mapping them to FileInfo. */
     fun addUris(newUris: List<Uri>) {
         Timber.d("SelectFileViewModel - addUris called")
-        _selectedUris.value = _selectedUris.value + newUris
+        val newFiles = newUris.map { uri ->
+            uri to getFileDetailsFromUri(uri, context.contentResolver)
+        }
+        _selectedFiles.update { current ->
+            (current + newFiles).distinctBy { it.first }
+        }
     }
 
     /** Removes a specific URI from the selection. */
     fun removeUri(uri: Uri) {
         Timber.d("SelectFileViewModel - removeUri called")
-        _selectedUris.value = _selectedUris.value.filterNot { it == uri }
+        _selectedFiles.update { current ->
+            current.filterNot { it.first == uri }
+        }
     }
 
-    /** Clears all selected URIs. */
+    /** Clears all selected files. */
     fun clearSelection() {
         Timber.d("SelectFileViewModel - clearSelection called")
-        _selectedUris.value = emptyList()
-    }
-
-    /** Loads all media from MediaStore asynchronously. */
-    fun loadMedia() {
-        Timber.d("SelectFileViewModel - loadMedia called")
-        viewModelScope.launch {
-            _images.value = mediaRepository.getImages()
-            _videos.value = mediaRepository.getVideos()
-            _audios.value = mediaRepository.getAudio()
-        }
+        _selectedFiles.value = emptyList()
     }
 }
