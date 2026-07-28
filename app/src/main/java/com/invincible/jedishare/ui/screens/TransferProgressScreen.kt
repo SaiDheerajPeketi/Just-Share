@@ -37,7 +37,8 @@ data class TransferFile(
     val mimeType: String? = null,
     val isDone: Boolean,
     val isActive: Boolean,
-    val progress: Float
+    val progress: Float,
+    val isFailed: Boolean = false
 )
 
 
@@ -129,7 +130,8 @@ fun TransferProgressScreen(
                 if (idx == -1) receiverFiles.indexOfLast { it.name == incomingName } else idx
             }
             
-            val fileIsDone = isDone || progress >= 100f
+            val fileIsFailed = progress < 0f
+            val fileIsDone = fileIsFailed || isDone || progress >= 100f
             val updatedFile = TransferFile(
                 name = incomingName,
                 size = if (incomingSize > 0) formatSize(incomingSize) else "Unknown",
@@ -137,7 +139,8 @@ fun TransferProgressScreen(
                 mimeType = incomingMimeType,
                 isDone = fileIsDone,
                 isActive = !fileIsDone,
-                progress = progress
+                progress = if (fileIsFailed) 0f else progress,
+                isFailed = fileIsFailed
             )
             
             if (existingIndex >= 0) {
@@ -177,7 +180,8 @@ fun TransferProgressScreen(
                 mimeType = fileInfo?.mimeType,
                 isDone = isDone || (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)),
                 isActive = isActive,
-                progress = if (isActive) progress else if (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)) 100f else 0f
+                progress = if (isActive) progress else if (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)) 100f else 0f,
+                isFailed = progress < 0f && isActive // Just as a fallback for sender side
             )
         }
     } else {
@@ -282,7 +286,9 @@ fun TransferProgressScreen(
                             Text(text = file.size, style = MaterialTheme.typography.caption.copy(fontSize = 12.sp), color = colors.mutedFg)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        if (file.isDone) {
+                        if (file.isFailed) {
+                            Icon(Icons.Default.Cancel, contentDescription = "Failed", tint = colors.red, modifier = Modifier.size(18.dp))
+                        } else if (file.isDone) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.green, modifier = Modifier.size(18.dp))
                         } else if (file.isActive) {
                             Text(text = "${file.progress.toInt()}%", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold), color = colors.red)

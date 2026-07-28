@@ -324,23 +324,38 @@ class AndroidBluetoothController(
             onFileInfoResolved(fileInfo)
             onFileSizeResolved(fileInfo.size?.toLongOrNull() ?: 1L)
 
+            val inputStream = try {
+                context.contentResolver.openInputStream(uri)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to open input stream for $uri", e)
+                null
+            }
+
             val metaBytes = fileInfo.toByteArray() ?: ByteArray(0)
             val metaSizeBuffer = java.nio.ByteBuffer.allocate(4).putInt(metaBytes.size).array()
             dataTransferService?.sendMessage(metaSizeBuffer)
             dataTransferService?.sendMessage(metaBytes)
+
+            if (inputStream == null) {
+                Log.e(TAG, "File skipped (deleted or inaccessible): $uri")
+                val skipBuffer = java.nio.ByteBuffer.allocate(8).putLong(-1L).array()
+                dataTransferService?.sendMessage(skipBuffer)
+                onFileCountUpdated(++fileCount)
+                continue
+            }
 
             val fileSize = fileInfo.size?.toLongOrNull() ?: 0L
             val fileSizeBuffer = java.nio.ByteBuffer.allocate(8).putLong(fileSize).array()
             dataTransferService?.sendMessage(fileSizeBuffer)
 
             // Stream file bytes
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            inputStream.use { stream ->
                 val buffer = ByteArray(BluetoothDataTransferService.CHUNK_SIZE)
                 var bytesRead: Int
                 var bytesSent = 0L
                 var lastProgress = -1
                 
-                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                while (stream.read(buffer).also { bytesRead = it } != -1) {
                     // Send 4-byte chunk size
                     val chunkSizeBytes = java.nio.ByteBuffer.allocate(4).putInt(bytesRead).array()
                     dataTransferService?.sendMessage(chunkSizeBytes)
@@ -417,6 +432,7 @@ class AndroidBluetoothController(
             is IncomingData.FileMetadata -> ConnectionResult.TransferSucceeded(bytes)
             is IncomingData.FileChunk -> ConnectionResult.TransferSucceeded(bytes)
             is IncomingData.EndOfFile -> ConnectionResult.EndOfFile
+            is IncomingData.FileSkipped -> ConnectionResult.FileSkipped
         }
     }
 }
