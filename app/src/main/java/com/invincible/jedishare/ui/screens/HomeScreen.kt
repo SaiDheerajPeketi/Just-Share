@@ -214,6 +214,7 @@ fun HomeScreen(
             // RECEIVE Card
             CardButton(
                 onClick = { 
+                    transferViewModel.resetTransfer()
                     transferViewModel.setMethod(transferMethod)
                     onNavigateToScreen("discover-$transferMethod") 
                 },
