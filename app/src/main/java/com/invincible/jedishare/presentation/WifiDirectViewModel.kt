@@ -153,7 +153,7 @@ class WifiDirectViewModel @Inject constructor(
             }
             // Register receiver with the application context
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(receiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+                context.registerReceiver(receiver, intentFilter, Context.RECEIVER_EXPORTED)
             } else {
                 context.registerReceiver(receiver, intentFilter)
             }
