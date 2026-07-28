@@ -284,7 +284,7 @@ fun TransferProgressScreen(
                 }
                 
                 if (index < displayFiles.lastIndex) {
-                    HorizontalDivider(modifier = Modifier.padding(top = 16.dp), color = colors.border.copy(alpha = 0.5f))
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
                 }
             }
         }
