@@ -314,7 +314,7 @@ class BluetoothViewModel @Inject constructor(
             fileTransferRepository.closeFile()
             bluetoothController.closeConnection()
             _state.update { it.copy(isConnected = false, isConnecting = false) }
-        }.launchIn(viewModelScope)
+        }.launchIn(kotlinx.coroutines.CoroutineScope(viewModelScope.coroutineContext + kotlinx.coroutines.Dispatchers.IO))
     }
 
     override fun onCleared() {
