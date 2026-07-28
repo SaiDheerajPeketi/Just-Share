@@ -116,12 +116,22 @@ class WifiDirectViewModel @Inject constructor(
         manager.requestGroupInfo(channel) { group ->
             val hasConnectedClient = group?.clientList?.isNotEmpty() == true
             Log.d(TAG, "GroupInfo: connectedClients=${group?.clientList?.size ?: 0}")
+            val wasConnected = _uiState.value.isConnected
             _uiState.update {
                 it.copy(
                     isConnected = hasConnectedClient,
                     connectionStatus = if (hasConnectedClient) "connected" else "hosting",
                     errorMessage = null
                 )
+            }
+            if (wasConnected && !hasConnectedClient) {
+                Log.d(TAG, "Client disconnected, resetting CommunicationService")
+                stopCommunicationService()
+                com.invincible.jedishare.CommunicationService.clearTransferUpdate()
+                viewModelScope.launch {
+                    delay(500)
+                    startCommunicationService(info)
+                }
             }
         }
     }
@@ -469,15 +479,9 @@ class WifiDirectViewModel @Inject constructor(
 
     private fun stopCommunicationService() {
         if (!communicationServiceStarted) return
-        val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
-            action = com.invincible.jedishare.CommunicationService.ACTION_STOP_COMMUNICATION
-        }
+        val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java)
         runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.stopService(intent)
         }.onFailure { throwable ->
             Log.e(TAG, "Could not stop Wi-Fi Direct communication service", throwable)
         }

@@ -57,6 +57,8 @@ fun TransferProgressScreen(
     val state by transferViewModel.state.collectAsState()
     val btProgress by btViewModel.transferProgress.collectAsState()
     val btConnectedDeviceName by btViewModel.connectedDeviceNameState.collectAsState()
+    val btState by btViewModel.state.collectAsState()
+    val wifiState by wifiViewModel.uiState.collectAsState()
     
     val isSender = state.urisToShare.isNotEmpty()
     val method = state.method
@@ -94,6 +96,9 @@ fun TransferProgressScreen(
     val receiverFiles = remember { mutableStateListOf<TransferFile>() }
 
     val manifest = if (method == "wifi") state.fileInfos.ifEmpty { null } else btIncomingManifest
+
+    val isConnected = if (method == "bt") btState.isConnected else wifiState.isConnected
+    val transferFailed = !isDone && (progress < 0f || (!isConnected && (isSender || receiverFiles.isNotEmpty())))
 
     LaunchedEffect(manifest) {
         if (!isSender && manifest != null && receiverFiles.isEmpty()) {
@@ -177,19 +182,24 @@ fun TransferProgressScreen(
             val name = fileInfo?.fileName ?: uri.lastPathSegment ?: "File ${index + 1}"
             val sizeStr = fileInfo?.size?.toLongOrNull()?.let { formatSize(it) } ?: "Unknown"
 
+            val fileIsDone = isDone || (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex))
+            val fileIsFailed = (progress < 0f && isActive) || (transferFailed && !fileIsDone)
+            
             TransferFile(
                 name = name,
                 size = sizeStr,
                 icon = getIconForMimeType(fileInfo?.mimeType),
                 mimeType = fileInfo?.mimeType,
-                isDone = isDone || (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)),
-                isActive = isActive,
-                progress = if (isActive) progress else if (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex)) 100f else 0f,
-                isFailed = progress < 0f && isActive // Just as a fallback for sender side
+                isDone = fileIsDone,
+                isActive = isActive && !transferFailed,
+                progress = if (isActive && !transferFailed) progress else 0f,
+                isFailed = fileIsFailed
             )
         }
     } else {
-        receiverFiles.ifEmpty {
+        receiverFiles.map { 
+            if (!it.isDone && transferFailed) it.copy(isFailed = true, isActive = false) else it 
+        }.ifEmpty {
             listOf(
                 TransferFile(
                     name = "Waiting for files...",
@@ -225,13 +235,20 @@ fun TransferProgressScreen(
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .background(colors.red.copy(alpha = 0.15f), CircleShape),
+                    .background(if (transferFailed) colors.red.copy(alpha = 0.15f) else if (isDone) colors.green.copy(alpha = 0.15f) else colors.red.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(if (isDone) Icons.Default.Check else Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = colors.red, modifier = Modifier.size(40.dp))
+                Icon(
+                    if (transferFailed) Icons.Default.Error 
+                    else if (isDone) Icons.Default.Check 
+                    else Icons.AutoMirrored.Filled.Send, 
+                    contentDescription = null, 
+                    tint = if (transferFailed) colors.red else if (isDone) colors.green else colors.red, 
+                    modifier = Modifier.size(40.dp)
+                )
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(if (isDone) "Transfer Complete" else "Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
+            Text(if (transferFailed) "Transfer Failed" else if (isDone) "Transfer Complete" else "Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -240,7 +257,7 @@ fun TransferProgressScreen(
                     color = colors.black
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Box(modifier = Modifier.size(8.dp).background(colors.green, CircleShape))
+                Box(modifier = Modifier.size(8.dp).background(if (isConnected) colors.green else colors.red, CircleShape))
             }
         }
 
