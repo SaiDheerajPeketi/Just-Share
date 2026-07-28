@@ -226,6 +226,7 @@ class CommunicationService : Service() {
             serverSocket?.close()
             serverSocket = null
         }
+        communicationSocket?.soTimeout = 30000
         Log.d(TAG, "Server: client connected")
         messageReadingLoop(deviceName)
     }
@@ -237,6 +238,7 @@ class CommunicationService : Service() {
         Log.d(TAG, "Client: connecting to $address:$port")
         try {
             communicationSocket!!.connect(InetSocketAddress(address, port), 8000)
+            communicationSocket?.soTimeout = 30000
         } catch (e: IOException) {
             Log.e(TAG, "Client: connect failed — ${e.message}")
             communicationSocket?.close()
