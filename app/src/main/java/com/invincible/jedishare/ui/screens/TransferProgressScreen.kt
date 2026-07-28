@@ -92,7 +92,6 @@ fun TransferProgressScreen(
     val btFileInfo by btViewModel.fileInfoState.collectAsState()
     val btIncomingFileName by btViewModel.incomingFileNameState.collectAsState()
     val btIncomingManifest by btViewModel.incomingManifestState.collectAsState()
-    val btOutgoingManifest by btViewModel.outgoingManifestState.collectAsState()
 
     val manifest = if (method == "wifi") state.fileInfos.ifEmpty { null } else btIncomingManifest
 
@@ -122,7 +121,7 @@ fun TransferProgressScreen(
             val fileIsActive = !fileIsDone && index == currentIndex
             val fileIsFailed = (progress < 0f && fileIsActive) || (transferFailed && !fileIsDone)
             
-            val fileInfo = if (method == "wifi") state.fileInfos.getOrNull(index) else btOutgoingManifest?.getOrNull(index)
+            val fileInfo = state.fileInfos.getOrNull(index)
             val name = fileInfo?.fileName ?: uri.lastPathSegment ?: "File ${index + 1}"
             val sizeStr = fileInfo?.size?.toLongOrNull()?.let { formatSize(it) } ?: "Unknown"
 
@@ -284,8 +283,8 @@ fun TransferProgressScreen(
                     }
                 }
                 
-                if (index < files.lastIndex) {
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
+                if (index < displayFiles.lastIndex) {
+                    HorizontalDivider(modifier = Modifier.padding(top = 16.dp), color = colors.border.copy(alpha = 0.5f))
                 }
             }
         }
