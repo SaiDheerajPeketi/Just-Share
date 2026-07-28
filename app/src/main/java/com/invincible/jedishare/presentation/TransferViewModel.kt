@@ -72,7 +72,8 @@ class TransferViewModel @Inject constructor(
                         fileSize = intent.getLongExtra(CommunicationService.EXTRAS_FILE_SIZE, 0L),
                         currentFileIndex = intent.getIntExtra(CommunicationService.EXTRAS_CURRENT_FILE_INDEX, 0),
                         totalFiles = intent.getIntExtra(CommunicationService.EXTRAS_TOTAL_FILES, 0),
-                        remoteDeviceName = intent.getStringExtra(CommunicationService.EXTRAS_REMOTE_DEVICE_NAME)
+                        remoteDeviceName = intent.getStringExtra(CommunicationService.EXTRAS_REMOTE_DEVICE_NAME),
+                        mimeType = intent.getStringExtra(CommunicationService.EXTRAS_MIME_TYPE)
                     )
                 )
             }
