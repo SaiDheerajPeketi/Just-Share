@@ -11,6 +11,49 @@ import android.webkit.MimeTypeMap
 import com.invincible.jedishare.domain.chat.FileInfo
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PERMISSIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+fun hasAllRequiredPermissions(context: android.content.Context): Boolean {
+    val storagePerms = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        listOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO, android.Manifest.permission.READ_MEDIA_AUDIO)
+    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        listOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+    } else {
+        listOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
+
+    val btPerms = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        listOf(android.Manifest.permission.BLUETOOTH_SCAN, android.Manifest.permission.BLUETOOTH_CONNECT, android.Manifest.permission.BLUETOOTH_ADVERTISE)
+    } else {
+        listOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+
+    val wifiPerms = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        listOf(android.Manifest.permission.NEARBY_WIFI_DEVICES)
+    } else {
+        listOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+
+    val notifPerms = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        listOf(android.Manifest.permission.POST_NOTIFICATIONS)
+    } else {
+        emptyList()
+    }
+
+    fun checkPerms(perms: List<String>) = perms.all { 
+        androidx.core.content.ContextCompat.checkSelfPermission(context, it) == android.content.pm.PackageManager.PERMISSION_GRANTED 
+    }
+
+    val storageGranted = checkPerms(storagePerms)
+    val btGranted = checkPerms(btPerms)
+    val wifiGranted = checkPerms(wifiPerms)
+    val notifGranted = checkPerms(notifPerms)
+
+    return storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // FILE UTILITIES
 // ─────────────────────────────────────────────────────────────────────────────
 
