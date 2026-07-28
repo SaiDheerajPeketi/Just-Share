@@ -301,11 +301,17 @@ class AndroidBluetoothController(
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val buffer = ByteArray(BluetoothDataTransferService.CHUNK_SIZE)
                 var bytesRead: Int
+                var bytesSent = 0L
+                var lastProgress = -1
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    dataTransferService?.sendMessage(buffer.copyOf(bytesRead))
-                    val sentBytes = bytesRead.toLong()
-                    onBytesSent(sentBytes)
-                    iterationCountFlow.tryEmit(sentBytes)
+                    dataTransferService?.sendMessage(buffer, 0, bytesRead)
+                    bytesSent += bytesRead
+                    val progress = if (fileSize > 0) ((bytesSent * 100) / fileSize).toInt() else 0
+                    if (progress > lastProgress) {
+                        onBytesSent(bytesSent)
+                        iterationCountFlow.tryEmit(bytesSent)
+                        lastProgress = progress
+                    }
                 }
             } ?: Log.e(TAG, "Could not open input stream for $uri")
             onFileCountUpdated(++fileCount)
