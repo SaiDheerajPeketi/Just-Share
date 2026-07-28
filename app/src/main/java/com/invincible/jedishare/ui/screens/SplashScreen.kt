@@ -46,9 +46,11 @@ fun SplashScreen(
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.app_logo),
+            painter = painterResource(id = R.drawable.app_logo_full),
             contentDescription = "App Logo",
-            modifier = Modifier.size(120.dp)
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .aspectRatio(1f) // Actually, the image is 1024x1024 so it's a square
         )
     }
 }
