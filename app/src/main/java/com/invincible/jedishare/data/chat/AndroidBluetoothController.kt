@@ -21,6 +21,7 @@ import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
 import com.invincible.jedishare.domain.chat.BluetoothMessage
 import com.invincible.jedishare.domain.chat.ConnectionResult
 import com.invincible.jedishare.domain.chat.FileInfo
+import com.invincible.jedishare.domain.chat.TransferFailedException
 import com.invincible.jedishare.getFileDetailsFromUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
