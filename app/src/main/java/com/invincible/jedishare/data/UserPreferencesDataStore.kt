@@ -37,8 +37,8 @@ class UserPreferencesDataStore @Inject constructor(
         prefs[KEY_FIRST_LAUNCH] ?: true
     }
 
-    val isDarkModeEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[KEY_DARK_MODE] ?: false
+    val isDarkModeEnabled: Flow<Boolean?> = context.dataStore.data.map { prefs ->
+        prefs[KEY_DARK_MODE]
     }
 
     val defaultTransferMethod: Flow<String> = context.dataStore.data.map { prefs ->

@@ -122,7 +122,9 @@ fun JediShareTheme(content: @Composable () -> Unit) {
         com.invincible.jedishare.di.DataStoreEntryPoint::class.java
     ).userPreferencesDataStore()
     
-    val isDarkMode by dataStore.isDarkModeEnabled.collectAsStateWithLifecycle(initialValue = isSystemInDarkTheme())
+    val isDarkModePref by dataStore.isDarkModeEnabled.collectAsStateWithLifecycle(initialValue = null)
+    val systemDark = isSystemInDarkTheme()
+    val isDarkMode = isDarkModePref ?: systemDark
     
     val customColors = if (isDarkMode) DarkCustomColors else LightCustomColors
     val materialColors = if (isDarkMode) DarkColorPalette else LightColorPalette

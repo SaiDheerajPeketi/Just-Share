@@ -21,8 +21,8 @@ class SettingsViewModel @Inject constructor(
     private val prefs: UserPreferencesDataStore
 ) : ViewModel() {
 
-    val isDarkMode: StateFlow<Boolean> = prefs.isDarkModeEnabled.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5000), false
+    val isDarkMode: StateFlow<Boolean?> = prefs.isDarkModeEnabled.stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5000), null
     )
 
     val defaultTransferMethod: StateFlow<String> = prefs.defaultTransferMethod.stateIn(
