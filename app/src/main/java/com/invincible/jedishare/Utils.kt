@@ -107,20 +107,7 @@ fun getFileDetailsFromUri(uri: Uri, contentResolver: ContentResolver): FileInfo 
             }
         }.getOrNull()
     }
-    if (size.isNullOrBlank() || size == "-1") {
-        size = runCatching {
-            contentResolver.openInputStream(uri)?.use { input ->
-                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                var total = 0L
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read == -1) break
-                    total += read
-                }
-                total.toString()
-            }
-        }.getOrNull()
-    }
+
 
     return FileInfo(fileName, format, size, mimeType)
 }

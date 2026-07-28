@@ -138,4 +138,17 @@ class FileTransferRepository @Inject constructor(
             currentFileUri = null
         }
     }
+
+    /**
+     * Deletes a file from MediaStore (useful for incomplete transfers).
+     */
+    suspend fun deleteFile(uri: Uri) = withContext(Dispatchers.IO) {
+        Timber.d("FileTransferRepository - deleteFile called")
+        try {
+            contentResolver.delete(uri, null, null)
+            Log.d("FileTransferRepository", "Deleted partial file: $uri")
+        } catch (e: Exception) {
+            Log.e("FileTransferRepository", "Failed to delete file", e)
+        }
+    }
 }

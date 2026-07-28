@@ -302,35 +302,52 @@ class CommunicationService : Service() {
                 val fileUri = createMediaStoreEntry(fileInfo)
                 var bytesReceived = 0L
 
-                broadcastProgress(
-                    progress = 0,
-                    fileName = fileName,
-                    fileSize = fileSize,
-                    currentFileIndex = currentIndex,
-                    totalFiles = 0,
-                    mimeType = fileInfo.mimeType
-                )
-
-                contentResolver.openOutputStream(fileUri ?: throw IOException("Could not create destination for $fileName"), "wa").use { output ->
-                    var remaining = fileSize
-                    while (remaining > 0) {
-                        val toRead = minOf(buffer.size.toLong(), remaining).toInt()
-                        val bytesRead = dataInput.read(buffer, 0, toRead)
-                        if (bytesRead == -1) throw EOFException("Stream ended while receiving $fileName")
-                        output?.write(buffer, 0, bytesRead)
-                        remaining -= bytesRead
-                        bytesReceived += bytesRead
-
-                        val progress = if (fileSize > 0) (bytesReceived * 100 / fileSize).toInt() else 100
-                        broadcastProgress(
-                            progress = progress.coerceIn(0, 99),
-                            fileName = fileName,
-                            fileSize = fileSize,
-                            currentFileIndex = currentIndex,
-                            totalFiles = 0,
-                            mimeType = fileInfo.mimeType
-                        )
+                var isEofReceived = false
+                try {
+                    contentResolver.openOutputStream(fileUri ?: throw IOException("Could not create destination for $fileName"), "wa").use { output ->
+                        while (true) {
+                            val chunkSize = dataInput.readInt()
+                            if (chunkSize == 0) {
+                                isEofReceived = true
+                                break
+                            }
+                            if (chunkSize < 0 || chunkSize > CHUNK_SIZE) {
+                                throw IOException("Invalid chunk size: $chunkSize")
+                            }
+                            
+                            var remainingChunk = chunkSize
+                            var offset = 0
+                            while (remainingChunk > 0) {
+                                val bytesRead = dataInput.read(buffer, offset, remainingChunk)
+                                if (bytesRead == -1) throw EOFException("Stream ended while receiving chunk")
+                                offset += bytesRead
+                                remainingChunk -= bytesRead
+                            }
+                            output?.write(buffer, 0, chunkSize)
+                            bytesReceived += chunkSize
+                            val pct = if (fileSize > 0) ((bytesReceived * 100) / fileSize).toInt() else (bytesReceived / (1024 * 1024)).toInt()
+                            broadcastProgress(pct, fileName, fileSize, currentIndex, 0, fileInfo.mimeType)
+                        }
                     }
+                } catch (e: Exception) {
+                    fileUri?.let { uri -> 
+                        try {
+                            contentResolver.delete(uri, null, null)
+                            Log.d(TAG, "Deleted partial file after error: $uri")
+                        } catch (delEx: Exception) {
+                            Log.e(TAG, "Failed to delete partial file", delEx)
+                        }
+                    }
+                    throw e
+                }
+                
+                if (!isEofReceived) {
+                    fileUri?.let { uri -> 
+                        try {
+                            contentResolver.delete(uri, null, null)
+                        } catch (e: Exception) {}
+                    }
+                    throw IOException("Connection closed before EOF marker")
                 }
                 
                 fileUri?.let { uri ->
@@ -393,7 +410,7 @@ class CommunicationService : Service() {
         Timber.d("CommunicationService - sendFiles called")
         val uris = intent.getParcelableArrayListExtra<Uri>("urilist") ?: return
         if (uris.isEmpty()) return
-        val out = waitForOutputStream() ?: throw IOException("Wi-Fi Direct socket is not connected")
+        val outputStream = waitForOutputStream() ?: throw IOException("Wi-Fi Direct socket is not connected")
 
         val totalFiles = uris.size
         var currentIndex = 0
@@ -402,34 +419,37 @@ class CommunicationService : Service() {
             val totalSize = fileInfo.size?.toLong() ?: 0L
             val metaBytes = fileInfo.toByteArray() ?: throw IOException("Failed to serialize FileInfo")
 
-            out.writeInt(metaBytes.size)
-            out.write(metaBytes)
-            out.writeLong(totalSize)
-            out.flush()
+            outputStream.writeInt(metaBytes.size)
+            outputStream.write(metaBytes)
+            outputStream.writeLong(totalSize)
+            outputStream.flush()
 
             broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
-            // Stream file bytes
-            var bytesSent = 0L
-            var lastProgress = -1
             contentResolver.openInputStream(uri)?.use { inputStream ->
                 val buffer = ByteArray(CHUNK_SIZE)
                 var bytesRead: Int
+                var bytesSent = 0L
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    out.write(buffer, 0, bytesRead)
+                    val chunkSizeBytes = java.nio.ByteBuffer.allocate(4).putInt(bytesRead).array()
+                    outputStream.write(chunkSizeBytes)
+                    outputStream.write(buffer, 0, bytesRead)
+                    outputStream.flush()
+                    
                     bytesSent += bytesRead
-                    val progress = if (totalSize > 0) (bytesSent * 100 / totalSize).toInt() else 0
-                    if (progress > lastProgress) {
-                        broadcastProgress(progress.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
-                        lastProgress = progress
-                    }
+                    val pct = if (totalSize > 0) ((bytesSent * 100) / totalSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
+                    broadcastProgress(pct.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
                 }
-            } ?: Log.e(TAG, "Could not open InputStream for $uri")
+                
+                val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
+                outputStream.write(eofMarker)
+                outputStream.flush()
+                
+            } ?: Log.e(TAG, "Could not open input stream for $uri")
 
-            out.flush()
             broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
-            Log.d(TAG, "Sent: ${fileInfo.fileName} ($bytesSent bytes)")
+            Log.d(TAG, "Sent: ${fileInfo.fileName} ($totalSize bytes)")
             currentIndex++
 
             // Log completed WiFi Direct transfer to history DB for sender

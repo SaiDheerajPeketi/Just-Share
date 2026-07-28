@@ -171,6 +171,11 @@ class AndroidBluetoothController(
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
             throw SecurityException("No BLUETOOTH_CONNECT permission")
         }
+        
+        stopDiscovery()
+        currentServerSocket?.close()
+        currentServerSocket = null
+        
         currentServerSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
             "jedi_share_service", UUID.fromString(SERVICE_UUID)
         )
@@ -244,12 +249,40 @@ class AndroidBluetoothController(
                         emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
                         emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
                     } catch (insecureEx: IOException) {
+                        Log.w(TAG, "Insecure connect failed, trying reflection fallback: ${insecureEx.message}")
                         insecureSocket.close()
-                        currentClientSocket = null
-                        emit(ConnectionResult.Error("Connection failed (secure + insecure): ${insecureEx.message}"))
+                        
+                        // Reflection fallback
+                        val fallbackSocket = try {
+                            val method = remoteDevice?.javaClass?.getMethod("createRfcommSocket", Int::class.java)
+                            method?.invoke(remoteDevice, 1) as? android.bluetooth.BluetoothSocket
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to create reflection RFCOMM socket", e)
+                            null
+                        }
+                        currentClientSocket = fallbackSocket
+
+                        if (fallbackSocket != null) {
+                            try {
+                                fallbackSocket.connect()
+                                val service = BluetoothDataTransferService(fallbackSocket)
+                                dataTransferService = service
+                                _isConnected.update { true }
+                                emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
+                                emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
+                            } catch (fallbackEx: IOException) {
+                                fallbackSocket.close()
+                                currentClientSocket = null
+                                emit(ConnectionResult.Error("Connection failed (secure + insecure + fallback): ${fallbackEx.message}"))
+                            }
+                        } else {
+                            currentClientSocket = null
+                            emit(ConnectionResult.Error("Connection failed (secure + insecure + no fallback): ${insecureEx.message}"))
+                        }
                     }
                 } else {
-                    emit(ConnectionResult.Error("Could not create Bluetooth socket"))
+                    currentClientSocket = null
+                    emit(ConnectionResult.Error("Connection failed, couldn't create insecure socket"))
                 }
             }
         } ?: emit(ConnectionResult.Error("Remote device not found"))
@@ -303,16 +336,27 @@ class AndroidBluetoothController(
                 var bytesRead: Int
                 var bytesSent = 0L
                 var lastProgress = -1
+                
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    // Send 4-byte chunk size
+                    val chunkSizeBytes = java.nio.ByteBuffer.allocate(4).putInt(bytesRead).array()
+                    dataTransferService?.sendMessage(chunkSizeBytes)
+                    // Send chunk data
                     dataTransferService?.sendMessage(buffer, 0, bytesRead)
+                    
                     bytesSent += bytesRead
-                    val progress = if (fileSize > 0) ((bytesSent * 100) / fileSize).toInt() else 0
+                    val progress = if (fileSize > 0) ((bytesSent * 100) / fileSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
                     if (progress > lastProgress) {
                         onBytesSent(bytesSent)
                         iterationCountFlow.tryEmit(bytesSent)
                         lastProgress = progress
                     }
                 }
+                
+                // Send 0-sized chunk to mark EOF
+                val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
+                dataTransferService?.sendMessage(eofMarker)
+                
             } ?: Log.e(TAG, "Could not open input stream for $uri")
             onFileCountUpdated(++fileCount)
             Log.d(TAG, "File $fileCount sent: $uri")

@@ -65,23 +65,40 @@ class BluetoothDataTransferService(
                 throw TransferFailedException()
             }
             
-            var remaining = fileSize
-            while (remaining > 0) {
-                val toRead = minOf(buffer.size.toLong(), remaining).toInt()
-                val byteCount = try {
-                    dataIn.read(buffer, 0, toRead)
+            while (true) {
+                val chunkSize = try {
+                    dataIn.readInt()
                 } catch (e: IOException) {
                     throw TransferFailedException()
                 }
-                if (byteCount == -1) throw TransferFailedException()
                 
-                val chunk = buffer.copyOfRange(0, byteCount)
+                if (chunkSize == 0) {
+                    Log.d("BDTransferService", "EOF marker (chunk size 0) reached for file")
+                    emit(IncomingData.EndOfFile)
+                    break
+                }
+                
+                if (chunkSize < 0 || chunkSize > CHUNK_SIZE) {
+                    Log.e("BDTransferService", "Invalid chunk size received: $chunkSize")
+                    throw TransferFailedException()
+                }
+                
+                var remainingChunk = chunkSize
+                var offset = 0
+                while (remainingChunk > 0) {
+                    val byteCount = try {
+                        dataIn.read(buffer, offset, remainingChunk)
+                    } catch (e: IOException) {
+                        throw TransferFailedException()
+                    }
+                    if (byteCount == -1) throw TransferFailedException()
+                    offset += byteCount
+                    remainingChunk -= byteCount
+                }
+                
+                val chunk = buffer.copyOfRange(0, chunkSize)
                 emit(IncomingData.FileChunk(chunk))
-                remaining -= byteCount
             }
-            
-            Log.d("BDTransferService", "EOF reached for file")
-            emit(IncomingData.EndOfFile)
         }
     }.flowOn(Dispatchers.IO)
 
