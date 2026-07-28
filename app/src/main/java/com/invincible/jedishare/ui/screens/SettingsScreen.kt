@@ -48,8 +48,8 @@ fun SettingsScreen(
     val coroutineScope = rememberCoroutineScope()
     val isDarkMode = !JediShareTheme.colors.isLight
     
-    val transferState by transferViewModel.state.collectAsStateWithLifecycle()
-    val transferMethod = transferState.method
+
+    val savedTransferMethod by dataStore.defaultTransferMethod.collectAsStateWithLifecycle(initialValue = "wifi")
     var encRequired by remember { mutableStateOf(false) }
 
     Column(
@@ -136,7 +136,7 @@ fun SettingsScreen(
                     Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Bluetooth", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
-                    CustomRadioButton(selected = transferMethod == "bt", color = colors.red)
+                    CustomRadioButton(selected = savedTransferMethod == "bt", color = colors.red)
                 }
                 
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Color(0xFFF0F0F0)))
@@ -155,7 +155,7 @@ fun SettingsScreen(
                     Icon(Icons.Default.Wifi, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Wi-Fi Direct", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
-                    CustomRadioButton(selected = transferMethod == "wifi", color = colors.red)
+                    CustomRadioButton(selected = savedTransferMethod == "wifi", color = colors.red)
                 }
             }
             
