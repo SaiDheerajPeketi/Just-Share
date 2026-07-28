@@ -42,7 +42,7 @@ class UserPreferencesDataStore @Inject constructor(
     }
 
     val defaultTransferMethod: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_DEFAULT_TRANSFER_METHOD] ?: "bt"
+        prefs[KEY_DEFAULT_TRANSFER_METHOD] ?: "wifi"
     }
 
     val chunkSizeKb: Flow<Int> = context.dataStore.data.map { prefs ->

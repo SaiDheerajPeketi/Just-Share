@@ -114,10 +114,12 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    fun setMethod(method: String) {
+    fun setMethod(method: String, save: Boolean = false) {
         _state.update { it.copy(method = method, hasTransferStarted = false, isTransferComplete = false) }
-        viewModelScope.launch {
-            dataStore.setDefaultTransferMethod(method)
+        if (save) {
+            viewModelScope.launch {
+                dataStore.setDefaultTransferMethod(method)
+            }
         }
     }
 
