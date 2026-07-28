@@ -421,7 +421,7 @@ class CommunicationService : Service() {
                     fileName = fileInfo.fileName ?: "received_file",
                     fileSize = fileSize,
                     currentFileIndex = currentIndex,
-                    totalFiles = 0,
+                    totalFiles = fileInfo.manifest?.size ?: 0,
                     mimeType = fileInfo.mimeType
                 )
                 Log.d(TAG, "Received: ${fileInfo.fileName ?: "received_file"} ($bytesReceived bytes)")
