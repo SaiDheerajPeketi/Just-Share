@@ -210,7 +210,7 @@ fun SelectFilesScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = fileInfo.name ?: "Unknown File",
+                                text = fileInfo.fileName ?: "Unknown File",
                                 style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold),
                                 color = colors.black,
                                 maxLines = 1,
