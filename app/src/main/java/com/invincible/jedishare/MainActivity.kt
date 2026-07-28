@@ -15,9 +15,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.Modifier
+import com.invincible.jedishare.data.UserPreferencesDataStore
 import com.invincible.jedishare.navigation.AppNavGraph
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 @AndroidEntryPoint
@@ -65,12 +68,33 @@ class MainActivity : ComponentActivity() {
         Timber.d("MainActivity - onCreate called")
         super.onCreate(savedInstanceState)
 
-        val startRoute = intent.getStringExtra("start_route") ?: com.invincible.jedishare.navigation.Screen.Splash.route
-        val initialUris = intent.getParcelableArrayListExtra<Uri>("urilist")?.toList().orEmpty()
-        val initialMethod = when (startRoute) {
+        var startRoute = intent.getStringExtra("start_route") ?: com.invincible.jedishare.navigation.Screen.Splash.route
+        var initialUris = intent.getParcelableArrayListExtra<Uri>("urilist")?.toList().orEmpty()
+        var initialMethod = when (startRoute) {
             com.invincible.jedishare.navigation.Screen.DiscoverWifi.route -> "wifi"
             com.invincible.jedishare.navigation.Screen.DiscoverBT.route -> "bt"
             else -> null
+        }
+
+        val action = intent.action
+        val isShareIntent = action == Intent.ACTION_SEND || action == Intent.ACTION_SEND_MULTIPLE
+        
+        if (isShareIntent) {
+            val dataStore = UserPreferencesDataStore(this)
+            val method = runBlocking { dataStore.defaultTransferMethod.first() }
+            initialMethod = method
+            startRoute = if (method == "wifi") com.invincible.jedishare.navigation.Screen.DiscoverWifi.route else com.invincible.jedishare.navigation.Screen.DiscoverBT.route
+            
+            initialUris = when (action) {
+                Intent.ACTION_SEND -> {
+                    val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                    if (uri != null) listOf(uri) else emptyList()
+                }
+                Intent.ACTION_SEND_MULTIPLE -> {
+                    intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.toList().orEmpty()
+                }
+                else -> emptyList()
+            }
         }
 
         if (initialUris.isNotEmpty()) {
