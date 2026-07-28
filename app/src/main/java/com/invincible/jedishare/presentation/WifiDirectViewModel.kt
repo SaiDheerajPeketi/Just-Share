@@ -222,7 +222,19 @@ class WifiDirectViewModel @Inject constructor(
         if (!_uiState.value.isDiscovering &&
             !_uiState.value.isConnected
         ) {
-            manager.discoverPeers(channel, actionListener)
+            viewModelScope.launch {
+                val failure = runP2pAction(
+                    label = "discoverPeers",
+                    retryReasons = setOf(WifiP2pManager.BUSY)
+                ) { listener ->
+                    manager.discoverPeers(channel, listener)
+                }
+                if (failure != null) {
+                    val msg = "Wi-Fi Direct failed: ${failureReason(failure)}"
+                    Log.e(TAG, msg)
+                    _uiState.update { it.copy(errorMessage = msg) }
+                }
+            }
         }
     }
 
@@ -232,7 +244,17 @@ class WifiDirectViewModel @Inject constructor(
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
         if (_uiState.value.isDiscovering) {
-            manager.stopPeerDiscovery(channel, actionListener)
+            viewModelScope.launch {
+                val failure = runP2pAction(
+                    label = "stopDiscovery",
+                    retryReasons = setOf(WifiP2pManager.BUSY)
+                ) { listener ->
+                    manager.stopPeerDiscovery(channel, listener)
+                }
+                if (failure != null) {
+                    Log.e(TAG, "Wi-Fi Direct stop discovery failed: ${failureReason(failure)}")
+                }
+            }
         }
     }
 
