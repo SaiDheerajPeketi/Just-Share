@@ -108,8 +108,8 @@ fun TransferProgressScreen(
             TransferFile(
                 name = incomingName ?: "Incoming File...",
                 size = if (incomingSize > 0) formatSize(incomingSize) else "Unknown",
-                icon = getIconForMimeType(if (method == "wifi") null else incomingMimeType),
-                mimeType = if (method == "wifi") null else incomingMimeType,
+                icon = getIconForMimeType(incomingMimeType),
+                mimeType = incomingMimeType,
                 isDone = isDone,
                 isActive = !isDone
             )

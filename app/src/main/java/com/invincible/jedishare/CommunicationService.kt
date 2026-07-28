@@ -44,7 +44,8 @@ data class WifiTransferUpdate(
     val fileSize: Long,
     val currentFileIndex: Int,
     val totalFiles: Int,
-    val remoteDeviceName: String?
+    val remoteDeviceName: String?,
+    val mimeType: String?
 )
 
 /**
@@ -87,6 +88,7 @@ class CommunicationService : Service() {
         const val EXTRAS_CURRENT_FILE_INDEX  = "com.invincible.jedishare.EXTRAS_CURRENT_FILE_INDEX"
         const val EXTRAS_TOTAL_FILES         = "com.invincible.jedishare.EXTRAS_TOTAL_FILES"
         const val EXTRAS_REMOTE_DEVICE_NAME  = "com.invincible.jedishare.EXTRAS_REMOTE_DEVICE_NAME"
+        const val EXTRAS_MIME_TYPE           = "com.invincible.jedishare.EXTRAS_MIME_TYPE"
         const val BROADCAST_SENDING_UPDATE   = "com.invincible.jedishare.SENDING_UPDATE"
 
         private val _transferUpdates = MutableStateFlow<WifiTransferUpdate?>(null)
@@ -305,7 +307,8 @@ class CommunicationService : Service() {
                     fileName = fileName,
                     fileSize = fileSize,
                     currentFileIndex = currentIndex,
-                    totalFiles = 0
+                    totalFiles = 0,
+                    mimeType = fileInfo.mimeType
                 )
 
                 contentResolver.openOutputStream(fileUri ?: throw IOException("Could not create destination for $fileName"), "wa").use { output ->
@@ -391,7 +394,7 @@ class CommunicationService : Service() {
             out.writeLong(totalSize)
             out.flush()
 
-            broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles)
+            broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
             // Stream file bytes
@@ -403,12 +406,12 @@ class CommunicationService : Service() {
                     out.write(buffer, 0, bytesRead)
                     bytesSent += bytesRead
                     val progress = if (totalSize > 0) (bytesSent * 100 / totalSize).toInt() else 0
-                    broadcastProgress(progress.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles)
+                    broadcastProgress(progress.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
                 }
             } ?: Log.e(TAG, "Could not open InputStream for $uri")
 
             out.flush()
-            broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles)
+            broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
             Log.d(TAG, "Sent: ${fileInfo.fileName} ($bytesSent bytes)")
             currentIndex++
 
@@ -462,7 +465,8 @@ class CommunicationService : Service() {
         fileName: String?,
         fileSize: Long,
         currentFileIndex: Int,
-        totalFiles: Int
+        totalFiles: Int,
+        mimeType: String?
     ) {
         val update = WifiTransferUpdate(
             progress = progress,
@@ -470,7 +474,8 @@ class CommunicationService : Service() {
             fileSize = fileSize,
             currentFileIndex = currentFileIndex,
             totalFiles = totalFiles,
-            remoteDeviceName = remoteDeviceName
+            remoteDeviceName = remoteDeviceName,
+            mimeType = mimeType
         )
         _transferUpdates.value = update
         sendBroadcast(Intent(BROADCAST_SENDING_UPDATE).apply {
@@ -480,6 +485,7 @@ class CommunicationService : Service() {
             putExtra(EXTRAS_CURRENT_FILE_INDEX, currentFileIndex)
             putExtra(EXTRAS_TOTAL_FILES, totalFiles)
             putExtra(EXTRAS_REMOTE_DEVICE_NAME, remoteDeviceName)
+            putExtra(EXTRAS_MIME_TYPE, mimeType)
         })
     }
 
