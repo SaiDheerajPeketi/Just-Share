@@ -48,7 +48,7 @@ fun SelectFilesScreen(
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
-    var activeTab by rememberSaveable { mutableStateOf("images") }
+    var activeTab by rememberSaveable { mutableStateOf("docs") }
     
     val selectedFiles by viewModel.selectedFiles.collectAsState()
 
