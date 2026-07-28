@@ -114,7 +114,7 @@ fun PillButton(
 @Composable
 fun BackBar(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     rightEl: @Composable (() -> Unit)? = null
 ) {
@@ -127,17 +127,21 @@ fun BackBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onBack
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = colors.black)
+        if (onBack != null) {
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onBack
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = colors.black)
+            }
+        } else {
+            Box(modifier = Modifier.size(24.dp))
         }
         Text(
             text = title,

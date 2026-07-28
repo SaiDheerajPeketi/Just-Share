@@ -47,8 +47,7 @@ fun TransferProgressScreen(
     onNavigateToScreen: (String) -> Unit
 ) {
     BackHandler {
-        transferViewModel.clearTransferProgress()
-        onBack()
+        // Do nothing to prevent system back button
     }
     val colors = JediShareTheme.colors
     val state by transferViewModel.state.collectAsState()
@@ -130,7 +129,7 @@ fun TransferProgressScreen(
             .fillMaxSize()
             .background(colors.surface)
     ) {
-        BackBar(title = "Transfer Progress", onBack = onBack)
+        BackBar(title = "Transfer Progress", onBack = null)
 
         Column(
             modifier = Modifier
