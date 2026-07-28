@@ -36,7 +36,6 @@ fun SplashScreen(
 
     LaunchedEffect(isFirstLaunch) {
         if (isFirstLaunch != null) {
-            delay(1500)
             onNavigateNext(isFirstLaunch!!)
         }
     }
