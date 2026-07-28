@@ -97,7 +97,13 @@ fun AppNavGraph(
                 } 
             })
         }
-        composable(Screen.Home.route) {
+        composable(
+            route = Screen.Home.route,
+            enterTransition = { androidx.compose.animation.EnterTransition.None },
+            exitTransition = { androidx.compose.animation.ExitTransition.None },
+            popEnterTransition = { androidx.compose.animation.EnterTransition.None },
+            popExitTransition = { androidx.compose.animation.ExitTransition.None }
+        ) {
             com.invincible.jedishare.ui.screens.HomeScreen(
                 transferViewModel = transferViewModel,
                 onNavigateToNavRoute = { route -> navController.navigate(route) },
@@ -151,12 +157,24 @@ fun AppNavGraph(
                 }
             )
         }
-        composable(Screen.History.route) {
+        composable(
+            route = Screen.History.route,
+            enterTransition = { androidx.compose.animation.EnterTransition.None },
+            exitTransition = { androidx.compose.animation.ExitTransition.None },
+            popEnterTransition = { androidx.compose.animation.EnterTransition.None },
+            popExitTransition = { androidx.compose.animation.ExitTransition.None }
+        ) {
             com.invincible.jedishare.ui.screens.HistoryScreen(
                 onNavigateToNavRoute = { route -> navController.navigate(route) }
             )
         }
-        composable(Screen.Settings.route) {
+        composable(
+            route = Screen.Settings.route,
+            enterTransition = { androidx.compose.animation.EnterTransition.None },
+            exitTransition = { androidx.compose.animation.ExitTransition.None },
+            popEnterTransition = { androidx.compose.animation.EnterTransition.None },
+            popExitTransition = { androidx.compose.animation.ExitTransition.None }
+        ) {
             com.invincible.jedishare.ui.screens.SettingsScreen(
                 onNavigateToNavRoute = { route -> navController.navigate(route) },
                 transferViewModel = transferViewModel
