@@ -142,6 +142,7 @@ class BluetoothViewModel @Inject constructor(
 
     fun waitForIncomingConnections() {
         Timber.d("BluetoothViewModel - waitForIncomingConnections called")
+        deviceConnectionJob?.cancel()
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController
             .startBluetoothServer()
@@ -303,7 +304,10 @@ class BluetoothViewModel @Inject constructor(
 
                 is ConnectionResult.Error -> {
                     Log.e("BluetoothViewModel", "Connection error: ${result.message}")
-                    viewModelScope.launch { fileTransferRepository.closeFile() }
+                    fileTransferRepository.closeFile()
+                    fileUri?.let { uri -> 
+                        viewModelScope.launch { fileTransferRepository.deleteFile(uri) }
+                    }
                     _state.update {
                         it.copy(isConnected = false, isConnecting = false, errorMessage = result.message)
                     }
@@ -312,6 +316,9 @@ class BluetoothViewModel @Inject constructor(
         }.catch { throwable ->
             Log.e("BluetoothViewModel", "Connection flow error", throwable)
             fileTransferRepository.closeFile()
+            fileUri?.let { uri -> 
+                viewModelScope.launch { fileTransferRepository.deleteFile(uri) }
+            }
             bluetoothController.closeConnection()
             _state.update { it.copy(isConnected = false, isConnecting = false) }
         }.launchIn(kotlinx.coroutines.CoroutineScope(viewModelScope.coroutineContext + kotlinx.coroutines.Dispatchers.IO))

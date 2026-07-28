@@ -250,6 +250,10 @@ class WifiDirectViewModel @Inject constructor(
         }
         _uiState.update { it.copy(connectionStatus = "hosting", errorMessage = null) }
         viewModelScope.launch {
+            // Clean up any existing state to prevent BUSY error
+            awaitP2pAction { manager.cancelConnect(channel, it) }
+            awaitP2pAction { manager.stopPeerDiscovery(channel, it) }
+            
             val failure = runP2pAction(
                 label = "createGroup",
                 retryReasons = setOf(WifiP2pManager.BUSY)
@@ -272,7 +276,12 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - connectToDevice called")
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
-        if (_uiState.value.isConnected || _uiState.value.connectionStatus == "connecting") return
+        if (_uiState.value.isConnected || 
+            _uiState.value.connectionStatus == "connecting" || 
+            _uiState.value.connectionStatus == "hosting" ||
+            !isSenderRole) {
+            return
+        }
 
         val currentPeer = _uiState.value.peers.firstOrNull {
             it.deviceAddress == device.deviceAddress
@@ -374,7 +383,7 @@ class WifiDirectViewModel @Inject constructor(
     ) {
         val connectFailure = runP2pAction(
             label = "connect",
-            retryReasons = setOf(WifiP2pManager.BUSY)
+            retryReasons = setOf(WifiP2pManager.BUSY, WifiP2pManager.ERROR)
         ) { listener ->
             manager.connect(channel, config, listener)
         }

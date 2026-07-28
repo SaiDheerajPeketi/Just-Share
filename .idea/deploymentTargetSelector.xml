@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DIALOG" />
-        <DropdownSelection timestamp="2026-07-27T00:55:39.846964Z">
+        <DropdownSelection timestamp="2026-07-28T06:43:31.200848Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/speketi/.android/avd/Pact_Pixel_8_API_37_B.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CYA0GWXCW" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,12 +15,12 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/speketi/.android/avd/Pixel_8_Android15_35_-_A.avd" />
+                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/speketi/.android/avd/Pixel_8_Android15_35_-_B.avd" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/speketi/.android/avd/Pixel_8_Android15_35_-_B.avd" />
+                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/speketi/.android/avd/Pixel_8_Android15_35_-_A.avd" />
               </handle>
             </Target>
           </targets>
