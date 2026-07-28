@@ -168,16 +168,16 @@ class CommunicationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Timber.d("CommunicationService - onBind called")
+        Timber.d("CommunicationService - onStartCommand called with action ${intent?.action}")
         when (intent?.action) {
             ACTION_START_COMMUNICATION -> {
                 val state = serviceState.get()
                 if (state == CONNECTED || state == IS_SENDING || state == CONNECTING) {
                     return START_NOT_STICKY
                 }
+                serviceState.set(CONNECTING)
                 startForegroundNotification()
                 ensureExecutor().execute {
-                    serviceState.set(CONNECTING)
                     val port    = intent.getIntExtra(EXTRAS_GROUP_OWNER_PORT, 8888)
                     val address = intent.getStringExtra(EXTRAS_GROUP_OWNER_ADDRESS)
                     val role    = intent.getIntExtra(EXTRAS_COMMUNICATION_ROLE, CLIENT_ROLE)
