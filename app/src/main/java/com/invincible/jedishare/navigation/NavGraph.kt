@@ -65,9 +65,14 @@ fun AppNavGraph(
         }
     ) {
         composable(Screen.Splash.route) {
+            val context = androidx.compose.ui.platform.LocalContext.current
             com.invincible.jedishare.ui.screens.SplashScreen(onNavigateNext = { isFirstLaunch -> 
                 if (isFirstLaunch) {
                     navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                } else if (com.invincible.jedishare.hasAllRequiredPermissions(context)) {
+                    navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 } else {
