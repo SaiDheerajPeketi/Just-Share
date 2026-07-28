@@ -25,7 +25,7 @@ class BluetoothDataTransferService(
     private val socket: BluetoothSocket
 ) {
     companion object {
-        const val CHUNK_SIZE = 8192 // 8 KB — better throughput than old 990 bytes
+        const val CHUNK_SIZE = 65536 // 64 KB — much better throughput for Bluetooth
     }
 
     /**
@@ -86,11 +86,9 @@ class BluetoothDataTransferService(
     }.flowOn(Dispatchers.IO)
 
     /** Writes [bytes] to the socket's output stream. Returns true on success. */
-    suspend fun sendMessage(bytes: ByteArray): Boolean = withContext(Dispatchers.IO) {
-        Timber.d("BluetoothDataTransferService - sendMessage called")
-        return@withContext try {
-            socket.outputStream.write(bytes)
-            Log.d("BDTransferService", "Sent ${bytes.size} bytes")
+    fun sendMessage(bytes: ByteArray, offset: Int = 0, length: Int = bytes.size): Boolean {
+        return try {
+            socket.outputStream.write(bytes, offset, length)
             true
         } catch (e: IOException) {
             Log.e("BDTransferService", "Failed to send message", e)

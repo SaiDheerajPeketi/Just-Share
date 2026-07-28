@@ -177,8 +177,8 @@ class BluetoothViewModel @Inject constructor(
                     _incomingMimeTypeState.value = fileInfo.mimeType
                     _incomingFileSize = fileInfo.size?.toLongOrNull() ?: 0L
                 },
-                onBytesSent = { bytesRead ->
-                    _transferProgress.update { it.copy(bytesSent = it.bytesSent + bytesRead) }
+                onBytesSent = { absoluteBytesSent ->
+                    _transferProgress.update { it.copy(bytesSent = absoluteBytesSent) }
                 },
                 onFileSent = { fileInfo ->
                     viewModelScope.launch {

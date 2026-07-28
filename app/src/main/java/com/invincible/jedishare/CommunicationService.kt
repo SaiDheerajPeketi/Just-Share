@@ -72,7 +72,7 @@ class CommunicationService : Service() {
         private const val TAG = "CommService"
         const val SERVER_ROLE = 0
         const val CLIENT_ROLE = 1
-        const val CHUNK_SIZE = 8192 // 8 KB — matches BluetoothDataTransferService
+        const val CHUNK_SIZE = 65536 // 64 KB — matches BluetoothDataTransferService
 
         const val ACTION_SEND_MSG            = "com.invincible.jedishare.ACTION_SEND_MSG"
         const val ACTION_START_COMMUNICATION = "com.invincible.jedishare.ACTION_START_COMMUNICATION"
@@ -412,6 +412,7 @@ class CommunicationService : Service() {
 
             // Stream file bytes
             var bytesSent = 0L
+            var lastProgress = -1
             contentResolver.openInputStream(uri)?.use { inputStream ->
                 val buffer = ByteArray(CHUNK_SIZE)
                 var bytesRead: Int
@@ -419,7 +420,10 @@ class CommunicationService : Service() {
                     out.write(buffer, 0, bytesRead)
                     bytesSent += bytesRead
                     val progress = if (totalSize > 0) (bytesSent * 100 / totalSize).toInt() else 0
-                    broadcastProgress(progress.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
+                    if (progress > lastProgress) {
+                        broadcastProgress(progress.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
+                        lastProgress = progress
+                    }
                 }
             } ?: Log.e(TAG, "Could not open InputStream for $uri")
 
