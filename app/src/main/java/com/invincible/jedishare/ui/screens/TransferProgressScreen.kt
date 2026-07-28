@@ -92,113 +92,64 @@ fun TransferProgressScreen(
     val btFileInfo by btViewModel.fileInfoState.collectAsState()
     val btIncomingFileName by btViewModel.incomingFileNameState.collectAsState()
     val btIncomingManifest by btViewModel.incomingManifestState.collectAsState()
-
-    val receiverFiles = remember { mutableStateListOf<TransferFile>() }
+    val btOutgoingManifest by btViewModel.outgoingManifestState.collectAsState()
 
     val manifest = if (method == "wifi") state.fileInfos.ifEmpty { null } else btIncomingManifest
 
     val isConnected = if (method == "bt") btState.isConnected else wifiState.isConnected
-    val transferFailed = !isDone && (progress < 0f || (!isConnected && (isSender || receiverFiles.isNotEmpty())))
+    val transferFailed = !isDone && (progress < 0f || (!isConnected && (isSender || manifest != null)))
 
-    LaunchedEffect(manifest) {
-        if (!isSender && manifest != null && receiverFiles.isEmpty()) {
-            manifest.forEach { fileInfo: com.invincible.jedishare.domain.chat.FileInfo ->
-                val sizeLong = fileInfo.size?.toLongOrNull() ?: 0L
-                receiverFiles.add(
-                    TransferFile(
-                        name = fileInfo.fileName ?: "Unknown",
-                        size = if (sizeLong > 0) formatSize(sizeLong) else "Unknown",
-                        icon = getIconForMimeType(fileInfo.mimeType),
-                        mimeType = fileInfo.mimeType,
-                        isDone = false,
-                        isActive = false,
-                        progress = 0f
-                    )
-                )
-            }
-        }
+    val receiverFilesBase = remember(manifest) {
+        manifest?.map { fileInfo ->
+            TransferFile(
+                name = fileInfo.fileName ?: "Unknown",
+                size = fileInfo.size?.toLongOrNull()?.let { formatSize(it) } ?: "Unknown",
+                icon = getIconForMimeType(fileInfo.mimeType),
+                mimeType = fileInfo.mimeType,
+                isDone = false, isActive = false, progress = 0f
+            )
+        } ?: emptyList()
     }
 
     val btIncomingMimeType by btViewModel.incomingMimeTypeState.collectAsState()
-    val incomingMimeType = if (method == "wifi") state.incomingMimeType else btIncomingMimeType
-    val incomingName = if (method == "wifi") {
-        state.currentFileName.takeIf { it.isNotBlank() }
-    } else {
-        btIncomingFileName
-    }
-    val incomingSize = if (method == "wifi") state.currentFileSizeBytes else btFileInfo
-    val currentFileIndex = if (method == "wifi") state.currentFileIndex else btCurrFileCount
-
-    LaunchedEffect(incomingName, incomingSize, incomingMimeType, progress, isDone) {
-        if (!incomingName.isNullOrBlank()) {
-            val existingIndex = if (currentFileIndex in receiverFiles.indices && receiverFiles[currentFileIndex].name == incomingName) {
-                currentFileIndex
-            } else {
-                // Fallback to name matching, preferring an active or not-yet-done file
-                val idx = receiverFiles.indexOfFirst { it.name == incomingName && !it.isDone }
-                if (idx == -1) receiverFiles.indexOfLast { it.name == incomingName } else idx
-            }
-            
-            val fileIsFailed = progress < 0f
-            val fileIsDone = fileIsFailed || isDone || progress >= 100f
-            val updatedFile = TransferFile(
-                name = incomingName,
-                size = if (incomingSize > 0) formatSize(incomingSize) else "Unknown",
-                icon = getIconForMimeType(incomingMimeType),
-                mimeType = incomingMimeType,
-                isDone = fileIsDone,
-                isActive = !fileIsDone,
-                progress = if (fileIsFailed) 0f else progress,
-                isFailed = fileIsFailed
-            )
-            
-            if (existingIndex >= 0) {
-                // Ensure all previous files are marked as done (handles StateFlow conflation)
-                for (i in 0 until existingIndex) {
-                    if (!receiverFiles[i].isDone) {
-                        receiverFiles[i] = receiverFiles[i].copy(isDone = true, isActive = false, progress = 100f)
-                    }
-                }
-                receiverFiles[existingIndex] = updatedFile
-            } else {
-                // Mark all previous files as done
-                for (i in receiverFiles.indices) {
-                    receiverFiles[i] = receiverFiles[i].copy(isDone = true, isActive = false, progress = 100f)
-                }
-                receiverFiles.add(updatedFile)
-            }
-        }
-    }
 
     // If there is no active file being broadcasted yet, show an empty list or the mock list with updated state
     // We can map the urisToShare from the state to display all files that were selected.
-    val files = if (isSender) {
+    val displayFiles = if (isSender) {
         state.urisToShare.mapIndexed { index, uri ->
-            val isActive = state.currentFileName.isNotEmpty() && uri.toString().contains(state.currentFileName) 
-                           || (state.currentFileName.isEmpty() && index == 0 && !isDone)
-                           || (isSender && index == (if (method == "bt") btCurrFileCount else state.currentFileIndex) && !isDone)
+            val currentIndex = if (method == "bt") btCurrFileCount else state.currentFileIndex
+            val fileIsDone = isDone || index < currentIndex
+            val fileIsActive = !fileIsDone && index == currentIndex
+            val fileIsFailed = (progress < 0f && fileIsActive) || (transferFailed && !fileIsDone)
             
-            val fileInfo = state.fileInfos.getOrNull(index)
+            val fileInfo = if (method == "wifi") state.fileInfos.getOrNull(index) else btOutgoingManifest?.getOrNull(index)
             val name = fileInfo?.fileName ?: uri.lastPathSegment ?: "File ${index + 1}"
             val sizeStr = fileInfo?.size?.toLongOrNull()?.let { formatSize(it) } ?: "Unknown"
 
-            val fileIsDone = isDone || (index < (if (method == "bt") btCurrFileCount else state.currentFileIndex))
-            val fileIsFailed = (progress < 0f && isActive) || (transferFailed && !fileIsDone)
-            
             TransferFile(
                 name = name,
                 size = sizeStr,
                 icon = getIconForMimeType(fileInfo?.mimeType),
                 mimeType = fileInfo?.mimeType,
                 isDone = fileIsDone,
-                isActive = isActive && !transferFailed,
-                progress = if (isActive && !transferFailed) progress else 0f,
+                isActive = fileIsActive && !transferFailed,
+                progress = if (fileIsActive && !transferFailed) progress else if (fileIsDone) 100f else 0f,
                 isFailed = fileIsFailed
             )
         }
     } else {
-        receiverFiles.map { 
-            if (!it.isDone && transferFailed) it.copy(isFailed = true, isActive = false) else it 
+        receiverFilesBase.mapIndexed { index, file -> 
+            val currentIndex = if (method == "bt") btCurrFileCount else state.currentFileIndex
+            val fileIsDone = isDone || index < currentIndex
+            val fileIsActive = !fileIsDone && index == currentIndex
+            val fileIsFailed = (progress < 0f && fileIsActive) || (transferFailed && !fileIsDone)
+            
+            file.copy(
+                isDone = fileIsDone,
+                isActive = fileIsActive && !transferFailed,
+                progress = if (fileIsActive && !transferFailed) progress else if (fileIsDone) 100f else 0f,
+                isFailed = fileIsFailed
+            )
         }.ifEmpty {
             listOf(
                 TransferFile(
@@ -269,7 +220,7 @@ fun TransferProgressScreen(
                 .background(colors.cardBg)
                 .border(1.dp, colors.border, RoundedCornerShape(24.dp))
         ) {
-            itemsIndexed(files) { index, file ->
+            itemsIndexed(displayFiles) { index, file ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
