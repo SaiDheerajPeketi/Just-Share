@@ -96,7 +96,8 @@ fun TransferProgressScreen(
             )
         }
     } else {
-        val incomingMimeType by btViewModel.incomingMimeTypeState.collectAsState()
+        val btIncomingMimeType by btViewModel.incomingMimeTypeState.collectAsState()
+        val incomingMimeType = if (method == "wifi") state.incomingMimeType else btIncomingMimeType
         val incomingName = if (method == "wifi") {
             state.currentFileName.takeIf { it.isNotBlank() }
         } else {
