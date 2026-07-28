@@ -1,3 +1,5 @@
+import androidx.activity.compose.BackHandler
+
 package com.invincible.jedishare.ui.screens
 
 import androidx.compose.foundation.background
@@ -35,13 +37,19 @@ data class TransferFile(
     val isActive: Boolean
 )
 
+
 @Composable
 fun TransferProgressScreen(
     transferViewModel: TransferViewModel,
     btViewModel: BluetoothViewModel = hiltViewModel(),
+    wifiViewModel: WifiDirectViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
+    BackHandler {
+        transferViewModel.clearTransferProgress()
+        onBack()
+    }
     val colors = JediShareTheme.colors
     val state by transferViewModel.state.collectAsState()
     val btProgress by btViewModel.transferProgress.collectAsState()

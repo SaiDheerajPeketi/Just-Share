@@ -147,6 +147,19 @@ class TransferViewModel @Inject constructor(
         _state.update { it.copy(hasTransferStarted = true, isTransferComplete = false) }
     }
 
+    fun clearTransferProgress() {
+        _state.update {
+            it.copy(
+                hasTransferStarted = false,
+                isTransferComplete = false,
+                progressPercent = 0f,
+                currentFileName = "",
+                currentFileSizeBytes = 0L,
+                currentFileIndex = 0
+            )
+        }
+    }
+
     fun resetTransfer() {
         CommunicationService.clearTransferUpdate()
         _state.update {
