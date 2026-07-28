@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.invincible.jedishare.presentation.BluetoothViewModel
+import com.invincible.jedishare.presentation.WifiDirectViewModel
 import com.invincible.jedishare.presentation.TransferViewModel
 import com.invincible.jedishare.ui.components.BackBar
 import com.invincible.jedishare.ui.theme.JediShareTheme
