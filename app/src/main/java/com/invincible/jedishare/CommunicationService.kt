@@ -339,6 +339,11 @@ class CommunicationService : Service() {
                                 isEofReceived = true
                                 break
                             }
+                            if (chunkSize == -1) {
+                                Log.e(TAG, "Sender aborted file mid-transfer")
+                                isEofReceived = false
+                                break
+                            }
                             if (chunkSize < 0 || chunkSize > CHUNK_SIZE) {
                                 throw IOException("Invalid chunk size: $chunkSize")
                             }
@@ -475,25 +480,35 @@ class CommunicationService : Service() {
             broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
-            inputStream.use { stream ->
-                val buffer = ByteArray(CHUNK_SIZE)
-                var bytesSent = 0L
+            try {
+                inputStream.use { stream ->
+                    val buffer = ByteArray(CHUNK_SIZE)
+                    var bytesSent = 0L
 
-                while (true) {
-                    val bytesRead = stream.read(buffer)
-                    if (bytesRead == -1) break
+                    while (true) {
+                        val bytesRead = stream.read(buffer)
+                        if (bytesRead == -1) break
+                        
+                        outputStream.writeInt(bytesRead)
+                        outputStream.write(buffer, 0, bytesRead)
+                        
+                        bytesSent += bytesRead
+                        val pct = if (totalSize > 0) ((bytesSent * 100) / totalSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
+                        broadcastProgress(pct.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                    }
                     
-                    outputStream.writeInt(bytesRead)
-                    outputStream.write(buffer, 0, bytesRead)
-                    
-                    bytesSent += bytesRead
-                    val pct = if (totalSize > 0) ((bytesSent * 100) / totalSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
-                    broadcastProgress(pct.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                    val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
+                    outputStream.write(eofMarker)
+                    outputStream.flush()
                 }
-                
-                val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
-                outputStream.write(eofMarker)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed reading file mid-transfer: $uri", e)
+                val cancelMarker = java.nio.ByteBuffer.allocate(4).putInt(-1).array()
+                outputStream.write(cancelMarker)
                 outputStream.flush()
+                broadcastProgress(-1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                currentIndex++
+                continue
             }
 
             broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)

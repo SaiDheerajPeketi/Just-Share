@@ -348,34 +348,41 @@ class AndroidBluetoothController(
             val fileSizeBuffer = java.nio.ByteBuffer.allocate(8).putLong(fileSize).array()
             dataTransferService?.sendMessage(fileSizeBuffer)
 
-            // Stream file bytes
-            inputStream.use { stream ->
-                val buffer = ByteArray(BluetoothDataTransferService.CHUNK_SIZE)
-                var bytesRead: Int
-                var bytesSent = 0L
-                var lastProgress = -1
-                
-                while (stream.read(buffer).also { bytesRead = it } != -1) {
-                    // Send 4-byte chunk size
-                    val chunkSizeBytes = java.nio.ByteBuffer.allocate(4).putInt(bytesRead).array()
-                    dataTransferService?.sendMessage(chunkSizeBytes)
-                    // Send chunk data
-                    dataTransferService?.sendMessage(buffer, 0, bytesRead)
+            try {
+                inputStream.use { stream ->
+                    val buffer = ByteArray(BluetoothDataTransferService.CHUNK_SIZE)
+                    var bytesRead: Int
+                    var bytesSent = 0L
+                    var lastProgress = -1
                     
-                    bytesSent += bytesRead
-                    val progress = if (fileSize > 0) ((bytesSent * 100) / fileSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
-                    if (progress > lastProgress) {
-                        onBytesSent(bytesSent)
-                        iterationCountFlow.tryEmit(bytesSent)
-                        lastProgress = progress
+                    while (stream.read(buffer).also { bytesRead = it } != -1) {
+                        // Send 4-byte chunk size
+                        val chunkSizeBytes = java.nio.ByteBuffer.allocate(4).putInt(bytesRead).array()
+                        dataTransferService?.sendMessage(chunkSizeBytes)
+                        // Send chunk data
+                        dataTransferService?.sendMessage(buffer.copyOfRange(0, bytesRead))
+                        
+                        bytesSent += bytesRead
+                        val progress = if (fileSize > 0) ((bytesSent * 100) / fileSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
+                        if (progress > lastProgress) {
+                            onBytesSent(bytesSent)
+                            iterationCountFlow.tryEmit(bytesSent)
+                            lastProgress = progress
+                        }
                     }
+                    
+                    // Send 0-sized chunk to mark EOF
+                    val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
+                    dataTransferService?.sendMessage(eofMarker)
                 }
-                
-                // Send 0-sized chunk to mark EOF
-                val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
-                dataTransferService?.sendMessage(eofMarker)
-                
-            } ?: Log.e(TAG, "Could not open input stream for $uri")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed reading file mid-transfer: $uri", e)
+                val cancelMarker = java.nio.ByteBuffer.allocate(4).putInt(-1).array()
+                dataTransferService?.sendMessage(cancelMarker)
+                onBytesSent(-1L)
+                onFileCountUpdated(++fileCount)
+                continue
+            }
             onFileCountUpdated(++fileCount)
             Log.d(TAG, "File $fileCount sent: $uri")
             onFileSent(fileInfo)

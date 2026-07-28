@@ -118,21 +118,22 @@ class FileTransferRepository @Inject constructor(
     suspend fun closeFile() = withContext(Dispatchers.IO) {
         Timber.d("FileTransferRepository - closeFile called")
         try {
+            currentOutputStream?.flush()
             currentOutputStream?.close()
         } catch (e: Exception) {
-            Log.e("FileTransferRepository", "Failed to close output stream", e)
+            Log.e("FileTransferRepository", "Error closing stream", e)
         } finally {
             currentOutputStream = null
             
-            // Clear IS_PENDING flag so the media scanner can index the completed file
-            currentFileUri?.let { uri ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    try {
-                        val values = ContentValues().apply { put(MediaStore.Files.FileColumns.IS_PENDING, 0) }
-                        contentResolver.update(uri, values, null, null)
-                    } catch (e: Exception) {
-                        Log.e("FileTransferRepository", "Failed to clear IS_PENDING flag for $uri", e)
+            // If API >= 29, clear the IS_PENDING flag
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && currentFileUri != null) {
+                try {
+                    val values = ContentValues().apply {
+                        put(MediaStore.Files.FileColumns.IS_PENDING, 0)
                     }
+                    contentResolver.update(currentFileUri!!, values, null, null)
+                } catch (e: Exception) {
+                    Log.e("FileTransferRepository", "Failed to clear IS_PENDING for $currentFileUri", e)
                 }
             }
             currentFileUri = null
@@ -140,7 +141,7 @@ class FileTransferRepository @Inject constructor(
     }
 
     /**
-     * Deletes a file from MediaStore (useful for incomplete transfers).
+     * Deletes a file by its URI.
      */
     suspend fun deleteFile(uri: Uri) = withContext(Dispatchers.IO) {
         Timber.d("FileTransferRepository - deleteFile called")
