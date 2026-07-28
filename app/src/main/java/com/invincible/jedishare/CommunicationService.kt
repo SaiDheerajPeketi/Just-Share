@@ -45,7 +45,8 @@ data class WifiTransferUpdate(
     val currentFileIndex: Int,
     val totalFiles: Int,
     val remoteDeviceName: String?,
-    val mimeType: String?
+    val mimeType: String?,
+    val manifest: List<com.invincible.jedishare.domain.chat.FileInfo>? = null
 )
 
 /**
@@ -298,13 +299,31 @@ class CommunicationService : Service() {
                 }
 
                 val fileSize = dataInput.readLong().coerceAtLeast(0L)
-                val fileName = fileInfo.fileName ?: "received_file"
+                
+                if (fileInfo.manifest != null) {
+                    val totalSizeNeeded = fileInfo.manifest.sumOf { it.size?.toLongOrNull() ?: 0L }
+                    val availableSpace = android.os.Environment.getExternalStorageDirectory().usableSpace
+                    if (totalSizeNeeded > availableSpace) {
+                        Log.e(TAG, "Not enough storage. Needed: $totalSizeNeeded, Available: $availableSpace")
+                        throw IOException("Not enough storage on receiver device")
+                    }
+                }
+                
+                broadcastProgress(
+                    progress = 0,
+                    fileName = fileInfo.fileName,
+                    fileSize = fileSize,
+                    currentFileIndex = currentIndex,
+                    totalFiles = fileInfo.manifest?.size ?: 0,
+                    mimeType = fileInfo.mimeType,
+                    manifest = fileInfo.manifest
+                )
                 val fileUri = createMediaStoreEntry(fileInfo)
                 var bytesReceived = 0L
 
                 var isEofReceived = false
                 try {
-                    contentResolver.openOutputStream(fileUri ?: throw IOException("Could not create destination for $fileName"), "wa").use { output ->
+                    contentResolver.openOutputStream(fileUri ?: throw IOException("Could not create destination for ${fileInfo.fileName ?: "received_file"}"), "wa").use { output ->
                         while (true) {
                             val chunkSize = dataInput.readInt()
                             if (chunkSize == 0) {
@@ -326,7 +345,7 @@ class CommunicationService : Service() {
                             output?.write(buffer, 0, chunkSize)
                             bytesReceived += chunkSize
                             val pct = if (fileSize > 0) ((bytesReceived * 100) / fileSize).toInt() else (bytesReceived / (1024 * 1024)).toInt()
-                            broadcastProgress(pct, fileName, fileSize, currentIndex, 0, fileInfo.mimeType)
+                            broadcastProgress(pct, fileInfo.fileName ?: "received_file", fileSize, currentIndex, 0, fileInfo.mimeType)
                         }
                     }
                 } catch (e: Exception) {
@@ -365,12 +384,13 @@ class CommunicationService : Service() {
                     try {
                         historyRepository.addEntry(
                             TransferHistoryEntity(
-                                fileName = fileName,
+                                fileName = fileInfo.fileName ?: "Unknown",
                                 mimeType = fileInfo.mimeType,
                                 fileSizeBytes = fileSize,
                                 isSender = false,
                                 transferMethod = "WiFi-Direct",
-                                remoteDeviceName = remoteDeviceName
+                                remoteDeviceName = remoteDeviceName,
+                                contentUri = fileUri?.toString()
                             )
                         )
                     } catch (e: Exception) {
@@ -380,13 +400,13 @@ class CommunicationService : Service() {
 
                 broadcastProgress(
                     progress = 100,
-                    fileName = fileName,
+                    fileName = fileInfo.fileName ?: "received_file",
                     fileSize = fileSize,
                     currentFileIndex = currentIndex,
                     totalFiles = 0,
                     mimeType = fileInfo.mimeType
                 )
-                Log.d(TAG, "Received: $fileName ($bytesReceived bytes)")
+                Log.d(TAG, "Received: ${fileInfo.fileName ?: "received_file"} ($bytesReceived bytes)")
                 currentIndex++
             }
         }
@@ -413,9 +433,12 @@ class CommunicationService : Service() {
         val outputStream = waitForOutputStream() ?: throw IOException("Wi-Fi Direct socket is not connected")
 
         val totalFiles = uris.size
+        val allFileInfos = uris.map { getFileDetailsFromUri(it, contentResolver) }
         var currentIndex = 0
-        for (uri in uris) {
-            val fileInfo = getFileDetailsFromUri(uri, contentResolver)
+        for (i in uris.indices) {
+            val uri = uris[i]
+            val baseFileInfo = allFileInfos[i]
+            val fileInfo = if (i == 0) baseFileInfo.copy(manifest = allFileInfos) else baseFileInfo
             val totalSize = fileInfo.size?.toLong() ?: 0L
             val metaBytes = fileInfo.toByteArray() ?: throw IOException("Failed to serialize FileInfo")
 
@@ -424,7 +447,7 @@ class CommunicationService : Service() {
             outputStream.writeLong(totalSize)
             outputStream.flush()
 
-            broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
+            broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
             contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -439,7 +462,7 @@ class CommunicationService : Service() {
                     
                     bytesSent += bytesRead
                     val pct = if (totalSize > 0) ((bytesSent * 100) / totalSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
-                    broadcastProgress(pct.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
+                    broadcastProgress(pct.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
                 }
                 
                 val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
@@ -462,8 +485,9 @@ class CommunicationService : Service() {
                                 fileSizeBytes = totalSize,
                                 isSender = true,
                                 transferMethod = "WiFi-Direct",
-                            remoteDeviceName = remoteDeviceName ?: "Unknown Device"
-                        )
+                                remoteDeviceName = remoteDeviceName ?: "Unknown Device",
+                                contentUri = uri.toString()
+                            )
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to save sender history entry", e)
@@ -503,7 +527,8 @@ class CommunicationService : Service() {
         fileSize: Long,
         currentFileIndex: Int,
         totalFiles: Int,
-        mimeType: String?
+        mimeType: String?,
+        manifest: List<com.invincible.jedishare.domain.chat.FileInfo>? = null
     ) {
         val update = WifiTransferUpdate(
             progress = progress,
@@ -512,7 +537,8 @@ class CommunicationService : Service() {
             currentFileIndex = currentFileIndex,
             totalFiles = totalFiles,
             remoteDeviceName = remoteDeviceName,
-            mimeType = mimeType
+            mimeType = mimeType,
+            manifest = manifest
         )
         _transferUpdates.value = update
         sendBroadcast(Intent(BROADCAST_SENDING_UPDATE).apply {

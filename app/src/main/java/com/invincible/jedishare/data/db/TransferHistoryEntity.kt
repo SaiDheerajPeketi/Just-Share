@@ -38,6 +38,10 @@ data class TransferHistoryEntity(
     @ColumnInfo(name = "remote_device_name")
     val remoteDeviceName: String?,
 
+    /** The URI of the file on the device, to allow opening it from history. */
+    @ColumnInfo(name = "content_uri")
+    val contentUri: String? = null,
+
     /** Unix epoch timestamp (ms) when the transfer completed. */
     @ColumnInfo(name = "timestamp_ms")
     val timestampMs: Long = System.currentTimeMillis()

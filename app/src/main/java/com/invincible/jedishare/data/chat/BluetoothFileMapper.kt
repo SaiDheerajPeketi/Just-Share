@@ -23,13 +23,23 @@ private const val TAG = "BluetoothFileMapper"
 /** Serializes this [FileInfo] to a compact JSON UTF-8 byte array. */
 fun FileInfo.toByteArray(): ByteArray? = runCatching {
     Timber.d("version - toByteArray called")
-    JSONObject().apply {
+    val jsonObj = toJsonObject()
+    jsonObj.toString().encodeToByteArray()
+}.onFailure { Log.e(TAG, "FileInfo serialization failed", it) }.getOrNull()
+
+private fun FileInfo.toJsonObject(): JSONObject {
+    return JSONObject().apply {
         put("fileName", fileName ?: JSONObject.NULL)
         put("format",   format   ?: JSONObject.NULL)
         put("size",     size     ?: JSONObject.NULL)
         put("mimeType", mimeType ?: JSONObject.NULL)
-    }.toString().encodeToByteArray()
-}.onFailure { Log.e(TAG, "FileInfo serialization failed", it) }.getOrNull()
+        if (manifest != null) {
+            val manifestArray = org.json.JSONArray()
+            manifest.forEach { manifestArray.put(it.toJsonObject()) }
+            put("manifest", manifestArray)
+        }
+    }
+}
 
 /** Deserializes a UTF-8 JSON byte array back to [FileInfo], or null on error. */
 fun ByteArray.toFileInfo(): FileInfo? = runCatching {
@@ -39,6 +49,23 @@ fun ByteArray.toFileInfo(): FileInfo? = runCatching {
         fileName = json.optString("fileName").takeIf { it.isNotEmpty() && it != "null" },
         format   = json.optString("format").takeIf   { it.isNotEmpty() && it != "null" },
         size     = json.optString("size").takeIf     { it.isNotEmpty() && it != "null" },
-        mimeType = json.optString("mimeType").takeIf { it.isNotEmpty() && it != "null" }
+        mimeType = json.optString("mimeType").takeIf { it.isNotEmpty() && it != "null" },
+        manifest = json.optJSONArray("manifest")?.let { jsonArray ->
+            val list = mutableListOf<FileInfo>()
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.optJSONObject(i)
+                if (item != null) {
+                    list.add(
+                        FileInfo(
+                            fileName = item.optString("fileName").takeIf { it.isNotEmpty() && it != "null" },
+                            format   = item.optString("format").takeIf   { it.isNotEmpty() && it != "null" },
+                            size     = item.optString("size").takeIf     { it.isNotEmpty() && it != "null" },
+                            mimeType = item.optString("mimeType").takeIf { it.isNotEmpty() && it != "null" }
+                        )
+                    )
+                }
+            }
+            list.ifEmpty { null }
+        }
     )
 }.onFailure { Log.e(TAG, "FileInfo deserialization failed", it) }.getOrNull()

@@ -13,7 +13,9 @@ import com.invincible.jedishare.data.repository.FileTransferRepository
 import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.chat.BluetoothController
 import com.invincible.jedishare.domain.chat.BluetoothDeviceDomain
+import com.invincible.jedishare.domain.chat.BluetoothMessage
 import com.invincible.jedishare.domain.chat.ConnectionResult
+import com.invincible.jedishare.domain.chat.FileInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -85,6 +87,9 @@ class BluetoothViewModel @Inject constructor(
     private val _incomingMimeTypeState = MutableStateFlow<String?>(null)
     val incomingMimeTypeState: StateFlow<String?> = _incomingMimeTypeState.asStateFlow()
 
+    private val _incomingManifestState = MutableStateFlow<List<FileInfo>?>(null)
+    val incomingManifestState: StateFlow<List<FileInfo>?> = _incomingManifestState.asStateFlow()
+
     private val _connectedDeviceNameState = MutableStateFlow<String?>(null)
     val connectedDeviceNameState: StateFlow<String?> = _connectedDeviceNameState.asStateFlow()
 
@@ -109,6 +114,7 @@ class BluetoothViewModel @Inject constructor(
         _incomingFileNameState.value = null
         _incomingMimeType = null
         _incomingMimeTypeState.value = null
+        _incomingManifestState.value = null
         _incomingFileSize = 0L
         _currentFileSize.value = 0L
         _currFileCount.value = 0
@@ -190,7 +196,8 @@ class BluetoothViewModel @Inject constructor(
                                 fileSizeBytes = fileInfo.size?.toLongOrNull() ?: 0L,
                                 isSender = true,
                                 transferMethod = "bt",
-                                remoteDeviceName = _connectedDeviceName ?: "Unknown Device"
+                                remoteDeviceName = _connectedDeviceName ?: "Unknown Device",
+                                contentUri = fileInfo.uri
                             )
                         )
                         Log.d("BluetoothViewModel", "Sender history entry saved: ${fileInfo.fileName}")
@@ -232,6 +239,7 @@ class BluetoothViewModel @Inject constructor(
                     _incomingFileNameState.value = null
                     _incomingMimeType = null
                     _incomingMimeTypeState.value = null
+                    _incomingManifestState.value = null
                     _incomingFileSize = 0L
                     _currentFileSize.value = 0L
                     _currFileCount.value = 0
@@ -253,6 +261,17 @@ class BluetoothViewModel @Inject constructor(
                             _incomingFileNameState.value = fileInfo.fileName
                             _incomingMimeType = fileInfo.mimeType
                             _incomingMimeTypeState.value = fileInfo.mimeType
+                            if (fileInfo.manifest != null && _incomingManifestState.value == null) {
+                                val totalSizeNeeded = fileInfo.manifest.sumOf { it.size?.toLongOrNull() ?: 0L }
+                                val availableSpace = android.os.Environment.getExternalStorageDirectory().usableSpace
+                                if (totalSizeNeeded > availableSpace) {
+                                    Log.e("BluetoothViewModel", "Not enough storage. Needed: $totalSizeNeeded, Available: $availableSpace")
+                                    bluetoothController.closeConnection()
+                                    _state.update { it.copy(errorMessage = "Not enough storage on receiver device") }
+                                    return@onEach
+                                }
+                                _incomingManifestState.value = fileInfo.manifest
+                            }
                             _incomingFileSize = fileInfo.size?.toLongOrNull() ?: 0L
                             _currentFileSize.value = _incomingFileSize
                             _transferProgress.update { it.copy(totalBytes = _incomingFileSize, bytesReceived = 0L) }
@@ -286,7 +305,8 @@ class BluetoothViewModel @Inject constructor(
                                 fileSizeBytes   = fileSize,
                                 isSender        = isSender,
                                 transferMethod  = "bt",
-                                remoteDeviceName = deviceName
+                                remoteDeviceName = deviceName,
+                                contentUri      = fileUri?.toString()
                             )
                         )
                         Log.d("BluetoothViewModel", "History entry saved: $fileName")

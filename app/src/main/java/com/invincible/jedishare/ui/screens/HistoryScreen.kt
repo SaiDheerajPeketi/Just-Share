@@ -38,6 +38,11 @@ import com.invincible.jedishare.ui.components.BottomNav
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import java.text.SimpleDateFormat
 import java.util.*
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 fun formatSize(bytes: Long): String {
     if (bytes < 1024) return "$bytes B"
@@ -74,12 +79,65 @@ fun formatDateRelative(ms: Long): String {
     }
 }
 
+private fun openFile(context: Context, item: TransferHistoryEntity) {
+    if (item.contentUri == null) {
+        Toast.makeText(context, "File location unknown", Toast.LENGTH_SHORT).show()
+        return
+    }
+    
+    val uri = Uri.parse(item.contentUri)
+    
+    // Check if it exists and is not in the trash
+    var exists = false
+    try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                exists = true
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    val isTrashedIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.IS_TRASHED)
+                    if (isTrashedIndex != -1) {
+                        if (cursor.getInt(isTrashedIndex) == 1) {
+                            exists = false
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Double check by trying to open it for reading
+        if (exists) {
+            context.contentResolver.openFileDescriptor(uri, "r")?.use {}
+        }
+    } catch (e: Exception) {
+        exists = false
+    }
+    
+    if (!exists) {
+        Toast.makeText(context, "File no longer exists or was moved", Toast.LENGTH_SHORT).show()
+        return
+    }
+    
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, item.mimeType ?: "*/*")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    
+    try {
+        context.startActivity(Intent.createChooser(intent, "Open File").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    } catch (e: Exception) {
+        Toast.makeText(context, "No app found to open this file", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel(),
     onNavigateToNavRoute: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
+    val context = LocalContext.current
     val historyItems by viewModel.history.collectAsState()
 
     val groupedItems = historyItems.groupBy { formatDateRelative(it.timestampMs) }
@@ -166,6 +224,7 @@ fun HistoryScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .clickable { openFile(context, item) }
                                             .padding(16.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {

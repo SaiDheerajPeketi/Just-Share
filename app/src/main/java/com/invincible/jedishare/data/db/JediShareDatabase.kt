@@ -15,7 +15,7 @@ import android.content.Context
  */
 @Database(
     entities = [TransferHistoryEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true  // enables migration testing with MigrationTestHelper
 )
 abstract class JediShareDatabase : RoomDatabase() {

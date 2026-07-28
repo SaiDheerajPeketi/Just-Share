@@ -8,7 +8,9 @@ data class FileInfo(
     val fileName: String?,
     val format: String?,
     val size: String?,
-    val mimeType: String?
+    val mimeType: String?,
+    val uri: String? = null,
+    val manifest: List<FileInfo>? = null
 ) : Serializable
 
 data class FileData(

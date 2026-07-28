@@ -99,14 +99,21 @@ class TransferViewModel @Inject constructor(
 
     private fun applyWifiProgress(update: WifiTransferUpdate) {
         _state.update {
+            val newFileInfos = if (update.manifest != null && it.fileInfos.isEmpty()) {
+                update.manifest
+            } else {
+                it.fileInfos
+            }
             it.copy(
+                fileInfos = newFileInfos,
                 progressPercent = update.progress.toFloat(),
                 currentFileName = update.fileName,
                 currentFileSizeBytes = update.fileSize,
-                incomingMimeType = update.mimeType ?: it.incomingMimeType,
                 currentFileIndex = update.currentFileIndex,
                 totalFiles = if (update.totalFiles > 0) update.totalFiles else it.totalFiles,
                 connectedDeviceName = update.remoteDeviceName ?: it.connectedDeviceName,
+                incomingMimeType = update.mimeType ?: it.incomingMimeType,
+                hasTransferStarted = true,
                 isTransferComplete = update.progress == 100 && (
                     update.totalFiles == 0 || update.currentFileIndex >= update.totalFiles - 1
                 )
