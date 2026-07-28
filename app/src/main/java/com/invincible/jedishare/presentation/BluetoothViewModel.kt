@@ -322,6 +322,14 @@ class BluetoothViewModel @Inject constructor(
                     _transferProgress.update { it.copy(bytesReceived = it.totalBytes) }
                 }
 
+                is ConnectionResult.FileSkipped -> {
+                    Log.e("BluetoothViewModel", "File skipped by sender")
+                    isFirstChunk = true
+                    fileUri = null
+                    _currFileCount.value = _currFileCount.value + 1
+                    _transferProgress.update { it.copy(bytesReceived = -1L) } // -1 indicates failed/skipped
+                }
+
                 is ConnectionResult.Error -> {
                     Log.e("BluetoothViewModel", "Connection error: ${result.message}")
                     fileTransferRepository.closeFile()

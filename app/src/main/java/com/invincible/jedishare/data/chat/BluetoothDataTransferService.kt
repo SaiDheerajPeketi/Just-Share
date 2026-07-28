@@ -65,6 +65,12 @@ class BluetoothDataTransferService(
                 throw TransferFailedException()
             }
             
+            if (fileSize == -1L) {
+                Log.e("BDTransferService", "Sender skipped file")
+                emit(IncomingData.FileSkipped)
+                continue
+            }
+            
             while (true) {
                 val chunkSize = try {
                     dataIn.readInt()
@@ -123,4 +129,6 @@ sealed class IncomingData {
     data class FileChunk(val bytes: ByteArray) : IncomingData()
     /** Signals that the entire current file has been received. */
     object EndOfFile : IncomingData()
+    /** Signals that the sender skipped sending the current file (e.g. file deleted/unreadable). */
+    object FileSkipped : IncomingData()
 }

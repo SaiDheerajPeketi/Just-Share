@@ -18,6 +18,9 @@ sealed interface ConnectionResult {
     /** The current file has been fully transferred (EOF sentinel received). */
     object EndOfFile : ConnectionResult
 
+    /** The current file transfer was skipped. */
+    object FileSkipped : ConnectionResult
+
     /** An error occurred during the connection or transfer. */
     data class Error(val message: String) : ConnectionResult
 }

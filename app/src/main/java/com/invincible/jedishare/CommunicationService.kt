@@ -298,7 +298,16 @@ class CommunicationService : Service() {
                     break
                 }
 
-                val fileSize = dataInput.readLong().coerceAtLeast(0L)
+                val rawFileSize = dataInput.readLong()
+                
+                if (rawFileSize == -1L) {
+                    Log.e(TAG, "File was skipped by sender: ${fileInfo.fileName}")
+                    broadcastProgress(-1, fileInfo.fileName, 0L, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, fileInfo.manifest)
+                    currentIndex++
+                    continue
+                }
+
+                val fileSize = rawFileSize.coerceAtLeast(0L)
                 
                 if (fileInfo.manifest != null) {
                     val totalSizeNeeded = fileInfo.manifest.sumOf { it.size?.toLongOrNull() ?: 0L }
@@ -444,21 +453,38 @@ class CommunicationService : Service() {
 
             outputStream.writeInt(metaBytes.size)
             outputStream.write(metaBytes)
+            
+            val inputStream = try {
+                contentResolver.openInputStream(uri)
+            } catch (e: Exception) {
+                null
+            }
+            
+            if (inputStream == null) {
+                Log.e(TAG, "File skipped (deleted or inaccessible): $uri")
+                outputStream.writeLong(-1L)
+                outputStream.flush()
+                broadcastProgress(-1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                currentIndex++
+                continue
+            }
+
             outputStream.writeLong(totalSize)
             outputStream.flush()
 
             broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
-            contentResolver.openInputStream(uri)?.use { inputStream ->
+            inputStream.use { stream ->
                 val buffer = ByteArray(CHUNK_SIZE)
-                var bytesRead: Int
                 var bytesSent = 0L
-                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    val chunkSizeBytes = java.nio.ByteBuffer.allocate(4).putInt(bytesRead).array()
-                    outputStream.write(chunkSizeBytes)
+
+                while (true) {
+                    val bytesRead = stream.read(buffer)
+                    if (bytesRead == -1) break
+                    
+                    outputStream.writeInt(bytesRead)
                     outputStream.write(buffer, 0, bytesRead)
-                    outputStream.flush()
                     
                     bytesSent += bytesRead
                     val pct = if (totalSize > 0) ((bytesSent * 100) / totalSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
@@ -468,8 +494,7 @@ class CommunicationService : Service() {
                 val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
                 outputStream.write(eofMarker)
                 outputStream.flush()
-                
-            } ?: Log.e(TAG, "Could not open input stream for $uri")
+            }
 
             broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
             Log.d(TAG, "Sent: ${fileInfo.fileName} ($totalSize bytes)")
