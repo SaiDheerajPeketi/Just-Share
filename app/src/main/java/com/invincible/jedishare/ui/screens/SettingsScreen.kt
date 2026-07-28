@@ -46,7 +46,9 @@ fun SettingsScreen(
         ).userPreferencesDataStore()
     }
     val coroutineScope = rememberCoroutineScope()
-    val isDarkMode by dataStore.isDarkModeEnabled.collectAsStateWithLifecycle(initialValue = androidx.compose.foundation.isSystemInDarkTheme())
+    val isDarkModePref by dataStore.isDarkModeEnabled.collectAsStateWithLifecycle(initialValue = null)
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDarkMode = isDarkModePref ?: isSystemDark
     
     val transferState by transferViewModel.state.collectAsStateWithLifecycle()
     val transferMethod = transferState.method
