@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -58,6 +59,8 @@ class MainActivity : ComponentActivity() {
         }
     }.toTypedArray()
 
+    private val transferViewModel: com.invincible.jedishare.presentation.TransferViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity - onCreate called")
         super.onCreate(savedInstanceState)
@@ -70,6 +73,11 @@ class MainActivity : ComponentActivity() {
             else -> null
         }
 
+        if (initialUris.isNotEmpty()) {
+            transferViewModel.setUris(initialUris)
+        }
+        initialMethod?.let { transferViewModel.setMethod(it) }
+
         setContent {
             JediShareTheme {
                 Box(
@@ -79,6 +87,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     AppNavGraph(
                         startDestination = startRoute,
+                        transferViewModel = transferViewModel,
                         initialUris = initialUris,
                         initialMethod = initialMethod
                     )
