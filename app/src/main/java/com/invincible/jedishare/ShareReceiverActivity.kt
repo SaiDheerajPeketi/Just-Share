@@ -40,7 +40,7 @@ class ShareReceiverActivity : ComponentActivity() {
             val method = dataStore.defaultTransferMethod.first()
             val nextIntent = Intent(this@ShareReceiverActivity, MainActivity::class.java).apply {
                 putParcelableArrayListExtra("urilist", uris)
-                putExtra("start_route", if (method == "WiFi-Direct") "discover-wifi" else "discover-bt")
+                putExtra("start_route", if (method == "wifi") "discover-wifi" else "discover-bt")
                 action = intent.action
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
