@@ -279,10 +279,11 @@ class WifiDirectViewModel @Inject constructor(
         if (!isSenderRole || _uiState.value.isConnected) {
             return
         }
-        activeConnectJob?.cancel()
-        cancelConnectTimeout()
+        if (_uiState.value.connectionStatus == "connecting") {
+            activeConnectJob?.cancel()
+            cancelConnectTimeout()
+        }
         _uiState.update { it.copy(connectionStatus = "") }
-        _uiState.update { it.copy(peers = emptyList()) }
         viewModelScope.launch {
             awaitP2pAction { manager.cancelConnect(channel, it) }
             if (_uiState.value.isDiscovering) {
@@ -496,9 +497,6 @@ class WifiDirectViewModel @Inject constructor(
         channel: WifiP2pManager.Channel,
         config: WifiP2pConfig
     ) {
-        awaitP2pAction { manager.cancelConnect(channel, it) }
-        awaitP2pAction { manager.stopPeerDiscovery(channel, it) }
-
         val connectFailure = runP2pAction(
             label = "connect",
             retryReasons = setOf(WifiP2pManager.BUSY)
