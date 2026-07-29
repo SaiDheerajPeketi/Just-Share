@@ -80,7 +80,11 @@ fun TransferProgressScreen(
         if (isSender) {
             state.urisToShare.isNotEmpty() && btCurrFileCount >= state.urisToShare.size
         } else {
-            progress >= 100f
+            if (btIncomingManifest != null) {
+                btCurrFileCount >= btIncomingManifest!!.size
+            } else {
+                progress >= 100f
+            }
         }
     } else {
         if (isSender) {
