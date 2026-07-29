@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.MimeTypeMap
+import android.media.MediaScannerConnection
 import com.invincible.jedishare.domain.chat.FileInfo
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,5 +154,29 @@ fun classifyFileType(fileExtension: String): String {
         ext in listOf("pdf", "doc", "docx", "ppt", "pptx", "xls",
             "xlsx", "txt", "csv", "zip", "rar")                            -> "Document"
         else                                                                -> "Document"
+    }
+}
+
+/**
+ * Manually triggers the Android Media Scanner for a given content URI.
+ * This ensures metadata like duration, dimensions, and size are properly extracted 
+ * after the file is written to MediaStore.
+ */
+fun scanMediaUri(context: android.content.Context, uri: Uri) {
+    try {
+        var path: String? = null
+        context.contentResolver.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DATA), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val dataIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.DATA)
+                if (dataIndex != -1) {
+                    path = cursor.getString(dataIndex)
+                }
+            }
+        }
+        if (path != null) {
+            MediaScannerConnection.scanFile(context, arrayOf(path), null) { _, _ -> }
+        }
+    } catch (e: Exception) {
+        Log.e("Utils", "Failed to scan media uri: $uri", e)
     }
 }
