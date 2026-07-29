@@ -310,7 +310,6 @@ class WifiDirectViewModel @Inject constructor(
         val channel = wifiP2pChannel ?: return
         if (_uiState.value.isConnected || 
             _uiState.value.connectionStatus == "connecting" || 
-            _uiState.value.connectionStatus == "hosting" ||
             !isSenderRole) {
             return
         }
