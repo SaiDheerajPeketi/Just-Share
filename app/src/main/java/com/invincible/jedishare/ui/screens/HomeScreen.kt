@@ -27,6 +27,11 @@ import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.invincible.jedishare.presentation.HistoryViewModel
+import com.invincible.jedishare.ui.screens.formatSize
+import com.invincible.jedishare.ui.screens.formatDateRelative
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -115,12 +120,15 @@ fun RecentFileItem(
 @Composable
 fun HomeScreen(
     transferViewModel: TransferViewModel,
+    historyViewModel: HistoryViewModel = hiltViewModel(),
     onNavigateToNavRoute: (String) -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
     val transferState by transferViewModel.state.collectAsStateWithLifecycle()
     val transferMethod = transferState.method
+    val historyItems by historyViewModel.history.collectAsState()
+    val recentItems = historyItems.take(3)
 
     val infiniteTransition = rememberInfiniteTransition(label = "arrow_anim")
     val upArrowOffset by infiniteTransition.animateFloat(
@@ -256,37 +264,42 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Recent", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold, fontSize = 18.sp), color = colors.mutedFg)
-                    Text("See all", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, fontSize = 15.sp), color = colors.red, modifier = Modifier.clickable { })
+                    Box(
+                        modifier = Modifier
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { onNavigateToScreen("history") }
+                            )
+                            .padding(8.dp)
+                    ) {
+                        Text("See all", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, fontSize = 15.sp), color = colors.red)
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Placeholder 1
-                RecentFileItem(
-                    icon = Icons.Default.Image,
-                    iconTint = colors.red,
-                    iconBg = colors.red.copy(alpha = 0.08f),
-                    title = "Vacation_042.jpg",
-                    subtitle = "24 MB · 2 min ago"
-                )
-                
-                // Placeholder 2
-                RecentFileItem(
-                    icon = Icons.Default.InsertDriveFile,
-                    iconTint = colors.mutedFg,
-                    iconBg = colors.cardBg,
-                    title = "Q3_report.pdf",
-                    subtitle = "3.1 MB · 1 hr ago"
-                )
-                
-                // Placeholder 3
-                RecentFileItem(
-                    icon = Icons.Default.Videocam,
-                    iconTint = colors.mutedFg,
-                    iconBg = colors.cardBg,
-                    title = "Demo_clip.mp4",
-                    subtitle = "112 MB · yesterday"
-                )
+                if (recentItems.isEmpty()) {
+                    Text("No recent transfers", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(vertical = 16.dp))
+                } else {
+                    recentItems.forEach { item ->
+                        val icon = when {
+                            item.mimeType?.startsWith("image/") == true -> Icons.Default.Image
+                            item.mimeType?.startsWith("video/") == true -> Icons.Default.Videocam
+                            else -> Icons.Default.InsertDriveFile
+                        }
+                        val tint = if (item.mimeType?.startsWith("image/") == true) colors.red else colors.mutedFg
+                        val bg = if (item.mimeType?.startsWith("image/") == true) colors.red.copy(alpha = 0.08f) else colors.cardBg
+                        
+                        RecentFileItem(
+                            icon = icon,
+                            iconTint = tint,
+                            iconBg = bg,
+                            title = item.fileName,
+                            subtitle = "${formatSize(item.fileSizeBytes)} · ${formatDateRelative(item.timestampMs)}"
+                        )
+                    }
+                }
             }
         }
     }
