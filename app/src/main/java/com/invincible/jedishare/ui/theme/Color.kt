@@ -2,24 +2,38 @@ package com.invincible.jedishare.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val MyRed = Color(0xFFEC1C22)
-val DarkRed = Color(0xFFB71C1C)
-val LightRed = Color(0xFFFFCDD2)
-val Gold = Color(0xFFD4A017)
-val Green = Color(0xFF4CAF50)
+// Brand red — same hue in both themes, tuned to sit at a mid-lightness so
+// white text stays >4.5:1 contrast whether it's on a light or dark surface.
+// Slightly deeper/less orange than a typical "urgent" red to avoid a
+// gambling/phishing feel.
+val MyRed = Color(0xFFE1414F)
+val LightRed = Color(0xFFFF6B76)   // lighter tint, e.g. hover/gradient stop
+val DarkRed = Color(0xFFA81F2D)    // pressed / shadow state
 
-// Light Theme Colors
-val LightBlack = Color(0xFF0D0D0D)
-val LightWhite = Color(0xFFFFFFFF)
-val LightSurface = Color(0xFFF8F8F8)
-val LightCardBg = Color(0xFFFFFFFF)
-val LightMutedFg = Color(0xFF6B6B6B)
-val LightBorder = Color(0x14000000) // rgba(0,0,0,0.08)
+val Gold = Color(0xFFC9A227)       // muted, use sparingly (badges only)
+val Green = Color(0xFF2E9E5B)      // success — keep separate from brand red
 
-// Dark Theme Colors
-val DarkBlack = Color(0xFFFFFFFF) // Inverted black is white
-val DarkWhite = Color(0xFF0D0D0D) // Inverted white is black
-val DarkSurface = Color(0xFF0D0D0D)
-val DarkCardBg = Color(0xFF1A1A1A)
-val DarkMutedFg = Color(0xFF9A9A9A)
-val DarkBorder = Color(0x14FFFFFF) // rgba(255,255,255,0.08)
+// --- Light theme neutrals ---
+val LightBlack = Color(0xFF1C1B1F)     // primary text (onBackground/onSurface)
+val LightWhite = Color(0xFFFFFFFF)     // text on primary/secondary fills
+val LightSurface = Color(0xFFF7F5F3)   // page background — warm off-white,
+                                        // not stark #FFFFFF
+val LightCardBg = Color(0xFFFFFFFF)    // elevated card, distinct from surface
+val LightMutedFg = Color(0xFF6F6C68)   // secondary text, captions
+val LightBorder = Color(0xFFEAE6E1)    // hairline dividers
+
+// --- Dark theme neutrals ---
+// Deliberately cool and neutral (no red/brown undertone) — this is what
+// fixes the "sewage" look. Three distinct steps of lightness so surface,
+// card, and page background never collapse into each other.
+val DarkBlack = Color(0xFFF4F2F5)      // primary text — near-white, NOT dark
+val DarkWhite = Color(0xFFF7F5F3)      // text on primary/secondary fills —
+                                        // must stay near-white here too, since
+                                        // MyRed is the same brightness in both
+                                        // themes. This is the value most likely
+                                        // to have been wrong before.
+val DarkSurface = Color(0xFF131215)    // page background — near-black, cool
+val DarkCardBg = Color(0xFF221F24)     // elevated card, one step lighter
+val DarkMutedFg = Color(0xFFA6A2AA)    // secondary text — cool grey, not
+                                        // brown/red-tinted
+val DarkBorder = Color(0xFF332F36)     // hairline, visible but subtle
