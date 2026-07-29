@@ -109,7 +109,7 @@ fun OnboardingScreen(onContinue: () -> Unit) {
             // Indicator bar
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(modifier = Modifier.width(24.dp).height(6.dp).background(colors.red, CircleShape))
-                Box(modifier = Modifier.width(8.dp).height(6.dp).background(colors.lightRed, CircleShape))
+                Box(modifier = Modifier.width(8.dp).height(6.dp).background(colors.red.copy(alpha = 0.5f), CircleShape))
                 Box(modifier = Modifier.width(8.dp).height(6.dp).background(colors.mutedFg, CircleShape))
             }
             

@@ -42,8 +42,7 @@ import com.invincible.jedishare.ui.theme.JediShareTheme
 data class TransferFile(
     val name: String,
     val size: String,
-    val icon: ImageVector,
-    val mimeType: String? = null,
+    val mimeType: String?,
     val isDone: Boolean,
     val isActive: Boolean,
     val progress: Float,
@@ -144,7 +143,6 @@ fun TransferProgressScreen(
             TransferFile(
                 name = fileInfo.fileName ?: "Unknown",
                 size = fileInfo.size?.toLongOrNull()?.let { formatSize(it) } ?: "Unknown",
-                icon = getIconForMimeType(fileInfo.mimeType),
                 mimeType = fileInfo.mimeType,
                 isDone = false, isActive = false, progress = 0f
             )
@@ -169,7 +167,6 @@ fun TransferProgressScreen(
             TransferFile(
                 name = name,
                 size = sizeStr,
-                icon = getIconForMimeType(fileInfo?.mimeType),
                 mimeType = fileInfo?.mimeType,
                 isDone = fileIsDone,
                 isActive = fileIsActive && !transferFailed,
@@ -195,7 +192,6 @@ fun TransferProgressScreen(
                 TransferFile(
                     name = "Waiting for files...",
                     size = "0 B",
-                    icon = Icons.AutoMirrored.Filled.InsertDriveFile,
                     mimeType = null,
                     isDone = false,
                     isActive = true,
@@ -257,23 +253,12 @@ fun TransferProgressScreen(
                         .padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val baseTint = when {
-                            file.mimeType?.startsWith("image/") == true || file.mimeType?.startsWith("audio/") == true -> colors.red
-                            file.mimeType?.startsWith("video/") == true -> colors.green
-                            else -> Color(0xFF1976D2) // Blue for docs/others
-                        }
-                        
-                        val iconBg = if (file.isDone) baseTint.copy(alpha = 0.1f) else if (file.isActive) baseTint.copy(alpha = 0.2f) else colors.border
-                        val iconTint = if (file.isDone || file.isActive) baseTint else colors.mutedFg
-
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(iconBg, RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(file.icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-                        }
+                        com.invincible.jedishare.ui.components.MimeTypeIcon(
+                            mimeType = file.mimeType,
+                            modifier = Modifier.size(36.dp),
+                            isActive = file.isActive,
+                            isDone = file.isDone
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {

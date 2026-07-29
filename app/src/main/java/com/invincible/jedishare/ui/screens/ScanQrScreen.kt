@@ -58,7 +58,7 @@ fun ScanQrScreen(onBack: () -> Unit) {
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { selectedTab = "scan" }
-                        .background(if (selectedTab == "scan") colors.lightRed else Color.Transparent, RoundedCornerShape(24.dp))
+                        .background(if (selectedTab == "scan") colors.red.copy(alpha = 0.15f) else Color.Transparent, RoundedCornerShape(24.dp))
                         .padding(horizontal = 24.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -70,7 +70,7 @@ fun ScanQrScreen(onBack: () -> Unit) {
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { selectedTab = "my_code" }
-                        .background(if (selectedTab == "my_code") colors.lightRed else Color.Transparent, RoundedCornerShape(24.dp))
+                        .background(if (selectedTab == "my_code") colors.red.copy(alpha = 0.15f) else Color.Transparent, RoundedCornerShape(24.dp))
                         .padding(horizontal = 24.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {

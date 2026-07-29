@@ -145,7 +145,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(if (isGranted) colors.red else colors.lightRed, RoundedCornerShape(16.dp)),
+                            .background(if (isGranted) colors.red else colors.red.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(perm.third, contentDescription = null, tint = if (isGranted) colors.white else colors.red, modifier = Modifier.size(20.dp))

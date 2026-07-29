@@ -197,20 +197,10 @@ fun SelectFilesScreen(
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val icon = when {
-                            fileInfo.mimeType?.startsWith("image/") == true -> Icons.Default.Image
-                            fileInfo.mimeType?.startsWith("video/") == true -> Icons.Default.VideoLibrary
-                            fileInfo.mimeType?.startsWith("audio/") == true -> Icons.Default.LibraryMusic
-                            else -> Icons.Default.InsertDriveFile
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(colors.red.copy(alpha = 0.1f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(icon, contentDescription = null, tint = colors.red, modifier = Modifier.size(20.dp))
-                        }
+                        com.invincible.jedishare.ui.components.MimeTypeIcon(
+                            mimeType = fileInfo.mimeType,
+                            modifier = Modifier.size(40.dp)
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(

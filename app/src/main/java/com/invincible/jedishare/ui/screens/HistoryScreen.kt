@@ -54,15 +54,6 @@ fun formatSize(bytes: Long): String {
     return String.format("%.1f GB", gb)
 }
 
-fun getIconForMimeType(mimeType: String?): ImageVector {
-    return when {
-        mimeType?.startsWith("image/") == true -> Icons.Default.Image
-        mimeType?.startsWith("video/") == true -> Icons.Default.Videocam
-        mimeType?.startsWith("audio/") == true -> Icons.Default.MusicNote
-        else -> Icons.Default.InsertDriveFile
-    }
-}
-
 fun formatDateRelative(ms: Long): String {
     val date = Date(ms)
     val now = Date()
@@ -228,25 +219,10 @@ fun HistoryScreen(
                                             .padding(16.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        val baseTint = when {
-                                            item.mimeType?.startsWith("image/") == true || item.mimeType?.startsWith("audio/") == true -> colors.red
-                                            item.mimeType?.startsWith("video/") == true -> colors.green
-                                            else -> Color(0xFF1976D2) // Blue for docs/others
-                                        }
-
-                                        Box(
-                                            modifier = Modifier
-                                                .size(44.dp)
-                                                .background(baseTint.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                getIconForMimeType(item.mimeType), 
-                                                contentDescription = null, 
-                                                tint = baseTint, 
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
+                                        com.invincible.jedishare.ui.components.MimeTypeIcon(
+                                            mimeType = item.mimeType,
+                                            modifier = Modifier.size(44.dp)
+                                        )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
