@@ -47,8 +47,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFileTransferRepository(contentResolver: ContentResolver): FileTransferRepository =
-        FileTransferRepository(contentResolver)
+    fun provideFileTransferRepository(contentResolver: ContentResolver, @ApplicationContext context: Context): FileTransferRepository =
+        FileTransferRepository(contentResolver, context)
 
     // ── Room Database ──────────────────────────────────────────────────────────
 
