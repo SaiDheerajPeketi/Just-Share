@@ -281,6 +281,10 @@ fun DiscoverDevicesScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
+                                        if (!device.isAvailable) {
+                                            android.widget.Toast.makeText(context, "Cannot connect: device is offline or not accepting connections.", android.widget.Toast.LENGTH_SHORT).show()
+                                            return@clickable
+                                        }
                                         transferViewModel.setConnectedDeviceName(device.name)
                                         if (transferMethod == "bt") {
                                             device.btDevice?.let {

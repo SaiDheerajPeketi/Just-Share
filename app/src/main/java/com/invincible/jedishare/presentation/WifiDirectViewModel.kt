@@ -204,7 +204,10 @@ class WifiDirectViewModel @Inject constructor(
         if (!isSenderRole && _uiState.value.connectionStatus == "hosting") {
             return
         }
-        _uiState.update { it.copy(isConnected = false, connectionStatus = "") }
+        val wasConnecting = _uiState.value.connectionStatus == "connecting"
+        val errorMsg = if (wasConnecting) "Failed to connect: device is inactive or rejected connection." else null
+        
+        _uiState.update { it.copy(isConnected = false, connectionStatus = "", errorMessage = errorMsg ?: it.errorMessage) }
         stopCommunicationService()
     }
 
