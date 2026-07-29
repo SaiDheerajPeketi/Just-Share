@@ -205,7 +205,7 @@ fun TransferProgressScreen(
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .background(if (transferFailed) colors.red.copy(alpha = 0.15f) else if (isDone) colors.green.copy(alpha = 0.15f) else colors.red.copy(alpha = 0.15f), CircleShape),
+                    .background(if (transferFailed) colors.red.copy(alpha = 0.15f) else if (isDone) colors.green.copy(alpha = 0.15f) else colors.black.copy(alpha = 0.05f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -213,7 +213,7 @@ fun TransferProgressScreen(
                     else if (isDone) Icons.Default.Check 
                     else Icons.AutoMirrored.Filled.Send, 
                     contentDescription = null, 
-                    tint = if (transferFailed) colors.red else if (isDone) colors.green else colors.red, 
+                    tint = if (transferFailed) colors.red else if (isDone) colors.green else colors.black, 
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -222,12 +222,12 @@ fun TransferProgressScreen(
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    btConnectedDeviceName ?: state.connectedDeviceName ?: "Unknown Device",
-                    style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold),
+                    text = btConnectedDeviceName ?: state.connectedDeviceName ?: "Unknown Device",
+                    style = MaterialTheme.typography.subtitle1.copy(fontWeight = FontWeight.SemiBold),
                     color = colors.black
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Box(modifier = Modifier.size(8.dp).background(if (isConnected) colors.green else colors.red, CircleShape))
+                Box(modifier = Modifier.size(8.dp).background(if (isConnected || state.hasTransferStarted) colors.green else colors.red, CircleShape))
             }
         }
 
