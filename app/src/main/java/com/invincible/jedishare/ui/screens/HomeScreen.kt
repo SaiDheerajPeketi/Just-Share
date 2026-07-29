@@ -85,6 +85,7 @@ fun RecentFileItem(
     mimeType: String?,
     title: String,
     subtitle: String,
+    isSender: Boolean,
     onClick: () -> Unit = {}
 ) {
     val colors = JediShareTheme.colors
@@ -108,10 +109,16 @@ fun RecentFileItem(
         Box(
             modifier = Modifier
                 .size(24.dp)
-                .background(colors.green.copy(alpha = 0.1f), CircleShape),
+                .background(if (isSender) colors.red.copy(alpha = 0.1f) else colors.cardBg, CircleShape)
+                .border(if (isSender) 0.dp else 1.dp, if (isSender) Color.Transparent else colors.border, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = colors.green, modifier = Modifier.size(16.dp))
+            Icon(
+                if (isSender) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward, 
+                contentDescription = if (isSender) "Sent" else "Received", 
+                tint = if (isSender) colors.red else colors.mutedFg, 
+                modifier = Modifier.size(14.dp)
+            )
         }
     }
 }
@@ -309,6 +316,7 @@ fun HomeScreen(
                             mimeType = item.mimeType,
                             title = item.fileName,
                             subtitle = "${formatSize(item.fileSizeBytes)} · ${formatDateRelative(item.timestampMs)}",
+                            isSender = item.isSender,
                             onClick = { openFile(context, item) }
                         )
                     }
