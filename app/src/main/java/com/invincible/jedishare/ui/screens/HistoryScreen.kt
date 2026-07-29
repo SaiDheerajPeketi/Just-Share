@@ -70,7 +70,7 @@ fun formatDateRelative(ms: Long): String {
     }
 }
 
-private fun openFile(context: Context, item: TransferHistoryEntity) {
+fun openFile(context: Context, item: TransferHistoryEntity) {
     if (item.contentUri == null) {
         Toast.makeText(context, "File location unknown", Toast.LENGTH_SHORT).show()
         return
