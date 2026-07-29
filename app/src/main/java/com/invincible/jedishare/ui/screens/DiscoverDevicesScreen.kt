@@ -327,7 +327,7 @@ fun DiscoverDevicesScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                if (scanning) {
+                if (actualScanning) {
                     com.invincible.jedishare.ui.components.PillButton(
                         label = "Stop Scan",
                         onClick = { 

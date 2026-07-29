@@ -650,7 +650,10 @@ class CommunicationService : Service() {
 
     private fun closeAllAndStop() {
         Timber.d("CommunicationService - closeAllAndStop called")
-        try { communicationSocket?.close() } catch (e: IOException) { Log.w(TAG, "socket close: ${e.message}") }
+        try { 
+            communicationSocket?.setSoLinger(true, 0)
+            communicationSocket?.close() 
+        } catch (e: IOException) { Log.w(TAG, "socket close: ${e.message}") }
         try { serverSocket?.close()        } catch (e: IOException) { Log.w(TAG, "serverSocket close: ${e.message}") }
         try { dataOutputStream?.close()    } catch (e: IOException) { Log.w(TAG, "dos close: ${e.message}") }
         communicationSocket = null
