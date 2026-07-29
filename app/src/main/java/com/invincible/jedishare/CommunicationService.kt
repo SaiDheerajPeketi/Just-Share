@@ -192,7 +192,11 @@ class CommunicationService : Service() {
                             startClient(address, port, name)
                         }
                     } catch (e: IOException) {
-                        Log.e(TAG, "Communication error", e)
+                        if (e is java.net.SocketException && e.message?.contains("Socket closed") == true) {
+                            Log.d(TAG, "Server/Client socket closed, stopping communication loop")
+                        } else {
+                            Log.e(TAG, "Communication error", e)
+                        }
                         closeAllAndStop()
                     }
                 }
