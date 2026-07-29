@@ -180,7 +180,11 @@ fun DiscoverDevicesScreen(
     val actualScanning = if (transferMethod == "wifi") wifiState.isDiscovering else scanning
     
     // Auto navigation when connected
-    LaunchedEffect(btState.isConnected, wifiState.isConnected, transferState.hasTransferStarted) {
+    // For wifi: gate on connectionStatus == "connected" which only fires once the group
+    // owner confirms a real client joined (connectedClients > 0). This prevents the screen
+    // from navigating when the group first forms (groupFormed=true but connectedClients=0).
+    val wifiActuallyConnected = wifiState.connectionStatus == "connected"
+    LaunchedEffect(btState.isConnected, wifiActuallyConnected, transferState.hasTransferStarted) {
         if (btState.isConnected && transferMethod == "bt" && !transferState.hasTransferStarted) {
             val uris = transferState.urisToShare
             transferViewModel.markTransferStarted()
@@ -188,7 +192,7 @@ fun DiscoverDevicesScreen(
                 btViewModel.sendMessage("start") // triggers file sending
             }
             onNavigateToScreen("transfer-progress")
-        } else if (wifiState.isConnected && transferMethod == "wifi" && !transferState.hasTransferStarted) {
+        } else if (wifiActuallyConnected && transferMethod == "wifi" && !transferState.hasTransferStarted) {
             transferViewModel.markTransferStarted()
             val uris = transferState.urisToShare
             if (uris.isNotEmpty() && isSender) {

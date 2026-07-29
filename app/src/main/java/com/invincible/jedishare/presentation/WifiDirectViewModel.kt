@@ -119,6 +119,8 @@ class WifiDirectViewModel @Inject constructor(
             val wasConnected = _uiState.value.isConnected
             _uiState.update {
                 it.copy(
+                    // Only mark as "connected" once a real client has joined the group.
+                    // Until then stay in "hosting" so we don't prematurely navigate.
                     isConnected = hasConnectedClient,
                     connectionStatus = if (hasConnectedClient) "connected" else "hosting",
                     errorMessage = null
@@ -128,10 +130,13 @@ class WifiDirectViewModel @Inject constructor(
                 Log.d(TAG, "Client disconnected, resetting CommunicationService")
                 stopCommunicationService()
                 com.invincible.jedishare.CommunicationService.clearTransferUpdate()
+                // Restart server socket to accept next connection
                 viewModelScope.launch {
-                    delay(500)
+                    delay(800)
                     startCommunicationService(info)
                 }
+            } else if (!wasConnected && hasConnectedClient) {
+                Log.d(TAG, "New client connected — communication service should already be running")
             }
         }
     }
@@ -199,36 +204,40 @@ class WifiDirectViewModel @Inject constructor(
         _uiState.update { it.copy(thisDeviceName = name ?: "") }
     }
 
+    // Timestamp when a connect attempt was last *accepted* by the framework
     private var lastConnectAttemptTime = 0L
 
     fun onDisconnected() {
         Timber.d("WifiDirectViewModel - onDisconnected called")
+        // The receiver (host) handles its own lifecycle via requestGroupInfo, not here
         if (!isSenderRole && _uiState.value.connectionStatus == "hosting") {
             return
         }
         
-        // Ignore spurious disconnected broadcasts right after initiating a connection
-        if (System.currentTimeMillis() - lastConnectAttemptTime < 2000) {
-            Timber.d("WifiDirectViewModel - Ignoring disconnect broadcast right after connect attempt")
+        val currentStatus = _uiState.value.connectionStatus
+        val msSinceConnect = System.currentTimeMillis() - lastConnectAttemptTime
+        
+        // If we initiated a connect very recently (< 2s ago), this disconnect is the
+        // OS tearing down old P2P interfaces — NOT a real failure. Skip it.
+        if (currentStatus == "connecting" && msSinceConnect < 2000) {
+            Timber.d("WifiDirectViewModel - Ignoring spurious disconnect right after connect attempt (${msSinceConnect}ms)")
             return
         }
         
-        val wasConnecting = _uiState.value.connectionStatus == "connecting"
-        val errorMsg = if (wasConnecting) "Failed to connect: device is inactive or rejected connection." else null
+        val wasConnecting = currentStatus == "connecting"
+        val errorMsg = if (wasConnecting) "Failed to connect: device did not respond." else null
         
         _uiState.update { it.copy(isConnected = false, connectionStatus = "", errorMessage = errorMsg ?: it.errorMessage) }
         stopCommunicationService()
         
         if (wasConnecting) {
-            Timber.d("WifiDirectViewModel - Connection failed, delaying restart discovery to prevent framework busy")
-            
-            // Explicitly clear any dangling connection locks
+            Timber.d("WifiDirectViewModel - Connection failed after ${msSinceConnect}ms, restarting discovery")
+            // Cancel dangling connection locks before re-scanning
             wifiP2pManager?.let { mgr ->
                 wifiP2pChannel?.let { ch ->
                     mgr.cancelConnect(ch, null)
                 }
             }
-            
             viewModelScope.launch {
                 kotlinx.coroutines.delay(1000)
                 startDiscovery()
@@ -350,10 +359,18 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - connectToDevice called")
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
-        if (_uiState.value.isConnected || 
-            _uiState.value.connectionStatus == "connecting" || 
-            !isSenderRole) {
+        if (_uiState.value.isConnected || !isSenderRole) {
             return
+        }
+        // Prevent double-connect. But if stuck "connecting" > 8s, the attempt has timed out.
+        val isStaleConnecting = _uiState.value.connectionStatus == "connecting" &&
+            System.currentTimeMillis() - lastConnectAttemptTime > 8000
+        if (_uiState.value.connectionStatus == "connecting" && !isStaleConnecting) {
+            return
+        }
+        if (isStaleConnecting) {
+            Log.d(TAG, "connectToDevice: stale 'connecting' state cleared, allowing retry")
+            _uiState.update { it.copy(connectionStatus = "") }
         }
 
         val currentPeer = _uiState.value.peers.firstOrNull {
