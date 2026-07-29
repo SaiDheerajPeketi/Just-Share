@@ -392,6 +392,7 @@ class CommunicationService : Service() {
                         try {
                             val updateValues = ContentValues().apply { put(MediaStore.Files.FileColumns.IS_PENDING, 0) }
                             contentResolver.update(uri, updateValues, null, null)
+                            scanMediaUri(this@CommunicationService, uri)
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to clear IS_PENDING for $uri", e)
                         }

@@ -132,6 +132,9 @@ class FileTransferRepository @Inject constructor(
                         put(MediaStore.Files.FileColumns.IS_PENDING, 0)
                     }
                     contentResolver.update(currentFileUri!!, values, null, null)
+                    
+                    // Trigger media scanner to extract metadata like duration
+                    com.invincible.jedishare.scanMediaUri(context, currentFileUri!!)
                 } catch (e: Exception) {
                     Log.e("FileTransferRepository", "Failed to clear IS_PENDING for $currentFileUri", e)
                 }
