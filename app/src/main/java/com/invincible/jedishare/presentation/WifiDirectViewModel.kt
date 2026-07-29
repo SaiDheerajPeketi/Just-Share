@@ -209,6 +209,11 @@ class WifiDirectViewModel @Inject constructor(
         
         _uiState.update { it.copy(isConnected = false, connectionStatus = "", errorMessage = errorMsg ?: it.errorMessage) }
         stopCommunicationService()
+        
+        if (wasConnecting) {
+            Timber.d("WifiDirectViewModel - Connection failed, restarting discovery to refresh peer list")
+            startDiscovery()
+        }
     }
 
     fun onPeersChanged() {
