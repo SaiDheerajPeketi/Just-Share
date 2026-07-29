@@ -25,6 +25,7 @@ import com.invincible.jedishare.domain.chat.TransferFailedException
 import com.invincible.jedishare.getFileDetailsFromUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -51,6 +52,7 @@ class AndroidBluetoothController(
     companion object {
         const val SERVICE_UUID = "27b7d1da-08c7-4505-a6d1-2459987e5e2d"
         private const val TAG = "BTController"
+        private const val CONNECT_TIMEOUT_MS = 12_000L
     }
 
     private val bluetoothManager by lazy {
@@ -249,7 +251,7 @@ class AndroidBluetoothController(
 
         socket?.let { secureSocket ->
             try {
-                secureSocket.connect()
+                connectSocketWithTimeout(secureSocket, "Secure")
                 val service = BluetoothDataTransferService(secureSocket)
                 dataTransferService = service
                 _isConnected.update { true }
@@ -270,7 +272,7 @@ class AndroidBluetoothController(
 
                 if (insecureSocket != null) {
                     try {
-                        insecureSocket.connect()
+                        connectSocketWithTimeout(insecureSocket, "Insecure")
                         val service = BluetoothDataTransferService(insecureSocket)
                         dataTransferService = service
                         _isConnected.update { true }
@@ -292,7 +294,7 @@ class AndroidBluetoothController(
 
                         if (fallbackSocket != null) {
                             try {
-                                fallbackSocket.connect()
+                                connectSocketWithTimeout(fallbackSocket, "Fallback")
                                 val service = BluetoothDataTransferService(fallbackSocket)
                                 dataTransferService = service
                                 _isConnected.update { true }
@@ -301,15 +303,18 @@ class AndroidBluetoothController(
                             } catch (fallbackEx: IOException) {
                                 fallbackSocket.close()
                                 currentClientSocket = null
+                                removeScannedDevice(device.address)
                                 emit(ConnectionResult.Error("Connection failed (secure + insecure + fallback): ${fallbackEx.message}"))
                             }
                         } else {
                             currentClientSocket = null
+                            removeScannedDevice(device.address)
                             emit(ConnectionResult.Error("Connection failed (reflection socket is null)"))
                         }
                     }
                 } else {
                     currentClientSocket = null
+                    removeScannedDevice(device.address)
                     emit(ConnectionResult.Error("Insecure socket is null"))
                 }
             } finally {
@@ -317,7 +322,10 @@ class AndroidBluetoothController(
                     currentClientSocket?.close()
                 } catch (e: IOException) {}
             }
-        } ?: emit(ConnectionResult.Error("Remote device not found"))
+        } ?: run {
+            removeScannedDevice(device.address)
+            emit(ConnectionResult.Error("Remote device not found"))
+        }
     }.onCompletion { 
         Timber.d("AndroidBluetoothController - connectToDevice flow completed/cancelled")
     }.flowOn(Dispatchers.IO)
@@ -466,6 +474,32 @@ class AndroidBluetoothController(
             ?.filter { !it.name.isNullOrBlank() }
             ?.map { it.toBluetoothDeviceDomain() }
             ?.also { devices -> _pairedDevices.update { devices } }
+    }
+
+    private fun removeScannedDevice(address: String) {
+        _scannedDevices.update { devices -> devices.filterNot { it.address == address } }
+    }
+
+    @Throws(IOException::class)
+    private suspend fun connectSocketWithTimeout(socket: BluetoothSocket, label: String) = coroutineScope {
+        var timedOut = false
+        val timeoutJob = launch {
+            delay(CONNECT_TIMEOUT_MS)
+            if (!socket.isConnected) {
+                timedOut = true
+                runCatching { socket.close() }
+            }
+        }
+        try {
+            socket.connect()
+        } catch (e: IOException) {
+            if (timedOut) {
+                throw IOException("$label Bluetooth connection timed out", e)
+            }
+            throw e
+        } finally {
+            timeoutJob.cancel()
+        }
     }
 
     private fun hasPermission(permission: String): Boolean =

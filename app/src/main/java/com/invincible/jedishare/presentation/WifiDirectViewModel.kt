@@ -5,6 +5,7 @@ import timber.log.Timber
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
 import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
@@ -12,6 +13,7 @@ import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
+import androidx.core.location.LocationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,6 +70,7 @@ class WifiDirectViewModel @Inject constructor(
     private val p2pRetryDelaysMs = listOf(300L, 700L, 1_200L, 2_000L, 3_000L, 4_000L)
     private var activeConnectJob: Job? = null
     private var connectTimeoutJob: Job? = null
+    private var discoveryJob: Job? = null
     private var discoveryRefreshJob: Job? = null
 
     companion object {
@@ -175,6 +178,7 @@ class WifiDirectViewModel @Inject constructor(
                 addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
                 addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
                 addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION)
+                addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
             }
             // Register receiver with the application context
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -199,6 +203,8 @@ class WifiDirectViewModel @Inject constructor(
             if (isSenderRole) startDiscovery() else startHosting()
         }
         else {
+            discoveryJob?.cancel()
+            discoveryJob = null
             stopDiscoveryRefreshLoop()
             _uiState.update { it.copy(peers = emptyList(), isConnected = false, isDiscovering = false) }
             stopCommunicationService()
@@ -260,6 +266,15 @@ class WifiDirectViewModel @Inject constructor(
 
     fun onPeersChanged() {
         Timber.d("WifiDirectViewModel - onPeersChanged called")
+        if (!isLocationModeEnabled()) {
+            _uiState.update {
+                it.copy(
+                    isDiscovering = false,
+                    errorMessage = "Turn on Location to discover Wi-Fi Direct devices."
+                )
+            }
+            return
+        }
         wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
     }
 
@@ -282,12 +297,24 @@ class WifiDirectViewModel @Inject constructor(
         if (!isSenderRole || _uiState.value.isConnected) {
             return
         }
+        if (!isLocationModeEnabled()) {
+            _uiState.update {
+                it.copy(
+                    isDiscovering = false,
+                    errorMessage = "Turn on Location to discover Wi-Fi Direct devices."
+                )
+            }
+            return
+        }
+        if (discoveryJob?.isActive == true) {
+            return
+        }
         if (_uiState.value.connectionStatus == "connecting") {
             activeConnectJob?.cancel()
             cancelConnectTimeout()
         }
         _uiState.update { it.copy(connectionStatus = "") }
-        viewModelScope.launch {
+        discoveryJob = viewModelScope.launch {
             awaitP2pAction { manager.cancelConnect(channel, it) }
             if (_uiState.value.isDiscovering) {
                 // Stop discovery first to clear system cache
@@ -315,6 +342,7 @@ class WifiDirectViewModel @Inject constructor(
             if (failure == null) {
                 startDiscoveryRefreshLoop()
             }
+            discoveryJob = null
         }
     }
 
@@ -434,6 +462,8 @@ class WifiDirectViewModel @Inject constructor(
     fun disconnectP2P() {
         Timber.d("WifiDirectViewModel - disconnectP2P called")
         activeConnectJob?.cancel()
+        discoveryJob?.cancel()
+        discoveryJob = null
         cancelConnectTimeout()
         stopDiscoveryRefreshLoop()
         stopCommunicationService()
@@ -575,6 +605,15 @@ class WifiDirectViewModel @Inject constructor(
                 if (!isSenderRole || state.isConnected || state.connectionStatus == "connecting" || !state.isDiscovering) {
                     continue
                 }
+                if (!isLocationModeEnabled()) {
+                    _uiState.update {
+                        it.copy(
+                            isDiscovering = false,
+                            errorMessage = "Turn on Location to discover Wi-Fi Direct devices."
+                        )
+                    }
+                    continue
+                }
                 Log.d(TAG, "refreshing Wi-Fi Direct discovery")
                 awaitP2pAction { manager.stopPeerDiscovery(channel, it) }
                 delay(300)
@@ -597,6 +636,11 @@ class WifiDirectViewModel @Inject constructor(
     private fun stopDiscoveryRefreshLoop() {
         discoveryRefreshJob?.cancel()
         discoveryRefreshJob = null
+    }
+
+    private fun isLocationModeEnabled(): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        return locationManager?.let { LocationManagerCompat.isLocationEnabled(it) } ?: true
     }
 
     private suspend fun runP2pAction(
