@@ -96,7 +96,7 @@ fun TransferProgressScreen(
     }
     val btFileInfo by btViewModel.fileInfoState.collectAsState()
     val btIncomingFileName by btViewModel.incomingFileNameState.collectAsState()
-    val btIncomingManifest by btViewModel.incomingManifestState.collectAsState()
+    
 
     val manifest = if (method == "wifi") state.fileInfos.ifEmpty { null } else btIncomingManifest
 
