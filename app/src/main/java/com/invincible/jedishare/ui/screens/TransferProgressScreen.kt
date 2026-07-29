@@ -103,6 +103,21 @@ fun TransferProgressScreen(
     val isConnected = if (method == "bt") btState.isConnected else wifiState.isConnected
     val transferFailed = !isDone && (progress < 0f || (!isConnected && !state.hasTransferStarted))
 
+    LaunchedEffect(isDone) {
+        if (isDone && !isSender) {
+            kotlinx.coroutines.delay(1500) // Small delay to let user see 100% completion
+            navigatingAway = true
+            if (method == "bt") {
+                btViewModel.disconnectFromDevice()
+                btViewModel.resetTransferState()
+            } else if (method == "wifi") {
+                wifiViewModel.disconnectP2P()
+            }
+            transferViewModel.resetTransfer()
+            onNavigateToScreen("home")
+        }
+    }
+
     val receiverFilesBase = remember(manifest) {
         manifest?.map { fileInfo ->
             TransferFile(
@@ -299,12 +314,20 @@ fun TransferProgressScreen(
                 onClick = {
                     if (isDone) {
                         navigatingAway = true
-                        btViewModel.disconnectFromDevice()
-                        btViewModel.resetTransferState()
+                        if (method == "bt") {
+                            btViewModel.disconnectFromDevice()
+                            btViewModel.resetTransferState()
+                        } else if (method == "wifi") {
+                            wifiViewModel.disconnectP2P()
+                        }
                         transferViewModel.resetTransfer()
                         onNavigateToScreen("home")
                     } else {
-                        btViewModel.disconnectFromDevice()
+                        if (method == "bt") {
+                            btViewModel.disconnectFromDevice()
+                        } else if (method == "wifi") {
+                            wifiViewModel.disconnectP2P()
+                        }
                         onBack()
                     }
                 },
