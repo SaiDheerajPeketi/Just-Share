@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import androidx.core.content.ContextCompat
 import com.invincible.jedishare.data.UserPreferencesDataStore
+import com.invincible.jedishare.domain.chat.FileInfo
 
 data class UnifiedDevice(
     val id: String,
@@ -66,6 +67,8 @@ class TransferViewModel @Inject constructor(
     private val progressReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == CommunicationService.BROADCAST_SENDING_UPDATE) {
+                @Suppress("DEPRECATION")
+                val manifest = intent.getSerializableExtra(CommunicationService.EXTRAS_MANIFEST) as? ArrayList<FileInfo>
                 applyWifiProgress(
                     WifiTransferUpdate(
                         progress = intent.getIntExtra(CommunicationService.EXTRAS_PROGRESS_STATE, 0),
@@ -74,7 +77,8 @@ class TransferViewModel @Inject constructor(
                         currentFileIndex = intent.getIntExtra(CommunicationService.EXTRAS_CURRENT_FILE_INDEX, 0),
                         totalFiles = intent.getIntExtra(CommunicationService.EXTRAS_TOTAL_FILES, 0),
                         remoteDeviceName = intent.getStringExtra(CommunicationService.EXTRAS_REMOTE_DEVICE_NAME),
-                        mimeType = intent.getStringExtra(CommunicationService.EXTRAS_MIME_TYPE)
+                        mimeType = intent.getStringExtra(CommunicationService.EXTRAS_MIME_TYPE),
+                        manifest = manifest
                     )
                 )
             }

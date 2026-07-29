@@ -29,6 +29,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.EOFException
 import java.io.IOException
+import java.io.InterruptedIOException
 import java.io.InputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
@@ -90,6 +91,7 @@ class CommunicationService : Service() {
         const val EXTRAS_TOTAL_FILES         = "com.invincible.jedishare.EXTRAS_TOTAL_FILES"
         const val EXTRAS_REMOTE_DEVICE_NAME  = "com.invincible.jedishare.EXTRAS_REMOTE_DEVICE_NAME"
         const val EXTRAS_MIME_TYPE           = "com.invincible.jedishare.EXTRAS_MIME_TYPE"
+        const val EXTRAS_MANIFEST            = "com.invincible.jedishare.EXTRAS_MANIFEST"
         const val BROADCAST_SENDING_UPDATE   = "com.invincible.jedishare.SENDING_UPDATE"
 
         private val _transferUpdates = MutableStateFlow<WifiTransferUpdate?>(null)
@@ -116,6 +118,8 @@ class CommunicationService : Service() {
     private var serverSocket: ServerSocket?       = null
     @Volatile
     private var dataOutputStream: DataOutputStream? = null
+    @Volatile
+    private var stopRequested = false
 
     // Tracks remote device name for history logging
     private var remoteDeviceName: String? = null
@@ -174,6 +178,7 @@ class CommunicationService : Service() {
         Timber.d("CommunicationService - onStartCommand called with action ${intent?.action}")
         when (intent?.action) {
             ACTION_START_COMMUNICATION -> {
+                stopRequested = false
                 val state = serviceState.get()
                 if (state == CONNECTED || state == IS_SENDING || state == CONNECTING) {
                     return START_NOT_STICKY
@@ -202,6 +207,7 @@ class CommunicationService : Service() {
                 }
             }
             ACTION_SEND_MSG -> {
+                if (stopRequested) return START_NOT_STICKY
                 startForegroundNotification()
                 ensureExecutor().execute {
                     try {
@@ -212,7 +218,10 @@ class CommunicationService : Service() {
                     }
                 }
             }
-            ACTION_STOP_COMMUNICATION -> closeAllAndStop()
+            ACTION_STOP_COMMUNICATION -> {
+                stopRequested = true
+                closeAllAndStop()
+            }
         }
         return START_NOT_STICKY
     }
@@ -280,7 +289,7 @@ class CommunicationService : Service() {
             val buffer = ByteArray(CHUNK_SIZE)
             var currentIndex = 0
 
-            while (true) {
+            while (!stopRequested && !Thread.currentThread().isInterrupted) {
                 val metaSize = try {
                     dataInput.readInt()
                 } catch (e: EOFException) {
@@ -343,7 +352,7 @@ class CommunicationService : Service() {
                 var isEofReceived = false
                 try {
                     contentResolver.openOutputStream(fileUri ?: throw IOException("Could not create destination for ${fileInfo.fileName ?: "received_file"}"), "wa").use { output ->
-                        while (true) {
+                        while (!stopRequested && !Thread.currentThread().isInterrupted) {
                             val chunkSize = dataInput.readInt()
                             if (chunkSize == 0) {
                                 isEofReceived = true
@@ -357,10 +366,12 @@ class CommunicationService : Service() {
                             if (chunkSize < 0 || chunkSize > CHUNK_SIZE) {
                                 throw IOException("Invalid chunk size: $chunkSize")
                             }
+                            ensureTransferActive()
                             
                             var remainingChunk = chunkSize
                             var offset = 0
                             while (remainingChunk > 0) {
+                                ensureTransferActive()
                                 val bytesRead = dataInput.read(buffer, offset, remainingChunk)
                                 if (bytesRead == -1) throw EOFException("Stream ended while receiving chunk")
                                 offset += bytesRead
@@ -458,11 +469,14 @@ class CommunicationService : Service() {
         val uris = intent.getParcelableArrayListExtra<Uri>("urilist") ?: return
         if (uris.isEmpty()) return
         val outputStream = waitForOutputStream() ?: throw IOException("Wi-Fi Direct socket is not connected")
+        ensureTransferActive()
+        serviceState.set(IS_SENDING)
 
         val totalFiles = uris.size
         val allFileInfos = uris.map { getFileDetailsFromUri(it, contentResolver) }
         var currentIndex = 0
         for (i in uris.indices) {
+            ensureTransferActive()
             val uri = uris[i]
             val baseFileInfo = allFileInfos[i]
             val fileInfo = if (i == 0) baseFileInfo.copy(manifest = allFileInfos) else baseFileInfo
@@ -499,9 +513,11 @@ class CommunicationService : Service() {
                     var bytesSent = 0L
 
                     while (true) {
+                        ensureTransferActive()
                         val bytesRead = stream.read(buffer)
                         if (bytesRead == -1) break
                         
+                        ensureTransferActive()
                         outputStream.writeInt(bytesRead)
                         outputStream.write(buffer, 0, bytesRead)
                         
@@ -554,6 +570,9 @@ class CommunicationService : Service() {
                     Log.e(TAG, "Failed to save sender history entry", e)
                 }
             }
+        }
+        if (!stopRequested && serviceState.get() == IS_SENDING) {
+            serviceState.set(CONNECTED)
         }
     }
 
@@ -610,7 +629,15 @@ class CommunicationService : Service() {
             putExtra(EXTRAS_TOTAL_FILES, totalFiles)
             putExtra(EXTRAS_REMOTE_DEVICE_NAME, remoteDeviceName)
             putExtra(EXTRAS_MIME_TYPE, mimeType)
+            manifest?.let { putExtra(EXTRAS_MANIFEST, java.util.ArrayList(it)) }
         })
+    }
+
+    @Throws(IOException::class)
+    private fun ensureTransferActive() {
+        if (stopRequested || serviceState.get() == NOT_CONNECTED || Thread.currentThread().isInterrupted) {
+            throw InterruptedIOException("Wi-Fi Direct transfer was cancelled")
+        }
     }
 
     /**
@@ -650,6 +677,7 @@ class CommunicationService : Service() {
 
     private fun closeAllAndStop() {
         Timber.d("CommunicationService - closeAllAndStop called")
+        stopRequested = true
         try { 
             communicationSocket?.setSoLinger(true, 0)
             communicationSocket?.close() 
