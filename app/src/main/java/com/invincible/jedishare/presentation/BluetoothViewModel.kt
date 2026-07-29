@@ -332,6 +332,7 @@ class BluetoothViewModel @Inject constructor(
 
                 is ConnectionResult.Error -> {
                     Log.e("BluetoothViewModel", "Connection error: ${result.message}")
+                    val wasConnecting = _state.value.isConnecting
                     fileTransferRepository.closeFile()
                     fileUri?.let { uri -> 
                         viewModelScope.launch { fileTransferRepository.deleteFile(uri) }
@@ -340,17 +341,27 @@ class BluetoothViewModel @Inject constructor(
                     _state.update {
                         it.copy(isConnected = false, isConnecting = false, errorMessage = result.message)
                     }
+                    if (wasConnecting) {
+                        Timber.d("BluetoothViewModel - Connection failed, restarting scan to remove inactive device")
+                        startScan()
+                    }
                 }
             }
         }.catch { throwable ->
             Log.e("BluetoothViewModel", "Connection flow error", throwable)
+            val wasConnecting = _state.value.isConnecting
             fileTransferRepository.closeFile()
             fileUri?.let { uri -> 
                 viewModelScope.launch { fileTransferRepository.deleteFile(uri) }
             }
-            bluetoothController.closeConnection()
             _transferProgress.update { it.copy(bytesReceived = -1L, bytesSent = -1L) }
-            _state.update { it.copy(isConnected = false, isConnecting = false) }
+            _state.update {
+                it.copy(isConnected = false, isConnecting = false, errorMessage = "Connection error: ${throwable.localizedMessage}")
+            }
+            if (wasConnecting) {
+                Timber.d("BluetoothViewModel - Connection flow crashed, restarting scan to remove inactive device")
+                startScan()
+            }
         }.launchIn(kotlinx.coroutines.CoroutineScope(viewModelScope.coroutineContext + kotlinx.coroutines.Dispatchers.IO))
     }
 
