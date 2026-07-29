@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,13 +75,6 @@ fun HomeScreen(
     val colors = JediShareTheme.colors
     val transferState by transferViewModel.state.collectAsStateWithLifecycle()
     val transferMethod = transferState.method
-    
-    val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-    val greeting = when (currentHour) {
-        in 0..11 -> "Good morning"
-        in 12..16 -> "Good afternoon"
-        else -> "Good evening"
-    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "arrow_anim")
     val upArrowOffset by infiniteTransition.animateFloat(
@@ -108,192 +102,108 @@ fun HomeScreen(
     ) {
         Column(
             modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(top = 40.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
+                .fillMaxSize()
+                .background(colors.surface)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(text = greeting, style = MaterialTheme.typography.body2, color = colors.mutedFg)
-                    Text(text = "Just Share", style = MaterialTheme.typography.h1, color = colors.black)
-                }
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(colors.red.copy(alpha = 0.15f), CircleShape)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { onNavigateToScreen("scan-qr") }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Bolt, contentDescription = "Scan QR", tint = colors.red, modifier = Modifier.size(24.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 40.dp, bottom = 16.dp, start = 24.dp, end = 24.dp)
             ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Just Share", 
+                        style = MaterialTheme.typography.h1.copy(fontWeight = FontWeight.Bold), 
+                        color = colors.black
+                    )
+                    Icon(
+                        Icons.Default.Settings, 
+                        contentDescription = "Settings", 
+                        tint = colors.mutedFg, 
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { onNavigateToScreen("settings") }
+                            )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // SEND Card
+                CardButton(
+                    onClick = { 
+                        onNavigateToScreen("select-files/$transferMethod") 
+                    },
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(colors.cardBg)
-                        .border(1.dp, colors.border, RoundedCornerShape(24.dp))
                 ) {
-                    Box(
+                    Column(
                         modifier = Modifier
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { transferViewModel.setMethod("bt") }
-                            .background(if (transferMethod == "bt") colors.red else Color.Transparent, RoundedCornerShape(24.dp))
-                            .padding(horizontal = 24.dp, vertical = 12.dp),
-                        contentAlignment = Alignment.Center
+                            .fillMaxSize()
+                            .background(colors.red)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("Bluetooth", color = if (transferMethod == "bt") colors.white else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { transferViewModel.setMethod("wifi") }
-                            .background(if (transferMethod == "wifi") colors.red else Color.Transparent, RoundedCornerShape(24.dp))
-                            .padding(horizontal = 24.dp, vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Wi-Fi Direct", color = if (transferMethod == "wifi") colors.white else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // SEND Card
-            CardButton(
-                onClick = { 
-                    onNavigateToScreen("select-files/$transferMethod") 
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = colors.red.copy(alpha = 0.5f))
-                    .clip(RoundedCornerShape(32.dp))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(colors.red)
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        Icons.Default.ArrowUpward, 
-                        contentDescription = null, 
-                        tint = colors.white, 
-                        modifier = Modifier.size(32.dp).offset(y = upArrowOffset.dp)
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(text = "SEND", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = colors.white, letterSpacing = 1.sp)
-                    Text(text = "Share files with nearby devices", style = MaterialTheme.typography.body2, color = colors.white.copy(alpha = 0.9f), modifier = Modifier.padding(top = 4.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // RECEIVE Card
-            CardButton(
-                onClick = { 
-                    transferViewModel.resetTransfer()
-                    transferViewModel.setMethod(transferMethod)
-                    onNavigateToScreen("discover-$transferMethod") 
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(32.dp))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(colors.cardBg)
-                        .border(2.dp, colors.red, RoundedCornerShape(32.dp))
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        Icons.Default.ArrowDownward, 
-                        contentDescription = null, 
-                        tint = colors.red, 
-                        modifier = Modifier.size(32.dp).offset(y = downArrowOffset.dp)
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(text = "RECEIVE", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = colors.red, letterSpacing = 1.sp)
-                    Text(text = "Accept files from nearby devices", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(top = 4.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Quick actions row
-            Row(
-                modifier = Modifier.fillMaxWidth(), 
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(colors.cardBg)
-                        .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { onNavigateToScreen("scan-qr") }
+                        Icon(
+                            Icons.Default.ArrowUpward, 
+                            contentDescription = null, 
+                            tint = colors.white, 
+                            modifier = Modifier.size(32.dp).offset(y = upArrowOffset.dp)
                         )
-                        .padding(vertical = 16.dp, horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.QrCode, contentDescription = null, tint = colors.red, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("QR Connect", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black, maxLines = 1)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(text = "Send", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp), color = colors.white)
+                        Text(text = "Share files with nearby devices", style = MaterialTheme.typography.body2, color = colors.white.copy(alpha = 0.9f), modifier = Modifier.padding(top = 4.dp))
+                    }
                 }
 
-                Row(
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // RECEIVE Card
+                CardButton(
+                    onClick = { 
+                        transferViewModel.resetTransfer()
+                        transferViewModel.setMethod(transferMethod)
+                        onNavigateToScreen("discover-$transferMethod") 
+                    },
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(colors.cardBg)
-                        .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                        .clickable { }
-                        .padding(vertical = 16.dp, horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(24.dp))
                 ) {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = colors.red, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Secure Mode", style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black, maxLines = 1)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(colors.cardBg)
+                            .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.ArrowDownward, 
+                            contentDescription = null, 
+                            tint = colors.black, 
+                            modifier = Modifier.size(32.dp).offset(y = downArrowOffset.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(text = "Receive", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp), color = colors.black)
+                        Text(text = "Accept files from nearby devices", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(top = 4.dp))
+                    }
                 }
             }
-        }
 
-        BottomNav(activeRoute = "home", onNavigate = onNavigateToNavRoute)
+            BottomNav(activeRoute = "home", onNavigate = onNavigateToNavRoute)
+        }
     }
 }
-}
+
