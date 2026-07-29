@@ -166,7 +166,7 @@ fun DiscoverDevicesScreen(
                 scanning = false
                 if (isSender) btViewModel.stopScan()
             } else if (transferMethod == "wifi") {
-                wifiViewModel.discoverPeers()
+                wifiViewModel.startDiscovery()
             }
         }
     }
