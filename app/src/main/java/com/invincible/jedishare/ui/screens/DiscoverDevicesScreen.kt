@@ -210,7 +210,9 @@ fun DiscoverDevicesScreen(
 
     com.invincible.jedishare.ui.components.RequireHardware(
         requireWifi = transferMethod == "wifi",
-        requireBluetooth = transferMethod == "bt"
+        isWifiEnabledOverride = if (transferMethod == "wifi") wifiState.isWifiDirectEnabled else null,
+        requireBluetooth = transferMethod == "bt",
+        isBluetoothEnabledOverride = if (transferMethod == "bt") btState.isBluetoothEnabled else null
     ) {
         Column(
             modifier = Modifier

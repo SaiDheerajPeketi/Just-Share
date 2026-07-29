@@ -29,15 +29,20 @@ import com.invincible.jedishare.ui.theme.JediShareTheme
 @Composable
 fun RequireHardware(
     requireWifi: Boolean = true,
+    isWifiEnabledOverride: Boolean? = null,
     requireBluetooth: Boolean = true,
+    isBluetoothEnabledOverride: Boolean? = null,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
     val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
     val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     
-    var isWifiEnabled by remember { mutableStateOf(wifiManager?.isWifiEnabled == true) }
-    var isBluetoothEnabled by remember { mutableStateOf(bluetoothAdapter?.isEnabled == true) }
+    var isWifiEnabledState by remember { mutableStateOf(wifiManager?.isWifiEnabled == true) }
+    var isBluetoothEnabledState by remember { mutableStateOf(bluetoothAdapter?.isEnabled == true) }
+
+    val isWifiEnabled = isWifiEnabledOverride ?: isWifiEnabledState
+    val isBluetoothEnabled = isBluetoothEnabledOverride ?: isBluetoothEnabledState
 
     DisposableEffect(context) {
         val receiver = object : BroadcastReceiver() {
@@ -45,17 +50,24 @@ fun RequireHardware(
                 when (intent?.action) {
                     WifiManager.WIFI_STATE_CHANGED_ACTION -> {
                         val state = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)
-                        isWifiEnabled = state == WifiManager.WIFI_STATE_ENABLED
+                        isWifiEnabledState = state == WifiManager.WIFI_STATE_ENABLED
+                    }
+                    android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
+                        val state = intent.getIntExtra(android.net.wifi.p2p.WifiP2pManager.EXTRA_WIFI_STATE, -1)
+                        if (state == android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
+                            isWifiEnabledState = true
+                        }
                     }
                     BluetoothAdapter.ACTION_STATE_CHANGED -> {
                         val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
-                        isBluetoothEnabled = state == BluetoothAdapter.STATE_ON
+                        isBluetoothEnabledState = state == BluetoothAdapter.STATE_ON
                     }
                 }
             }
         }
         val filter = IntentFilter().apply {
             addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
         }
         context.registerReceiver(receiver, filter)
