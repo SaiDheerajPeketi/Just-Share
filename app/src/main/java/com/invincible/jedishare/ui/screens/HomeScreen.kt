@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.History
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -280,7 +281,28 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (recentItems.isEmpty()) {
-                    Text("No recent transfers", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(vertical = 16.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .background(colors.cardBg, RoundedCornerShape(24.dp))
+                                .border(1.dp, colors.border, RoundedCornerShape(24.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.History, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(36.dp))
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("No Transfers Yet", style = MaterialTheme.typography.h3.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp), color = colors.black)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Your file transfer history will appear here.",
+                            style = MaterialTheme.typography.body2,
+                            color = colors.mutedFg
+                        )
+                    }
                 } else {
                     recentItems.forEach { item ->
                         RecentFileItem(
