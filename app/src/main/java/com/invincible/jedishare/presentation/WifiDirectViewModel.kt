@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,6 +66,12 @@ class WifiDirectViewModel @Inject constructor(
     private var communicationServiceStarted = false
     private var isSenderRole = true
     private val p2pRetryDelaysMs = listOf(300L, 700L, 1_200L, 2_000L, 3_000L, 4_000L)
+    private var activeConnectJob: Job? = null
+    private var connectTimeoutJob: Job? = null
+
+    companion object {
+        private const val CONNECT_TIMEOUT_MS = 20_000L
+    }
 
     /** Shared ActionListener for discovery operations. */
     private val actionListener = object : WifiP2pManager.ActionListener {
@@ -98,6 +105,7 @@ class WifiDirectViewModel @Inject constructor(
             return@ConnectionInfoListener
         }
 
+        cancelConnectTimeout()
         startCommunicationService(info)
         if (!info.isGroupOwner) {
             _uiState.update {
@@ -231,6 +239,8 @@ class WifiDirectViewModel @Inject constructor(
         stopCommunicationService()
         
         if (wasConnecting) {
+            cancelConnectTimeout()
+            activeConnectJob?.cancel()
             Timber.d("WifiDirectViewModel - Connection failed after ${msSinceConnect}ms, restarting discovery")
             // Cancel dangling connection locks before re-scanning
             wifiP2pManager?.let { mgr ->
@@ -266,33 +276,38 @@ class WifiDirectViewModel @Inject constructor(
             _uiState.update { it.copy(errorMessage = "Wi-Fi is disabled. Please turn on Wi-Fi and try again.") }
             return
         }
+        if (!isSenderRole || _uiState.value.isConnected) {
+            return
+        }
+        activeConnectJob?.cancel()
+        cancelConnectTimeout()
+        _uiState.update { it.copy(connectionStatus = "") }
         _uiState.update { it.copy(peers = emptyList()) }
-        if (!_uiState.value.isConnected) {
-            viewModelScope.launch {
-                if (_uiState.value.isDiscovering) {
-                    // Stop discovery first to clear system cache
-                    manager.stopPeerDiscovery(channel, null)
-                    kotlinx.coroutines.delay(300)
-                }
-                
-                val failure = runP2pAction(
-                    label = "discoverPeers",
-                    retryReasons = setOf(WifiP2pManager.BUSY)
-                ) { listener ->
-                    manager.discoverPeers(channel, listener)
-                }
-                
-                if (failure == null) {
-                    _uiState.update { it.copy(isDiscovering = true) }
-                } else {
-                    val msg = "Wi-Fi Direct failed: ${failureReason(failure)}"
-                    Log.e(TAG, msg)
-                    _uiState.update { it.copy(errorMessage = msg) }
-                }
-                
-                // Manually request peers just in case the system doesn't broadcast a change
-                manager.requestPeers(channel, peerListListener)
+        viewModelScope.launch {
+            awaitP2pAction { manager.cancelConnect(channel, it) }
+            if (_uiState.value.isDiscovering) {
+                // Stop discovery first to clear system cache
+                manager.stopPeerDiscovery(channel, null)
+                kotlinx.coroutines.delay(300)
             }
+            
+            val failure = runP2pAction(
+                label = "discoverPeers",
+                retryReasons = setOf(WifiP2pManager.BUSY)
+            ) { listener ->
+                manager.discoverPeers(channel, listener)
+            }
+            
+            if (failure == null) {
+                _uiState.update { it.copy(isDiscovering = true, errorMessage = null) }
+            } else {
+                val msg = "Wi-Fi Direct failed: ${failureReason(failure)}"
+                Log.e(TAG, msg)
+                _uiState.update { it.copy(errorMessage = msg) }
+            }
+            
+            // Manually request peers just in case the system doesn't broadcast a change
+            manager.requestPeers(channel, peerListListener)
         }
     }
 
@@ -383,6 +398,13 @@ class WifiDirectViewModel @Inject constructor(
             startDiscovery()
             return
         }
+        if (currentPeer.status == WifiP2pDevice.UNAVAILABLE) {
+            _uiState.update {
+                it.copy(errorMessage = "Device is no longer visible. Ask the receiver to restart visibility, then scan again.")
+            }
+            startDiscovery()
+            return
+        }
 
         _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
         val config = WifiP2pConfig().apply {
@@ -390,7 +412,8 @@ class WifiDirectViewModel @Inject constructor(
             wps.setup = WpsInfo.PBC
             groupOwnerIntent = WifiP2pConfig.GROUP_OWNER_INTENT_MIN
         }
-        viewModelScope.launch {
+        activeConnectJob?.cancel()
+        activeConnectJob = viewModelScope.launch {
             prepareAndConnect(manager, channel, config)
         }
     }
@@ -402,6 +425,8 @@ class WifiDirectViewModel @Inject constructor(
 
     fun disconnectP2P() {
         Timber.d("WifiDirectViewModel - disconnectP2P called")
+        activeConnectJob?.cancel()
+        cancelConnectTimeout()
         stopCommunicationService()
         wifiP2pManager?.let { mgr ->
             wifiP2pChannel?.let { ch ->
@@ -471,9 +496,12 @@ class WifiDirectViewModel @Inject constructor(
         channel: WifiP2pManager.Channel,
         config: WifiP2pConfig
     ) {
+        awaitP2pAction { manager.cancelConnect(channel, it) }
+        awaitP2pAction { manager.stopPeerDiscovery(channel, it) }
+
         val connectFailure = runP2pAction(
             label = "connect",
-            retryReasons = setOf(WifiP2pManager.BUSY, WifiP2pManager.ERROR)
+            retryReasons = setOf(WifiP2pManager.BUSY)
         ) { listener ->
             manager.connect(channel, config, listener)
         }
@@ -482,12 +510,41 @@ class WifiDirectViewModel @Inject constructor(
             Log.d(TAG, "connect request accepted")
             lastConnectAttemptTime = System.currentTimeMillis()
             _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
+            scheduleConnectTimeout(config.deviceAddress)
         } else {
             val msg = "Wi-Fi Direct connect failed: ${failureReason(connectFailure)}"
             Log.e(TAG, msg)
             _uiState.update { it.copy(connectionStatus = "", errorMessage = msg) }
             startDiscovery()
         }
+    }
+
+    private fun scheduleConnectTimeout(deviceAddress: String?) {
+        cancelConnectTimeout()
+        connectTimeoutJob = viewModelScope.launch {
+            delay(CONNECT_TIMEOUT_MS)
+            if (_uiState.value.connectionStatus != "connecting") return@launch
+            Log.d(TAG, "connect timed out for $deviceAddress")
+            wifiP2pManager?.let { mgr ->
+                wifiP2pChannel?.let { ch ->
+                    awaitP2pAction { listener -> mgr.cancelConnect(ch, listener) }
+                }
+            }
+            _uiState.update {
+                it.copy(
+                    isConnected = false,
+                    connectionStatus = "",
+                    errorMessage = "Could not connect. Make sure the receiver is visible and accepts the invite."
+                )
+            }
+            connectTimeoutJob = null
+            startDiscovery()
+        }
+    }
+
+    private fun cancelConnectTimeout() {
+        connectTimeoutJob?.cancel()
+        connectTimeoutJob = null
     }
 
     private suspend fun runP2pAction(
@@ -537,18 +594,14 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     private fun stopCommunicationService() {
-        if (!communicationServiceStarted) return
         val stopIntent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
             action = com.invincible.jedishare.CommunicationService.ACTION_STOP_COMMUNICATION
         }
         runCatching {
             context.startService(stopIntent)
-        }
-        val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java)
-        runCatching {
-            context.stopService(intent)
         }.onFailure { throwable ->
-            Log.e(TAG, "Could not stop Wi-Fi Direct communication service", throwable)
+            Log.e(TAG, "Could not send Wi-Fi Direct stop command", throwable)
+            context.stopService(Intent(context, com.invincible.jedishare.CommunicationService::class.java))
         }
         communicationServiceStarted = false
     }

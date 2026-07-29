@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -125,7 +126,13 @@ fun DiscoverDevicesScreen(
         }.sortedByDescending { it.isAvailable }
     } else {
         wifiState.peers.map {
-            UnifiedDevice(it.deviceAddress, it.deviceName ?: "Unknown Device", true, wifiDevice = it)
+            UnifiedDevice(
+                id = it.deviceAddress,
+                name = it.deviceName ?: "Unknown Device",
+                isWifiDirect = true,
+                isAvailable = it.status != WifiP2pDevice.UNAVAILABLE,
+                wifiDevice = it
+            )
         }
     }
 
@@ -166,7 +173,11 @@ fun DiscoverDevicesScreen(
                 scanning = false
                 if (isSender) btViewModel.stopScan()
             } else if (transferMethod == "wifi") {
-                wifiViewModel.startDiscovery()
+                if (isSender) {
+                    wifiViewModel.startDiscovery()
+                } else {
+                    wifiViewModel.startHosting()
+                }
             }
         }
     }
