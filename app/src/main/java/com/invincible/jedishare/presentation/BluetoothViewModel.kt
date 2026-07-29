@@ -131,9 +131,10 @@ class BluetoothViewModel @Inject constructor(
 
     fun connectToDevice(device: BluetoothDeviceDomain) {
         Timber.d("BluetoothViewModel - connectToDevice called")
+        deviceConnectionJob?.cancel()
         _connectedDeviceName = device.name
         _connectedDeviceNameState.value = device.name
-        _state.update { it.copy(isConnecting = true) }
+        _state.update { it.copy(isConnecting = true, errorMessage = null) }
         deviceConnectionJob = bluetoothController
             .connectToDevice(device)
             .listenForResults(isSender = false)
@@ -149,7 +150,7 @@ class BluetoothViewModel @Inject constructor(
     fun waitForIncomingConnections() {
         Timber.d("BluetoothViewModel - waitForIncomingConnections called")
         deviceConnectionJob?.cancel()
-        _state.update { it.copy(isConnecting = true) }
+        _state.update { it.copy(isConnecting = true, errorMessage = null) }
         deviceConnectionJob = bluetoothController
             .startBluetoothServer()
             .listenForResults(isSender = false)
