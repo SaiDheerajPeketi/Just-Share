@@ -12,6 +12,8 @@ import android.util.Log
 import com.invincible.jedishare.domain.chat.FileInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 /**
@@ -19,7 +21,8 @@ import javax.inject.Inject
  * Removes all File I/O from BluetoothViewModel, keeping the ViewModel clean and testable.
  */
 class FileTransferRepository @Inject constructor(
-    private val contentResolver: ContentResolver
+    private val contentResolver: ContentResolver,
+    @ApplicationContext private val context: Context
 ) {
 
     /**
