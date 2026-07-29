@@ -79,6 +79,18 @@ class AndroidBluetoothController(
 
     private val foundDeviceReceiver = FoundDeviceReceiver { device ->
         _scannedDevices.update { devices ->
+            if (device.name.isNullOrBlank()) return@update devices
+            
+            // Only add devices that are phones, computers, or uncategorized
+            val majorClass = device.bluetoothClass?.majorDeviceClass
+            if (majorClass != null && 
+                majorClass != android.bluetooth.BluetoothClass.Device.Major.PHONE &&
+                majorClass != android.bluetooth.BluetoothClass.Device.Major.COMPUTER &&
+                majorClass != android.bluetooth.BluetoothClass.Device.Major.UNCATEGORIZED
+            ) {
+                return@update devices
+            }
+            
             val newDevice = device.toBluetoothDeviceDomain()
             if (newDevice in devices) devices else devices + newDevice
         }
@@ -447,6 +459,7 @@ class AndroidBluetoothController(
         Timber.d("AndroidBluetoothController - updatePairedDevices called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
         bluetoothAdapter?.bondedDevices
+            ?.filter { !it.name.isNullOrBlank() }
             ?.map { it.toBluetoothDeviceDomain() }
             ?.also { devices -> _pairedDevices.update { devices } }
     }

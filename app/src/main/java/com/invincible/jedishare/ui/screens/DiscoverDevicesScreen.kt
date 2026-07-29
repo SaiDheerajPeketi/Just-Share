@@ -111,6 +111,7 @@ fun DiscoverDevicesScreen(
     // Unify discovered devices
     val discovered = if (transferMethod == "bt") {
         val pairedAddresses = btState.pairedDevices.map { it.address }.toSet()
+        val scannedAddresses = btState.scannedDevices.map { it.address }.toSet()
         val allBtDevices = (btState.pairedDevices + btState.scannedDevices).distinctBy { it.address }
         allBtDevices.map { 
             UnifiedDevice(
@@ -118,9 +119,10 @@ fun DiscoverDevicesScreen(
                 name = it.name ?: "Unknown Device",
                 isWifiDirect = false,
                 isPaired = it.address in pairedAddresses,
+                isAvailable = it.address in scannedAddresses,
                 btDevice = it
             )
-        }
+        }.sortedByDescending { it.isAvailable }
     } else {
         wifiState.peers.map {
             UnifiedDevice(it.deviceAddress, it.deviceName ?: "Unknown Device", true, wifiDevice = it)
@@ -296,7 +298,7 @@ fun DiscoverDevicesScreen(
                                     Text(text = device.name, style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold), color = colors.black)
                                     Text(text = device.id, style = MaterialTheme.typography.caption, color = colors.mutedFg)
                                 }
-                                StatusDot(status = "online")
+                                StatusDot(status = if (device.isAvailable) "online" else "offline")
                                 if (transferMethod == "bt" && !device.isPaired) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Icon(Icons.Default.BluetoothSearching, contentDescription = "Pair", tint = colors.red, modifier = Modifier.size(18.dp))
