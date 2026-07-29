@@ -177,31 +177,42 @@ class AndroidBluetoothController(
         currentServerSocket?.close()
         currentServerSocket = null
         
-        currentServerSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
+        val serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
             "jedi_share_service", UUID.fromString(SERVICE_UUID)
         )
-        var shouldLoop = true
-        while (shouldLoop) {
-            currentClientSocket = try {
-                currentServerSocket?.accept()
-            } catch (e: IOException) {
-                shouldLoop = false
-                null
+        currentServerSocket = serverSocket
+        try {
+            var shouldLoop = true
+            while (shouldLoop) {
+                val clientSocket = try {
+                    serverSocket?.accept()
+                } catch (e: IOException) {
+                    shouldLoop = false
+                    null
+                }
+                currentClientSocket = clientSocket
+                if (clientSocket != null) {
+                    val service = BluetoothDataTransferService(clientSocket)
+                    dataTransferService = service
+                    _isConnected.update { true }
+                    emit(ConnectionResult.ConnectionEstablished(clientSocket.remoteDevice?.name))
+                    serverSocket?.close()
+                    emitAll(
+                        service.listenForIncomingMessages().map { incomingData ->
+                            incomingData.toConnectionResult()
+                        }
+                    )
+                }
             }
-            if (currentClientSocket != null) {
-                val service = BluetoothDataTransferService(currentClientSocket!!)
-                dataTransferService = service
-                _isConnected.update { true }
-                emit(ConnectionResult.ConnectionEstablished(currentClientSocket?.remoteDevice?.name))
-                currentServerSocket?.close()
-                emitAll(
-                    service.listenForIncomingMessages().map { incomingData ->
-                        incomingData.toConnectionResult()
-                    }
-                )
-            }
+        } finally {
+            try {
+                serverSocket?.close()
+                currentClientSocket?.close()
+            } catch (e: IOException) {}
         }
-    }.onCompletion { closeConnection() }.flowOn(Dispatchers.IO)
+    }.onCompletion { 
+        Timber.d("AndroidBluetoothController - startBluetoothServer flow completed/cancelled")
+    }.flowOn(Dispatchers.IO)
 
     override fun connectToDevice(device: BluetoothDeviceDomain): Flow<ConnectionResult> = flow {
         Timber.d("AndroidBluetoothController - connectToDevice called")
@@ -278,16 +289,22 @@ class AndroidBluetoothController(
                             }
                         } else {
                             currentClientSocket = null
-                            emit(ConnectionResult.Error("Connection failed (secure + insecure + no fallback): ${insecureEx.message}"))
+                            emit(ConnectionResult.Error("Connection failed (reflection socket is null)"))
                         }
                     }
                 } else {
                     currentClientSocket = null
-                    emit(ConnectionResult.Error("Connection failed, couldn't create insecure socket"))
+                    emit(ConnectionResult.Error("Insecure socket is null"))
                 }
+            } finally {
+                try {
+                    currentClientSocket?.close()
+                } catch (e: IOException) {}
             }
         } ?: emit(ConnectionResult.Error("Remote device not found"))
-    }.onCompletion { closeConnection() }.flowOn(Dispatchers.IO)
+    }.onCompletion { 
+        Timber.d("AndroidBluetoothController - connectToDevice flow completed/cancelled")
+    }.flowOn(Dispatchers.IO)
 
 
     // ── Sending ───────────────────────────────────────────────────────────────
