@@ -211,8 +211,11 @@ class WifiDirectViewModel @Inject constructor(
         stopCommunicationService()
         
         if (wasConnecting) {
-            Timber.d("WifiDirectViewModel - Connection failed, restarting discovery to refresh peer list")
-            startDiscovery()
+            Timber.d("WifiDirectViewModel - Connection failed, delaying restart discovery to prevent framework busy")
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(1000)
+                startDiscovery()
+            }
         }
     }
 
