@@ -278,10 +278,5 @@ fun HistoryScreen(
                 }
             }
         }
-
-        BottomNav(
-            activeRoute = "history",
-            onNavigate = onNavigateToNavRoute
-        )
     }
 }

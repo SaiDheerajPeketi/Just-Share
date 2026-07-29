@@ -217,8 +217,6 @@ fun SettingsScreen(
                 }
             }
         }
-
-        BottomNav(activeRoute = "settings", onNavigate = onNavigateToNavRoute)
     }
 }
 
