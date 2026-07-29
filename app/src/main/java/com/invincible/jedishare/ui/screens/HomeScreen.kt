@@ -163,7 +163,7 @@ fun HomeScreen(
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Bluetooth", color = if (transferMethod == "bt") Color.White else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Bluetooth", color = if (transferMethod == "bt") colors.white else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Box(
                         modifier = Modifier
@@ -175,7 +175,7 @@ fun HomeScreen(
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Wi-Fi Direct", color = if (transferMethod == "wifi") Color.White else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Wi-Fi Direct", color = if (transferMethod == "wifi") colors.white else colors.black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -204,12 +204,12 @@ fun HomeScreen(
                     Icon(
                         Icons.Default.ArrowUpward, 
                         contentDescription = null, 
-                        tint = Color.White, 
+                        tint = colors.white, 
                         modifier = Modifier.size(32.dp).offset(y = upArrowOffset.dp)
                     )
                     Spacer(modifier = Modifier.height(20.dp))
-                    Text(text = "SEND", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = Color.White, letterSpacing = 1.sp)
-                    Text(text = "Share files with nearby devices", style = MaterialTheme.typography.body2, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.padding(top = 4.dp))
+                    Text(text = "SEND", style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold), color = colors.white, letterSpacing = 1.sp)
+                    Text(text = "Share files with nearby devices", style = MaterialTheme.typography.body2, color = colors.white.copy(alpha = 0.9f), modifier = Modifier.padding(top = 4.dp))
                 }
             }
 

@@ -80,7 +80,7 @@ fun SettingsScreen(
                     text = "APPEARANCE",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF5A4A45),
+                    color = colors.mutedFg,
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 )
@@ -97,7 +97,7 @@ fun SettingsScreen(
                             }
                         },
                         trackOnColor = colors.red,
-                        trackOffColor = Color(0xFFE0E0E0),
+                        trackOffColor = colors.border,
                         thumbOnColor = Color.White,
                         thumbOffColor = Color.White
                     )
@@ -117,7 +117,7 @@ fun SettingsScreen(
                     text = "TRANSFER DEFAULTS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF5A4A45),
+                    color = colors.mutedFg,
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 )
@@ -133,13 +133,13 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Bluetooth, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Bluetooth", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
                     CustomRadioButton(selected = savedTransferMethod == "bt", color = colors.red)
                 }
                 
-                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Color(0xFFF0F0F0)))
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(colors.border))
                 
                 // Wi-Fi Direct Option
                 Row(
@@ -152,7 +152,7 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Wifi, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Wifi, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Wi-Fi Direct", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
                     CustomRadioButton(selected = savedTransferMethod == "wifi", color = colors.red)
@@ -172,7 +172,7 @@ fun SettingsScreen(
                     text = "SECURITY",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF5A4A45),
+                    color = colors.mutedFg,
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 )
@@ -187,7 +187,7 @@ fun SettingsScreen(
                         on = encRequired,
                         onChange = { encRequired = !encRequired },
                         trackOnColor = colors.red, // App theme red track
-                        trackOffColor = Color(0xFFE0E0E0),
+                        trackOffColor = colors.border,
                         thumbOnColor = Color.White, // White thumb
                         thumbOffColor = Color.White,
                         thumbIcon = Icons.Default.Check,
@@ -196,7 +196,7 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Color(0xFFF0F0F0)))
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(colors.border))
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
@@ -210,7 +210,7 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF5A4A45), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Phone, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Trusted Devices", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
                     Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(20.dp))
@@ -224,10 +224,11 @@ fun SettingsScreen(
 
 @Composable
 fun CustomRadioButton(selected: Boolean, color: Color) {
+    val colors = JediShareTheme.colors
     Box(
         modifier = Modifier
             .size(20.dp)
-            .border(2.dp, if (selected) color else Color(0xFFBDBDBD), CircleShape),
+            .border(2.dp, if (selected) color else colors.border, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         if (selected) {

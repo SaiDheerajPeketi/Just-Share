@@ -89,7 +89,7 @@ fun ScanQrScreen(onBack: () -> Unit) {
                     .padding(horizontal = 48.dp)
                     .aspectRatio(1f) // Square
                     .clip(RoundedCornerShape(40.dp))
-                    .background(Color(0xFF424242)), // Dummy camera feed background
+                    .background(colors.cardBg),
                 contentAlignment = Alignment.Center
             ) {
                 // Red scanning frame overlay
@@ -118,7 +118,7 @@ fun ScanQrScreen(onBack: () -> Unit) {
             Text(
                 text = "Align the QR code within the frame\nto connect instantly.",
                 style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, lineHeight = 24.sp),
-                color = Color(0xFF5A4A45),
+                color = colors.mutedFg,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp)
             )
@@ -133,7 +133,7 @@ fun ScanQrScreen(onBack: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .background(Color(0xFFF5F5F5), CircleShape)
+                        .background(colors.border, CircleShape)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,

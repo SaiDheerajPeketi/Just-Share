@@ -49,7 +49,7 @@ fun PillButton(
     }
     
     val contentColor = when (variant) {
-        PillButtonVariant.PRIMARY, PillButtonVariant.DANGER, PillButtonVariant.GOLD -> Color.White
+        PillButtonVariant.PRIMARY, PillButtonVariant.DANGER, PillButtonVariant.GOLD -> colors.white
         PillButtonVariant.OUTLINE -> colors.red
         PillButtonVariant.GHOST -> colors.mutedFg
     }

@@ -32,9 +32,9 @@ fun OnboardingScreen(onContinue: () -> Unit) {
     val colors = JediShareTheme.colors
     
     val gradientColors = if (colors.isLight) {
-        listOf(colors.surface, Color(0xFFFFF0F0))
+        listOf(colors.surface, colors.cardBg)
     } else {
-        listOf(colors.surface, Color(0xFF1A0505))
+        listOf(colors.surface, colors.cardBg)
     }
 
     Box(
@@ -58,7 +58,7 @@ fun OnboardingScreen(onContinue: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.FlashOn,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = colors.white,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -110,7 +110,7 @@ fun OnboardingScreen(onContinue: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(modifier = Modifier.width(24.dp).height(6.dp).background(colors.red, CircleShape))
                 Box(modifier = Modifier.width(8.dp).height(6.dp).background(colors.lightRed, CircleShape))
-                Box(modifier = Modifier.width(8.dp).height(6.dp).background(Color(0xFF666666), CircleShape))
+                Box(modifier = Modifier.width(8.dp).height(6.dp).background(colors.mutedFg, CircleShape))
             }
             
             Spacer(modifier = Modifier.weight(1f))
