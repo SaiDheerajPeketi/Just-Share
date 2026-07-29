@@ -199,11 +199,20 @@ class WifiDirectViewModel @Inject constructor(
         _uiState.update { it.copy(thisDeviceName = name ?: "") }
     }
 
+    private var lastConnectAttemptTime = 0L
+
     fun onDisconnected() {
         Timber.d("WifiDirectViewModel - onDisconnected called")
         if (!isSenderRole && _uiState.value.connectionStatus == "hosting") {
             return
         }
+        
+        // Ignore spurious disconnected broadcasts right after initiating a connection
+        if (System.currentTimeMillis() - lastConnectAttemptTime < 2000) {
+            Timber.d("WifiDirectViewModel - Ignoring disconnect broadcast right after connect attempt")
+            return
+        }
+        
         val wasConnecting = _uiState.value.connectionStatus == "connecting"
         val errorMsg = if (wasConnecting) "Failed to connect: device is inactive or rejected connection." else null
         
@@ -454,6 +463,7 @@ class WifiDirectViewModel @Inject constructor(
 
         if (connectFailure == null) {
             Log.d(TAG, "connect request accepted")
+            lastConnectAttemptTime = System.currentTimeMillis()
             _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
         } else {
             val msg = "Wi-Fi Direct connect failed: ${failureReason(connectFailure)}"
