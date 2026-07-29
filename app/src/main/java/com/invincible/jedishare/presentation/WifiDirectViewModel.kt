@@ -479,6 +479,12 @@ class WifiDirectViewModel @Inject constructor(
 
     private fun stopCommunicationService() {
         if (!communicationServiceStarted) return
+        val stopIntent = Intent(context, com.invincible.jedishare.CommunicationService::class.java).apply {
+            action = com.invincible.jedishare.CommunicationService.ACTION_STOP_COMMUNICATION
+        }
+        runCatching {
+            context.startService(stopIntent)
+        }
         val intent = Intent(context, com.invincible.jedishare.CommunicationService::class.java)
         runCatching {
             context.stopService(intent)
