@@ -157,13 +157,23 @@ fun DiscoverDevicesScreen(
     }
 
     LaunchedEffect(scanning) {
-        if (transferMethod == "bt" && scanning) {
-            repeat(if (isSender) 3 else 1) {
-                if (isSender) btViewModel.startScan()
-                delay(10000)
+        if (scanning) {
+            if (transferMethod == "bt") {
+                repeat(if (isSender) 3 else 1) {
+                    if (isSender) btViewModel.startScan()
+                    delay(10000)
+                }
+                scanning = false
+                if (isSender) btViewModel.stopScan()
+            } else if (transferMethod == "wifi") {
+                wifiViewModel.discoverPeers()
             }
+        }
+    }
+    
+    LaunchedEffect(wifiState.isDiscovering) {
+        if (transferMethod == "wifi" && !wifiState.isDiscovering) {
             scanning = false
-            if (isSender) btViewModel.stopScan()
         }
     }
     
