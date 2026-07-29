@@ -31,7 +31,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.invincible.jedishare.presentation.HistoryViewModel
 import com.invincible.jedishare.ui.screens.formatSize
 import com.invincible.jedishare.ui.screens.formatDateRelative
+import com.invincible.jedishare.ui.screens.openFile
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -79,27 +81,24 @@ fun CardButton(
 
 @Composable
 fun RecentFileItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconTint: Color,
-    iconBg: Color,
+    mimeType: String?,
     title: String,
-    subtitle: String
+    subtitle: String,
+    onClick: () -> Unit = {}
 ) {
     val colors = JediShareTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .background(iconBg, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
-        }
+        com.invincible.jedishare.ui.components.MimeTypeIcon(
+            mimeType = mimeType,
+            modifier = Modifier.size(48.dp)
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, fontSize = 16.sp), color = colors.black)
@@ -125,6 +124,7 @@ fun HomeScreen(
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
+    val context = LocalContext.current
     val transferState by transferViewModel.state.collectAsStateWithLifecycle()
     val transferMethod = transferState.method
     val historyItems by historyViewModel.history.collectAsState()
@@ -283,20 +283,11 @@ fun HomeScreen(
                     Text("No recent transfers", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(vertical = 16.dp))
                 } else {
                     recentItems.forEach { item ->
-                        val icon = when {
-                            item.mimeType?.startsWith("image/") == true -> Icons.Default.Image
-                            item.mimeType?.startsWith("video/") == true -> Icons.Default.Videocam
-                            else -> Icons.Default.InsertDriveFile
-                        }
-                        val tint = if (item.mimeType?.startsWith("image/") == true) colors.red else colors.mutedFg
-                        val bg = if (item.mimeType?.startsWith("image/") == true) colors.red.copy(alpha = 0.08f) else colors.cardBg
-                        
                         RecentFileItem(
-                            icon = icon,
-                            iconTint = tint,
-                            iconBg = bg,
+                            mimeType = item.mimeType,
                             title = item.fileName,
-                            subtitle = "${formatSize(item.fileSizeBytes)} · ${formatDateRelative(item.timestampMs)}"
+                            subtitle = "${formatSize(item.fileSizeBytes)} · ${formatDateRelative(item.timestampMs)}",
+                            onClick = { openFile(context, item) }
                         )
                     }
                 }
