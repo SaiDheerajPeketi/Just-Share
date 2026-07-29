@@ -283,7 +283,11 @@ class CommunicationService : Service() {
                     Log.d(TAG, "Remote closed Wi-Fi Direct stream")
                     break
                 } catch (e: IOException) {
-                    Log.e(TAG, "Read metadata size failed", e)
+                    if (e is java.net.SocketException && e.message?.contains("Socket closed") == true) {
+                        Log.d(TAG, "Socket closed locally, stopping reading loop")
+                    } else {
+                        Log.e(TAG, "Read metadata size failed", e)
+                    }
                     break
                 }
 

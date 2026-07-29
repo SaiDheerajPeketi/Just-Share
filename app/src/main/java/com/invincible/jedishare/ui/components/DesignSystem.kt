@@ -13,8 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -197,8 +197,8 @@ fun MimeTypeIcon(
 
     val iconVector = when {
         mimeType?.startsWith("image/") == true -> androidx.compose.material.icons.Icons.Default.Image
-        mimeType?.startsWith("video/") == true -> androidx.compose.material.icons.Icons.Default.VideoLibrary
-        mimeType?.startsWith("audio/") == true -> androidx.compose.material.icons.Icons.Default.LibraryMusic
+        mimeType?.startsWith("video/") == true -> androidx.compose.material.icons.Icons.Default.Videocam
+        mimeType?.startsWith("audio/") == true -> androidx.compose.material.icons.Icons.Default.MusicNote
         else -> androidx.compose.material.icons.Icons.Default.InsertDriveFile
     }
 

@@ -54,8 +54,8 @@ fun SelectFilesScreen(
 
     val tabs = listOf(
         Triple("images", "Images", Icons.Default.Image),
-        Triple("videos", "Videos", Icons.Default.VideoLibrary),
-        Triple("audio", "Audio", Icons.Default.LibraryMusic),
+        Triple("videos", "Videos", Icons.Default.Videocam),
+        Triple("audio", "Audio", Icons.Default.MusicNote),
         Triple("docs", "Docs", Icons.Default.InsertDriveFile)
     )
 
