@@ -237,6 +237,7 @@ class WifiDirectViewModel @Inject constructor(
             _uiState.update { it.copy(errorMessage = "Wi-Fi is disabled. Please turn on Wi-Fi and try again.") }
             return
         }
+        _uiState.update { it.copy(peers = emptyList()) }
         if (!_uiState.value.isDiscovering &&
             !_uiState.value.isConnected
         ) {
