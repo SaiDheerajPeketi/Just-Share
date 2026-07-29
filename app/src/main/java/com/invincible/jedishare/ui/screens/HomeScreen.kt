@@ -128,7 +128,7 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(colors.lightRed, CircleShape)
+                        .background(colors.red.copy(alpha = 0.15f), CircleShape)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,

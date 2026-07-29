@@ -222,7 +222,7 @@ fun DiscoverDevicesScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
-                        .background(colors.lightRed, RoundedCornerShape(12.dp))
+                        .background(colors.red.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                         .padding(16.dp)
                 ) {
                     Text(text = errorMessage, color = colors.red, style = MaterialTheme.typography.body2)
@@ -288,7 +288,7 @@ fun DiscoverDevicesScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
-                                    modifier = Modifier.size(40.dp).background(colors.lightRed, CircleShape),
+                                    modifier = Modifier.size(40.dp).background(colors.red.copy(alpha = 0.15f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(Icons.Default.Smartphone, contentDescription = null, tint = colors.red, modifier = Modifier.size(18.dp))
@@ -451,7 +451,7 @@ fun DiscoverDevicesScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
-                                modifier = Modifier.size(48.dp).background(colors.lightRed, RoundedCornerShape(12.dp)),
+                                modifier = Modifier.size(48.dp).background(colors.red.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.Smartphone, contentDescription = null, tint = colors.red)

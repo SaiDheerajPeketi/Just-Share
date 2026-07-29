@@ -12,6 +12,10 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -168,4 +172,41 @@ fun StatusDot(status: String) {
             .clip(CircleShape)
             .background(color)
     )
+}
+
+@Composable
+fun MimeTypeIcon(
+    mimeType: String?,
+    modifier: Modifier = Modifier,
+    isActive: Boolean = false,
+    isDone: Boolean = false
+) {
+    val colors = com.invincible.jedishare.ui.theme.JediShareTheme.colors
+    
+    val baseTint = when {
+        mimeType?.startsWith("image/") == true -> colors.red
+        mimeType?.startsWith("video/") == true -> colors.green
+        mimeType?.startsWith("audio/") == true -> com.invincible.jedishare.ui.theme.Gold
+        else -> androidx.compose.ui.graphics.Color(0xFF1976D2) // Blue for docs/others
+    }
+    
+    // Inactive non-done files get a muted background if they are part of a list, but usually we just show a faint tint.
+    // If it's done, maybe slightly different. Let's stick to a uniform faint tint unless overridden.
+    val iconBg = if (isDone) baseTint.copy(alpha = 0.1f) else if (isActive) baseTint.copy(alpha = 0.2f) else baseTint.copy(alpha = 0.1f)
+    val iconTint = if (isDone || isActive || (!isDone && !isActive)) baseTint else colors.mutedFg
+
+    val iconVector = when {
+        mimeType?.startsWith("image/") == true -> androidx.compose.material.icons.Icons.Default.Image
+        mimeType?.startsWith("video/") == true -> androidx.compose.material.icons.Icons.Default.VideoLibrary
+        mimeType?.startsWith("audio/") == true -> androidx.compose.material.icons.Icons.Default.LibraryMusic
+        else -> androidx.compose.material.icons.Icons.Default.InsertDriveFile
+    }
+
+    Box(
+        modifier = modifier
+            .background(iconBg, androidx.compose.foundation.shape.RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(iconVector, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
+    }
 }
