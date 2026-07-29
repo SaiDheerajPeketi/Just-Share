@@ -212,6 +212,14 @@ class WifiDirectViewModel @Inject constructor(
         
         if (wasConnecting) {
             Timber.d("WifiDirectViewModel - Connection failed, delaying restart discovery to prevent framework busy")
+            
+            // Explicitly clear any dangling connection locks
+            wifiP2pManager?.let { mgr ->
+                wifiP2pChannel?.let { ch ->
+                    mgr.cancelConnect(ch, null)
+                }
+            }
+            
             viewModelScope.launch {
                 kotlinx.coroutines.delay(1000)
                 startDiscovery()
@@ -283,7 +291,10 @@ class WifiDirectViewModel @Inject constructor(
                 ) { listener ->
                     manager.stopPeerDiscovery(channel, listener)
                 }
-                if (failure != null) {
+                
+                if (failure == null) {
+                    _uiState.update { it.copy(isDiscovering = false) }
+                } else {
                     Log.e(TAG, "Wi-Fi Direct stop discovery failed: ${failureReason(failure)}")
                 }
             }
