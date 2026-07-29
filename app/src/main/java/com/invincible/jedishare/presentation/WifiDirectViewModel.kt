@@ -241,10 +241,14 @@ class WifiDirectViewModel @Inject constructor(
             return
         }
         _uiState.update { it.copy(peers = emptyList()) }
-        if (!_uiState.value.isDiscovering &&
-            !_uiState.value.isConnected
-        ) {
+        if (!_uiState.value.isConnected) {
             viewModelScope.launch {
+                if (_uiState.value.isDiscovering) {
+                    // Stop discovery first to clear system cache
+                    manager.stopPeerDiscovery(channel, null)
+                    kotlinx.coroutines.delay(300)
+                }
+                
                 val failure = runP2pAction(
                     label = "discoverPeers",
                     retryReasons = setOf(WifiP2pManager.BUSY)
@@ -256,6 +260,9 @@ class WifiDirectViewModel @Inject constructor(
                     Log.e(TAG, msg)
                     _uiState.update { it.copy(errorMessage = msg) }
                 }
+                
+                // Manually request peers just in case the system doesn't broadcast a change
+                manager.requestPeers(channel, peerListListener)
             }
         }
     }
