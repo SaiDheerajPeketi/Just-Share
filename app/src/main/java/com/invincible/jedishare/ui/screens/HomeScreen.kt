@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
@@ -167,7 +168,7 @@ fun HomeScreen(
                         color = colors.black
                     )
                     Icon(
-                        Icons.Default.Settings, 
+                        Icons.Outlined.Settings, 
                         contentDescription = "Settings", 
                         tint = colors.mutedFg, 
                         modifier = Modifier
@@ -287,8 +288,6 @@ fun HomeScreen(
                     subtitle = "112 MB · yesterday"
                 )
             }
-
-            BottomNav(activeRoute = "home", onNavigate = onNavigateToNavRoute)
         }
     }
 }
