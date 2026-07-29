@@ -68,9 +68,11 @@ class WifiDirectViewModel @Inject constructor(
     private val p2pRetryDelaysMs = listOf(300L, 700L, 1_200L, 2_000L, 3_000L, 4_000L)
     private var activeConnectJob: Job? = null
     private var connectTimeoutJob: Job? = null
+    private var discoveryRefreshJob: Job? = null
 
     companion object {
-        private const val CONNECT_TIMEOUT_MS = 20_000L
+        private const val CONNECT_TIMEOUT_MS = 8_000L
+        private const val DISCOVERY_REFRESH_MS = 10_000L
     }
 
     /** Shared ActionListener for discovery operations. */
@@ -197,6 +199,7 @@ class WifiDirectViewModel @Inject constructor(
             if (isSenderRole) startDiscovery() else startHosting()
         }
         else {
+            stopDiscoveryRefreshLoop()
             _uiState.update { it.copy(peers = emptyList(), isConnected = false, isDiscovering = false) }
             stopCommunicationService()
         }
@@ -309,6 +312,9 @@ class WifiDirectViewModel @Inject constructor(
             
             // Manually request peers just in case the system doesn't broadcast a change
             manager.requestPeers(channel, peerListListener)
+            if (failure == null) {
+                startDiscoveryRefreshLoop()
+            }
         }
     }
 
@@ -317,6 +323,7 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - stopDiscovery called")
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
+        stopDiscoveryRefreshLoop()
         if (_uiState.value.isDiscovering) {
             viewModelScope.launch {
                 val failure = runP2pAction(
@@ -428,6 +435,7 @@ class WifiDirectViewModel @Inject constructor(
         Timber.d("WifiDirectViewModel - disconnectP2P called")
         activeConnectJob?.cancel()
         cancelConnectTimeout()
+        stopDiscoveryRefreshLoop()
         stopCommunicationService()
         wifiP2pManager?.let { mgr ->
             wifiP2pChannel?.let { ch ->
@@ -508,10 +516,12 @@ class WifiDirectViewModel @Inject constructor(
             Log.d(TAG, "connect request accepted")
             lastConnectAttemptTime = System.currentTimeMillis()
             _uiState.update { it.copy(connectionStatus = "connecting", errorMessage = null) }
+            stopDiscoveryRefreshLoop()
             scheduleConnectTimeout(config.deviceAddress)
         } else {
             val msg = "Wi-Fi Direct connect failed: ${failureReason(connectFailure)}"
             Log.e(TAG, msg)
+            removePeer(config.deviceAddress)
             _uiState.update { it.copy(connectionStatus = "", errorMessage = msg) }
             startDiscovery()
         }
@@ -528,6 +538,7 @@ class WifiDirectViewModel @Inject constructor(
                     awaitP2pAction { listener -> mgr.cancelConnect(ch, listener) }
                 }
             }
+            removePeer(deviceAddress)
             _uiState.update {
                 it.copy(
                     isConnected = false,
@@ -543,6 +554,49 @@ class WifiDirectViewModel @Inject constructor(
     private fun cancelConnectTimeout() {
         connectTimeoutJob?.cancel()
         connectTimeoutJob = null
+    }
+
+    private fun removePeer(deviceAddress: String?) {
+        if (deviceAddress.isNullOrBlank()) return
+        _uiState.update { state ->
+            state.copy(peers = state.peers.filterNot { it.deviceAddress == deviceAddress })
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startDiscoveryRefreshLoop() {
+        if (discoveryRefreshJob?.isActive == true) return
+        discoveryRefreshJob = viewModelScope.launch {
+            while (true) {
+                delay(DISCOVERY_REFRESH_MS)
+                val manager = wifiP2pManager ?: return@launch
+                val channel = wifiP2pChannel ?: return@launch
+                val state = _uiState.value
+                if (!isSenderRole || state.isConnected || state.connectionStatus == "connecting" || !state.isDiscovering) {
+                    continue
+                }
+                Log.d(TAG, "refreshing Wi-Fi Direct discovery")
+                awaitP2pAction { manager.stopPeerDiscovery(channel, it) }
+                delay(300)
+                val failure = runP2pAction(
+                    label = "discoverPeersRefresh",
+                    retryReasons = setOf(WifiP2pManager.BUSY)
+                ) { listener ->
+                    manager.discoverPeers(channel, listener)
+                }
+                if (failure == null) {
+                    _uiState.update { it.copy(isDiscovering = true, errorMessage = null) }
+                    manager.requestPeers(channel, peerListListener)
+                } else {
+                    Log.e(TAG, "Wi-Fi Direct refresh failed: ${failureReason(failure)}")
+                }
+            }
+        }
+    }
+
+    private fun stopDiscoveryRefreshLoop() {
+        discoveryRefreshJob?.cancel()
+        discoveryRefreshJob = null
     }
 
     private suspend fun runP2pAction(
@@ -628,6 +682,7 @@ class WifiDirectViewModel @Inject constructor(
     override fun onCleared() {
         Timber.d("WifiDirectViewModel - onCleared called")
         super.onCleared()
+        stopDiscoveryRefreshLoop()
         disconnectP2P()
         receiver?.let { 
             try { 
