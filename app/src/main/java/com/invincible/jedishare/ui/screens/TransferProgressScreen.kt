@@ -75,6 +75,7 @@ fun TransferProgressScreen(
     }
     
     val btCurrFileCount by btViewModel.currFileCount.collectAsState()
+    val btIncomingManifest by btViewModel.incomingManifestState.collectAsState()
 
     val isDone = navigatingAway || if (method == "bt") {
         if (isSender) {
