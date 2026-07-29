@@ -82,7 +82,7 @@ fun RadarAnim(scanning: Boolean) {
                     .background(colors.red, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = colors.white, modifier = Modifier.size(24.dp))
             }
         }
     }
@@ -417,7 +417,7 @@ fun DiscoverDevicesScreen(
                                     .background(colors.red, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                                Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = colors.white, modifier = Modifier.size(32.dp))
                             }
                         }
                     }

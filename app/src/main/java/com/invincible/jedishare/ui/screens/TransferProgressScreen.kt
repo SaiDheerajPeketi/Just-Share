@@ -17,6 +17,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -103,9 +112,21 @@ fun TransferProgressScreen(
     val isConnected = if (method == "bt") btState.isConnected else wifiState.isConnected
     val transferFailed = !isDone && (progress < 0f || (!isConnected && !state.hasTransferStarted))
 
-    LaunchedEffect(isDone) {
+    LaunchedEffect(isDone, isConnected) {
         if (isDone && !isSender) {
             kotlinx.coroutines.delay(1500) // Small delay to let user see 100% completion
+            navigatingAway = true
+            if (method == "bt") {
+                btViewModel.disconnectFromDevice()
+                btViewModel.resetTransferState()
+            } else if (method == "wifi") {
+                wifiViewModel.disconnectP2P()
+            }
+            transferViewModel.resetTransfer()
+            onNavigateToScreen("home")
+        } else if (isDone && isSender && !isConnected) {
+            // Sender navigates home when transfer is done and receiver disconnects
+            kotlinx.coroutines.delay(1500)
             navigatingAway = true
             if (method == "bt") {
                 btViewModel.disconnectFromDevice()
@@ -201,22 +222,12 @@ fun TransferProgressScreen(
                 .padding(vertical = 24.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Lottie placeholder
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .background(if (transferFailed) colors.red.copy(alpha = 0.15f) else if (isDone) colors.green.copy(alpha = 0.15f) else colors.black.copy(alpha = 0.05f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (transferFailed) Icons.Default.Error 
-                    else if (isDone) Icons.Default.Check 
-                    else Icons.AutoMirrored.Filled.Send, 
-                    contentDescription = null, 
-                    tint = if (transferFailed) colors.red else if (isDone) colors.green else colors.black, 
-                    modifier = Modifier.size(40.dp)
-                )
-            }
+            AnimatedTransferProgressIndicator(
+                isTransferring = isConnected || state.hasTransferStarted,
+                isDone = isDone,
+                isFailed = transferFailed,
+                isSender = isSender
+            )
             Spacer(modifier = Modifier.height(12.dp))
             Text(if (transferFailed) "Transfer Failed" else if (isDone) "Transfer Complete" else "Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
             Spacer(modifier = Modifier.height(12.dp))
@@ -252,7 +263,7 @@ fun TransferProgressScreen(
                             else -> Color(0xFF1976D2) // Blue for docs/others
                         }
                         
-                        val iconBg = if (file.isDone) baseTint.copy(alpha = 0.1f) else if (file.isActive) baseTint.copy(alpha = 0.2f) else Color(0xFFF0F0F0)
+                        val iconBg = if (file.isDone) baseTint.copy(alpha = 0.1f) else if (file.isActive) baseTint.copy(alpha = 0.2f) else colors.border
                         val iconTint = if (file.isDone || file.isActive) baseTint else colors.mutedFg
 
                         Box(
@@ -297,7 +308,7 @@ fun TransferProgressScreen(
                         LinearProgressIndicator(
                             progress = file.progress / 100f,
                             color = colors.red,
-                            backgroundColor = colors.red.copy(alpha = 0.15f),
+                            backgroundColor = colors.border,
                             modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape)
                         )
                     }
@@ -337,7 +348,7 @@ fun TransferProgressScreen(
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     backgroundColor = colors.red,
-                    contentColor = Color.White
+                    contentColor = colors.white
                 ),
                 elevation = ButtonDefaults.elevation(0.dp)
             ) {
@@ -347,6 +358,116 @@ fun TransferProgressScreen(
                 Text(if (showHome) "Go Home" else "Disconnect", fontWeight = FontWeight.SemiBold)
             }
             }
+        }
+    }
+}
+
+@Composable
+fun AnimatedTransferProgressIndicator(
+    isTransferring: Boolean,
+    isDone: Boolean,
+    isFailed: Boolean,
+    isSender: Boolean
+) {
+    val colors = JediShareTheme.colors
+    val infiniteTransition = rememberInfiniteTransition(label = "ripple_transition")
+
+    val rippleScale1 by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 2.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ripple1_scale"
+    )
+    val rippleAlpha1 by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ripple1_alpha"
+    )
+
+    val rippleScale2 by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 2.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing, delayMillis = 1000),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ripple2_scale"
+    )
+    val rippleAlpha2 by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing, delayMillis = 1000),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ripple2_alpha"
+    )
+    
+    val arrowOffsetY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = if (isSender) -8f else 8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "arrow_offset_y"
+    )
+
+    val baseColor = if (isFailed) colors.red else if (isDone) colors.green else colors.red 
+    val iconColor = colors.white
+
+    Box(
+        modifier = Modifier.size(160.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isTransferring && !isDone && !isFailed) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .scale(rippleScale1)
+                    .background(baseColor.copy(alpha = rippleAlpha1), CircleShape)
+            )
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .scale(rippleScale2)
+                    .background(baseColor.copy(alpha = rippleAlpha2), CircleShape)
+            )
+        }
+        
+        val animatedScale by androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (isDone || isFailed) 1.2f else 1f,
+            animationSpec = androidx.compose.animation.core.spring(
+                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+            )
+        )
+        
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .scale(animatedScale)
+                .shadow(16.dp, CircleShape, spotColor = baseColor.copy(alpha = 0.5f))
+                .background(baseColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (isFailed) Icons.Default.Error 
+                else if (isDone) Icons.Default.Check 
+                else if (isSender) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward, 
+                contentDescription = null, 
+                tint = iconColor, 
+                modifier = Modifier
+                    .size(40.dp)
+                    .offset(y = if (isTransferring && !isDone && !isFailed) arrowOffsetY.dp else 0.dp)
+            )
         }
     }
 }

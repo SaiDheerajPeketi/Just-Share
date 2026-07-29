@@ -269,7 +269,7 @@ fun HistoryScreen(
                                         
                                         Column(horizontalAlignment = Alignment.End) {
                                             Row(
-                                                modifier = Modifier.background(Color(0xFFF5F5F5), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                                                modifier = Modifier.background(colors.border, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Icon(

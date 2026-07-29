@@ -27,13 +27,14 @@ val LightBorder = Color(0xFFEAE6E1)    // hairline dividers
 // fixes the "sewage" look. Three distinct steps of lightness so surface,
 // card, and page background never collapse into each other.
 val DarkBlack = Color(0xFFF4F2F5)      // primary text — near-white, NOT dark
-val DarkWhite = Color(0xFFF7F5F3)      // text on primary/secondary fills —
+val DarkWhite = Color(0xFFFFFFFF)      // text on primary/secondary fills —
                                         // must stay near-white here too, since
                                         // MyRed is the same brightness in both
                                         // themes. This is the value most likely
                                         // to have been wrong before.
-val DarkSurface = Color(0xFF131215)    // page background — near-black, cool
-val DarkCardBg = Color(0xFF221F24)     // elevated card, one step lighter
+val DarkSurface = Color(0xFF141316)    // page background — near-black, cool
+val DarkCardBg = Color(0xFF211E24)     // elevated card, one step lighter
 val DarkMutedFg = Color(0xFFA6A2AA)    // secondary text — cool grey, not
                                         // brown/red-tinted
 val DarkBorder = Color(0xFF332F36)     // hairline, visible but subtle
+
