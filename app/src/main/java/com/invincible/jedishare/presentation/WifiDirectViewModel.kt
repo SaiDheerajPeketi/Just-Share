@@ -255,7 +255,10 @@ class WifiDirectViewModel @Inject constructor(
                 ) { listener ->
                     manager.discoverPeers(channel, listener)
                 }
-                if (failure != null) {
+                
+                if (failure == null) {
+                    _uiState.update { it.copy(isDiscovering = true) }
+                } else {
                     val msg = "Wi-Fi Direct failed: ${failureReason(failure)}"
                     Log.e(TAG, msg)
                     _uiState.update { it.copy(errorMessage = msg) }
