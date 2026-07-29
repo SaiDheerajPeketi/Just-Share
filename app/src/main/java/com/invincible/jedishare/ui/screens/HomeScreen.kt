@@ -20,6 +20,12 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,6 +68,45 @@ fun CardButton(
         contentAlignment = Alignment.Center
     ) {
         content()
+    }
+}
+
+@Composable
+fun RecentFileItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    iconBg: Color,
+    title: String,
+    subtitle: String
+) {
+    val colors = JediShareTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .background(iconBg, RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, fontSize = 16.sp), color = colors.black)
+            Text(subtitle, style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(top = 2.dp))
+        }
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(colors.green.copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Check, contentDescription = null, tint = colors.green, modifier = Modifier.size(16.dp))
+        }
     }
 }
 
@@ -108,6 +153,7 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .verticalScroll(rememberScrollState())
                     .padding(top = 40.dp, bottom = 16.dp, start = 24.dp, end = 24.dp)
             ) {
                 Row(
@@ -200,6 +246,46 @@ fun HomeScreen(
                         Text(text = "Accept files from nearby devices", style = MaterialTheme.typography.body2, color = colors.mutedFg, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Recent", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold, fontSize = 18.sp), color = colors.mutedFg)
+                    Text("See all", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, fontSize = 15.sp), color = colors.red, modifier = Modifier.clickable { })
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Placeholder 1
+                RecentFileItem(
+                    icon = Icons.Default.Image,
+                    iconTint = colors.red,
+                    iconBg = colors.red.copy(alpha = 0.08f),
+                    title = "Vacation_042.jpg",
+                    subtitle = "24 MB · 2 min ago"
+                )
+                
+                // Placeholder 2
+                RecentFileItem(
+                    icon = Icons.Default.InsertDriveFile,
+                    iconTint = colors.mutedFg,
+                    iconBg = colors.cardBg,
+                    title = "Q3_report.pdf",
+                    subtitle = "3.1 MB · 1 hr ago"
+                )
+                
+                // Placeholder 3
+                RecentFileItem(
+                    icon = Icons.Default.Videocam,
+                    iconTint = colors.mutedFg,
+                    iconBg = colors.cardBg,
+                    title = "Demo_clip.mp4",
+                    subtitle = "112 MB · yesterday"
+                )
             }
 
             BottomNav(activeRoute = "home", onNavigate = onNavigateToNavRoute)
