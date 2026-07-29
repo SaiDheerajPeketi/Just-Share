@@ -189,6 +189,7 @@ fun DiscoverDevicesScreen(
     }
     
     val actualScanning = if (transferMethod == "wifi") wifiState.isDiscovering else scanning
+    val isWifiConnecting = transferMethod == "wifi" && wifiState.connectionStatus == "connecting"
     
     // Auto navigation when connected
     // For wifi: gate on connectionStatus == "connected" which only fires once the group
@@ -262,9 +263,15 @@ fun DiscoverDevicesScreen(
                     RadarAnim(scanning = actualScanning)
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = if (actualScanning) "Scanning for nearby devices…" else "Scan complete",
+                        text = if (isWifiConnecting) {
+                            "Connecting to ${transferState.connectedDeviceName ?: "device"}..."
+                        } else if (actualScanning) {
+                            "Scanning for nearby devices…"
+                        } else {
+                            "Scan complete"
+                        },
                         style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Medium),
-                        color = if (actualScanning) colors.red else colors.mutedFg
+                        color = if (actualScanning || isWifiConnecting) colors.red else colors.mutedFg
                     )
                 }
 
