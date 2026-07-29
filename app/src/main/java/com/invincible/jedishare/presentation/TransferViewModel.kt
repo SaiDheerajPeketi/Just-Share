@@ -104,18 +104,19 @@ class TransferViewModel @Inject constructor(
             } else {
                 it.fileInfos
             }
+            val newTotalFiles = if (update.totalFiles > 0) update.totalFiles else it.totalFiles
             it.copy(
                 fileInfos = newFileInfos,
                 progressPercent = update.progress.toFloat(),
                 currentFileName = update.fileName,
                 currentFileSizeBytes = update.fileSize,
                 currentFileIndex = update.currentFileIndex,
-                totalFiles = if (update.totalFiles > 0) update.totalFiles else it.totalFiles,
+                totalFiles = newTotalFiles,
                 connectedDeviceName = update.remoteDeviceName ?: it.connectedDeviceName,
                 incomingMimeType = update.mimeType ?: it.incomingMimeType,
                 hasTransferStarted = true,
                 isTransferComplete = update.progress == 100 && (
-                    update.totalFiles == 0 || update.currentFileIndex >= update.totalFiles - 1
+                    newTotalFiles == 0 || update.currentFileIndex >= newTotalFiles - 1
                 )
             )
         }

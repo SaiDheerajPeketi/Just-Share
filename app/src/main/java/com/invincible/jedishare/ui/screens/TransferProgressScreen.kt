@@ -96,7 +96,7 @@ fun TransferProgressScreen(
     val manifest = if (method == "wifi") state.fileInfos.ifEmpty { null } else btIncomingManifest
 
     val isConnected = if (method == "bt") btState.isConnected else wifiState.isConnected
-    val transferFailed = !isDone && (progress < 0f || (!isConnected && (isSender || manifest != null)))
+    val transferFailed = !isDone && (progress < 0f || (!isConnected && !state.hasTransferStarted))
 
     val receiverFilesBase = remember(manifest) {
         manifest?.map { fileInfo ->
