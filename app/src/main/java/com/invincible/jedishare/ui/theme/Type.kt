@@ -6,57 +6,60 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// We will use the system sans-serif (which defaults to Roboto on Android)
 val RobotoSansSerif = FontFamily.SansSerif
 
-// Define typography to match Figma / Tailwind styles
+// Three weights only: Regular for reading, Medium for emphasis, SemiBold/Bold
+// reserved for the one or two headlines per screen that should actually stand
+// out. Black weight is gone entirely — it renders as visually shouting no
+// matter what it's paired with.
 val Typography = Typography(
     defaultFontFamily = RobotoSansSerif,
-    
-    // h1: text-4xl (36sp), font-black
+
+    // h1: hero headline (onboarding, empty states) — strong but not Black
     h1 = TextStyle(
         fontFamily = RobotoSansSerif,
-        fontWeight = FontWeight.Black,
-        fontSize = 36.sp,
-        lineHeight = 40.sp
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 38.sp
     ),
-    // h2: text-2xl (24sp), font-black
+    // h2: screen title ("Settings", "Transfer History")
     h2 = TextStyle(
         fontFamily = RobotoSansSerif,
-        fontWeight = FontWeight.Black,
-        fontSize = 24.sp,
-        lineHeight = 32.sp
-    ),
-    // h3: text-xl (20sp), font-bold
-    h3 = TextStyle(
-        fontFamily = RobotoSansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp,
         lineHeight = 28.sp
     ),
-    // body1: text-base (16sp), font-medium
+    // h3: section header within a screen
+    h3 = TextStyle(
+        fontFamily = RobotoSansSerif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp
+    ),
+    // body1: primary reading text — regular weight, this is the fix
     body1 = TextStyle(
         fontFamily = RobotoSansSerif,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp
     ),
-    // body2: text-sm (14sp), font-medium
+    // body2: secondary text, list metadata — regular weight
     body2 = TextStyle(
         fontFamily = RobotoSansSerif,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp
     ),
-    // button: text-base (16sp), font-semibold
+    // button: medium is enough at this size, heavy letter-spacing reads as
+    // aggressive when combined with a bold weight
     button = TextStyle(
         fontFamily = RobotoSansSerif,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.2.sp
     ),
-    // caption: text-xs (12sp)
+    // caption: unchanged, this one was already calm
     caption = TextStyle(
         fontFamily = RobotoSansSerif,
         fontWeight = FontWeight.Normal,
