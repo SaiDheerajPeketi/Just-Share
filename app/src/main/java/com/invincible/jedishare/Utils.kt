@@ -98,6 +98,12 @@ fun getFileDetailsFromUri(uri: Uri, contentResolver: ContentResolver): FileInfo 
         format = fileName?.substringAfterLast('.', "")?.takeIf { it.isNotBlank() }
             ?: MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
     }
+    
+    // Ensure the filename has the correct extension for media scanner
+    if (fileName != null && format != null && !fileName!!.lowercase().endsWith(".$format")) {
+        fileName = "$fileName.$format"
+    }
+    
     if (mimeType.isNullOrBlank()) {
         mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(format?.lowercase())
     }
