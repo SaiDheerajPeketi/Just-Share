@@ -134,6 +134,10 @@ class AndroidBluetoothController(
         if (bluetoothAdapter?.isDiscovering == true) {
             bluetoothAdapter?.cancelDiscovery()
         }
+        
+        // Clear previously scanned devices so offline devices don't stay "green" forever
+        _scannedDevices.update { emptyList() }
+        
         if (!isFoundDeviceReceiverRegistered) {
             context.registerReceiver(
                 foundDeviceReceiver,
