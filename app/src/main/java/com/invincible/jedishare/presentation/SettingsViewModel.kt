@@ -33,6 +33,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope, SharingStarted.WhileSubscribed(5000), 8
     )
 
+    val alwaysRequireEncryptionVerification: StateFlow<Boolean> =
+        prefs.alwaysRequireEncryptionVerification.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000), false
+        )
+
     fun toggleDarkMode(enabled: Boolean) {
         Timber.d("SettingsViewModel - toggleDarkMode called")
         viewModelScope.launch { prefs.setDarkMode(enabled) }
@@ -46,5 +51,10 @@ class SettingsViewModel @Inject constructor(
     fun setChunkSizeKb(size: Int) {
         Timber.d("SettingsViewModel - setChunkSizeKb called")
         viewModelScope.launch { prefs.setChunkSizeKb(size) }
+    }
+
+    fun setAlwaysRequireEncryptionVerification(enabled: Boolean) {
+        Timber.d("SettingsViewModel - setAlwaysRequireEncryptionVerification called")
+        viewModelScope.launch { prefs.setAlwaysRequireEncryptionVerification(enabled) }
     }
 }

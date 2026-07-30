@@ -5,6 +5,8 @@ import timber.log.Timber
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import android.content.Context
 
 /**
@@ -15,7 +17,7 @@ import android.content.Context
  */
 @Database(
     entities = [TransferHistoryEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true  // enables migration testing with MigrationTestHelper
 )
 abstract class JediShareDatabase : RoomDatabase() {
@@ -23,5 +25,13 @@ abstract class JediShareDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "jedishare_db"
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE transfer_history ADD COLUMN is_altersend INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
     }
 }

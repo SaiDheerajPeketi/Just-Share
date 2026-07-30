@@ -31,6 +31,8 @@ class UserPreferencesDataStore @Inject constructor(
         val KEY_DEFAULT_TRANSFER_METHOD = stringPreferencesKey("default_transfer_method")
         val KEY_CHUNK_SIZE_KB = intPreferencesKey("chunk_size_kb")
         val KEY_FIRST_LAUNCH = booleanPreferencesKey("first_launch")
+        val KEY_ALWAYS_REQUIRE_ENCRYPTION_VERIFICATION =
+            booleanPreferencesKey("always_require_encryption_verification")
     }
 
     val isFirstLaunch: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -49,6 +51,10 @@ class UserPreferencesDataStore @Inject constructor(
         prefs[KEY_CHUNK_SIZE_KB] ?: 8
     }
 
+    val alwaysRequireEncryptionVerification: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_ALWAYS_REQUIRE_ENCRYPTION_VERIFICATION] ?: false
+    }
+
     suspend fun setDarkMode(enabled: Boolean) {
         Timber.d("UserPreferencesDataStore - setDarkMode called")
         context.dataStore.edit { prefs -> prefs[KEY_DARK_MODE] = enabled }
@@ -62,6 +68,13 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setChunkSizeKb(sizeKb: Int) {
         Timber.d("UserPreferencesDataStore - setChunkSizeKb called")
         context.dataStore.edit { prefs -> prefs[KEY_CHUNK_SIZE_KB] = sizeKb }
+    }
+
+    suspend fun setAlwaysRequireEncryptionVerification(enabled: Boolean) {
+        Timber.d("UserPreferencesDataStore - setAlwaysRequireEncryptionVerification called")
+        context.dataStore.edit { prefs ->
+            prefs[KEY_ALWAYS_REQUIRE_ENCRYPTION_VERIFICATION] = enabled
+        }
     }
 
     suspend fun markFirstLaunchComplete() {

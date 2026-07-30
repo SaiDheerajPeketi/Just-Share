@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.invincible.jedishare.data.db.TransferHistoryEntity
 import com.invincible.jedishare.presentation.HistoryViewModel
 import com.invincible.jedishare.ui.components.BottomNav
+import com.invincible.jedishare.ui.components.EncryptedBadge
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -239,6 +240,10 @@ fun HistoryScreen(
                                                 Text(text = if (item.isSender) "Sent to " else "From ", style = MaterialTheme.typography.caption, color = colors.mutedFg)
                                                 Text(text = item.remoteDeviceName ?: "Unknown", style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Medium), color = colors.black)
                                                 Text(text = " • ${formatSize(item.fileSizeBytes)}", style = MaterialTheme.typography.caption, color = colors.mutedFg)
+                                            }
+                                            if (item.isAlterSend) {
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                EncryptedBadge()
                                             }
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))

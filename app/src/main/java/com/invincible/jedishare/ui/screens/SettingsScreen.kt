@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.invincible.jedishare.ui.components.BottomNav
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import kotlinx.coroutines.launch
@@ -35,7 +36,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onNavigateToNavRoute: (String) -> Unit,
-    transferViewModel: com.invincible.jedishare.presentation.TransferViewModel
+    transferViewModel: com.invincible.jedishare.presentation.TransferViewModel,
+    settingsViewModel: com.invincible.jedishare.presentation.SettingsViewModel = hiltViewModel()
 ) {
     val colors = JediShareTheme.colors
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -50,7 +52,7 @@ fun SettingsScreen(
     
 
     val savedTransferMethod by dataStore.defaultTransferMethod.collectAsStateWithLifecycle(initialValue = "wifi")
-    var encRequired by remember { mutableStateOf(false) }
+    val encRequired by settingsViewModel.alwaysRequireEncryptionVerification.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -185,7 +187,9 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     CustomToggle(
                         on = encRequired,
-                        onChange = { encRequired = !encRequired },
+                        onChange = {
+                            settingsViewModel.setAlwaysRequireEncryptionVerification(!encRequired)
+                        },
                         trackOnColor = colors.red, // App theme red track
                         trackOffColor = colors.border,
                         thumbOnColor = Color.White, // White thumb
