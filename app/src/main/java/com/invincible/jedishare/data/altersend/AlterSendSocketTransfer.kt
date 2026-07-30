@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import com.invincible.jedishare.BuildConfig
 import com.invincible.jedishare.data.db.TransferHistoryEntity
 import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.altersend.AlterSendConnectionPhase
@@ -29,10 +30,12 @@ import java.io.DataOutputStream
 import java.io.EOFException
 import java.io.File
 import java.io.RandomAccessFile
+import java.net.InetSocketAddress
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import kotlin.coroutines.coroutineContext
@@ -54,6 +57,8 @@ class AlterSendSocketTransfer(
         private const val FRAME_ACK = 6
         private const val FRAME_ERROR = 7
         private const val SOCKET_TIMEOUT_MS = 45_000
+        private const val DIRECT_CONNECT_TIMEOUT_MS = 6_000
+        private const val DIRECT_ACCEPT_TIMEOUT_MS = 8_000
         private const val DEFAULT_RELAY_PORT = 41404
     }
 
@@ -64,6 +69,10 @@ class AlterSendSocketTransfer(
         withContext(Dispatchers.IO) {
             if (isAndroidEmulator()) {
                 return@withContext hostViaRelay(topicHex, offers)
+            }
+            val relayEndpoint = configuredRelayEndpoint()
+            if (relayEndpoint != null) {
+                return@withContext hostHybrid(topicHex, offers, relayEndpoint)
             }
             val server = ServerSocket(0).also { serverSocket = it }
             val invite = AlterSendInvite(host = localIpv4Address(), port = server.localPort, topicHex = topicHex)
@@ -95,6 +104,61 @@ class AlterSendSocketTransfer(
             }
         }
 
+    private suspend fun hostHybrid(
+        topicHex: String,
+        offers: List<AlterSendFileOffer>,
+        relayEndpoint: Pair<String, Int>
+    ): AlterSendInvite {
+        val server = ServerSocket(0).also {
+            serverSocket = it
+            it.soTimeout = DIRECT_ACCEPT_TIMEOUT_MS
+        }
+        val invite = AlterSendInvite(
+            host = localIpv4Address(),
+            port = server.localPort,
+            topicHex = topicHex,
+            mode = AlterSendInviteMode.Hybrid,
+            relayHost = relayEndpoint.first,
+            relayPort = relayEndpoint.second,
+            relaySessionId = randomRelaySessionId()
+        )
+        onState(
+            AlterSendUiState(
+                phase = AlterSendConnectionPhase.Hosting,
+                topicHex = invite.encode(),
+                offers = offers
+            )
+        )
+
+        try {
+            val channel = try {
+                val accepted = server.accept().also {
+                    socket = it
+                    it.soTimeout = SOCKET_TIMEOUT_MS
+                }
+                serverHandshake(accepted, topicHex)
+            } catch (_: SocketTimeoutException) {
+                runCatching { server.close() }
+                val relayed = connectRelay(invite, isSender = true).also {
+                    socket = it
+                    it.soTimeout = SOCKET_TIMEOUT_MS
+                }
+                serverHandshake(relayed, topicHex)
+            }
+            onState(
+                AlterSendUiState(
+                    phase = AlterSendConnectionPhase.Connected,
+                    topicHex = invite.encode(),
+                    offers = offers
+                )
+            )
+            sendFiles(channel, offers)
+            return invite
+        } finally {
+            close()
+        }
+    }
+
     private suspend fun hostViaRelay(topicHex: String, offers: List<AlterSendFileOffer>): AlterSendInvite {
         val invite = AlterSendInvite(
             host = "10.0.2.2",
@@ -110,20 +174,24 @@ class AlterSendSocketTransfer(
                 offers = offers
             )
         )
-        val relayed = connectRelay(invite, isSender = true).also {
-            socket = it
-            it.soTimeout = SOCKET_TIMEOUT_MS
-        }
-        val channel = serverHandshake(relayed, topicHex)
-        onState(
-            AlterSendUiState(
-                phase = AlterSendConnectionPhase.Connected,
-                topicHex = invite.encode(),
-                offers = offers
+        try {
+            val relayed = connectRelay(invite, isSender = true).also {
+                socket = it
+                it.soTimeout = SOCKET_TIMEOUT_MS
+            }
+            val channel = serverHandshake(relayed, topicHex)
+            onState(
+                AlterSendUiState(
+                    phase = AlterSendConnectionPhase.Connected,
+                    topicHex = invite.encode(),
+                    offers = offers
+                )
             )
-        )
-        sendFiles(channel, offers)
-        return invite
+            sendFiles(channel, offers)
+            return invite
+        } finally {
+            close()
+        }
     }
 
     suspend fun join(invite: AlterSendInvite): Unit = withContext(Dispatchers.IO) {
@@ -134,11 +202,7 @@ class AlterSendSocketTransfer(
             )
         )
         try {
-            val connected = if (invite.mode == AlterSendInviteMode.Relay) {
-                connectRelay(invite, isSender = false)
-            } else {
-                Socket(invite.host, invite.port)
-            }.also {
+            val connected = connectForInvite(invite).also {
                 socket = it
                 it.soTimeout = SOCKET_TIMEOUT_MS
             }
@@ -146,6 +210,23 @@ class AlterSendSocketTransfer(
             receiveFiles(channel)
         } finally {
             close()
+        }
+    }
+
+    private fun connectForInvite(invite: AlterSendInvite): Socket {
+        return when (invite.mode) {
+            AlterSendInviteMode.Direct -> connectDirect(invite.host, invite.port)
+            AlterSendInviteMode.Relay -> connectRelay(invite, isSender = false)
+            AlterSendInviteMode.Hybrid -> {
+                runCatching { connectDirect(invite.host, invite.port) }
+                    .getOrElse { connectRelay(invite, isSender = false) }
+            }
+        }
+    }
+
+    private fun connectDirect(host: String, port: Int): Socket {
+        return Socket().apply {
+            connect(InetSocketAddress(host, port), DIRECT_CONNECT_TIMEOUT_MS)
         }
     }
 
@@ -474,7 +555,9 @@ class AlterSendSocketTransfer(
 
     private fun connectRelay(invite: AlterSendInvite, isSender: Boolean): Socket {
         val sessionId = requireNotNull(invite.relaySessionId) { "Relay invite is missing session id" }
-        val relaySocket = Socket(invite.host, invite.port)
+        val relayHost = invite.relayHost ?: invite.host
+        val relayPort = invite.relayPort ?: invite.port
+        val relaySocket = Socket(relayHost, relayPort)
         val output = DataOutputStream(relaySocket.getOutputStream())
         output.writeUTF("JSASR1")
         output.writeUTF(sessionId)
@@ -498,6 +581,12 @@ class AlterSendSocketTransfer(
             model.contains("sdk") ||
             model.contains("emulator") ||
             product.contains("sdk")
+    }
+
+    private fun configuredRelayEndpoint(): Pair<String, Int>? {
+        val host = BuildConfig.ALTERSEND_RELAY_HOST.trim()
+        val port = BuildConfig.ALTERSEND_RELAY_PORT
+        return if (host.isBlank() || port !in 1..65535) null else host to port
     }
 
     private data class Frame(val type: Int, val payload: ByteArray)

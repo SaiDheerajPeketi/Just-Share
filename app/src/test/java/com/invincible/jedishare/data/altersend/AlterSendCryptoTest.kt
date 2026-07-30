@@ -75,4 +75,20 @@ class AlterSendCryptoTest {
 
         assertEquals(invite, AlterSendInvite.decode(invite.encode()))
     }
+
+    @Test
+    fun hybridInviteRoundTripsDirectAndRelayEndpoints() {
+        val topic = AlterSendProtocol.generateTopicHex()
+        val invite = AlterSendInvite(
+            host = "192.168.1.10",
+            port = 45678,
+            topicHex = topic,
+            mode = AlterSendInviteMode.Hybrid,
+            relayHost = "relay.just-share.example",
+            relayPort = 443,
+            relaySessionId = "abc123"
+        )
+
+        assertEquals(invite, AlterSendInvite.decode(invite.encode()))
+    }
 }
