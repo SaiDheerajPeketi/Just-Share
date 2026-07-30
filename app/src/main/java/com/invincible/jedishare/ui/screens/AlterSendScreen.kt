@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,6 +63,14 @@ import com.invincible.jedishare.ui.components.PillButton
 import com.invincible.jedishare.ui.components.PillButtonSize
 import com.invincible.jedishare.ui.components.PillButtonVariant
 import com.invincible.jedishare.ui.theme.JediShareTheme
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.android.gms.tasks.Task
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanner
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.delay
 
 @Composable
@@ -69,7 +82,17 @@ fun AlterSendScreen(
     val colors = JediShareTheme.colors
     val state by viewModel.state.collectAsStateWithLifecycle()
     var joinCode by remember { mutableStateOf("") }
+    var scanError by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val scannerOptions = remember {
+        GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .build()
+    }
+    val qrScanner = remember(context, scannerOptions) {
+        GmsBarcodeScanning.getClient(context, scannerOptions)
+    }
     val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             viewModel.host(uris)
@@ -145,6 +168,10 @@ fun AlterSendScreen(
                             Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                         }
                     )
+                    if (topic.startsWith("JSAS")) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        AlterSendQrCode(content = topic, modifier = Modifier.align(Alignment.CenterHorizontally))
+                    }
                 }
 
                 if (state.role != AlterSendRole.Receiver) state.offers.forEach { offer ->
@@ -186,17 +213,39 @@ fun AlterSendScreen(
                     label = { Text("Connection code") }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                PillButton(
-                    label = "Join",
-                    onClick = {
-                        viewModel.join(joinCode.filterNot { it.isWhitespace() })
-                    },
-                    size = PillButtonSize.LG,
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = {
-                        Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
-                    }
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    PillButton(
+                        label = "Scan QR",
+                        onClick = {
+                            scanError = null
+                            qrScanner.startQrScan(
+                                onCode = { code ->
+                                    joinCode = code
+                                    viewModel.join(code)
+                                },
+                                onError = { message -> scanError = message }
+                            )
+                        },
+                        variant = PillButtonVariant.OUTLINE,
+                        size = PillButtonSize.MD,
+                        modifier = Modifier.weight(1f),
+                        icon = {
+                            Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
+                        }
+                    )
+                    PillButton(
+                        label = "Join",
+                        onClick = {
+                            viewModel.join(joinCode.filterNot { it.isWhitespace() })
+                        },
+                        size = PillButtonSize.MD,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                scanError?.let { message ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(message, color = colors.red, style = MaterialTheme.typography.caption)
+                }
             }
 
             if (state.phase == AlterSendConnectionPhase.IncomingOffer && state.role == AlterSendRole.Receiver) {
@@ -273,6 +322,69 @@ fun AlterSendScreen(
             }
         }
     }
+}
+
+@Composable
+private fun AlterSendQrCode(content: String, modifier: Modifier = Modifier) {
+    val matrix = remember(content) {
+        runCatching {
+            QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, 256, 256)
+        }.getOrNull()
+    }
+    Box(
+        modifier = modifier
+            .size(176.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .padding(12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (matrix != null) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val cellSize = minOf(size.width / matrix.width, size.height / matrix.height)
+                val left = (size.width - cellSize * matrix.width) / 2f
+                val top = (size.height - cellSize * matrix.height) / 2f
+                for (x in 0 until matrix.width) {
+                    for (y in 0 until matrix.height) {
+                        if (matrix[x, y]) {
+                            drawRect(
+                                color = Color.Black,
+                                topLeft = Offset(left + x * cellSize, top + y * cellSize),
+                                size = Size(cellSize, cellSize)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun Task<com.google.mlkit.vision.barcode.common.Barcode>.startCallbacks(
+    onCode: (String) -> Unit,
+    onError: (String) -> Unit
+) {
+    addOnSuccessListener { barcode ->
+        val code = barcode.rawValue?.filterNot { it.isWhitespace() }.orEmpty()
+        if (code.isBlank()) {
+            onError("QR code did not contain an AlterSend code.")
+        } else {
+            onCode(code)
+        }
+    }.addOnFailureListener { error ->
+        val message = when ((error as? com.google.android.gms.common.api.ApiException)?.statusCode) {
+            CommonStatusCodes.CANCELED -> "QR scan cancelled."
+            else -> error.localizedMessage ?: "Could not scan QR code."
+        }
+        onError(message)
+    }
+}
+
+private fun GmsBarcodeScanner.startQrScan(
+    onCode: (String) -> Unit,
+    onError: (String) -> Unit
+) {
+    startScan().startCallbacks(onCode, onError)
 }
 
 @Composable
