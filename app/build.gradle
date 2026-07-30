@@ -18,6 +18,10 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        def alterSendRelayHost = (project.findProperty("ALTERSEND_RELAY_HOST") ?: "").toString()
+        def alterSendRelayPort = (project.findProperty("ALTERSEND_RELAY_PORT") ?: "41404").toString()
+        buildConfigField "String", "ALTERSEND_RELAY_HOST", "\"${alterSendRelayHost}\""
+        buildConfigField "int", "ALTERSEND_RELAY_PORT", alterSendRelayPort
         vectorDrawables {
             useSupportLibrary true
         }
