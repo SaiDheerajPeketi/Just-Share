@@ -1,5 +1,6 @@
 package com.invincible.jedishare.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,10 +56,12 @@ import com.invincible.jedishare.ui.components.PillButton
 import com.invincible.jedishare.ui.components.PillButtonSize
 import com.invincible.jedishare.ui.components.PillButtonVariant
 import com.invincible.jedishare.ui.theme.JediShareTheme
+import kotlinx.coroutines.delay
 
 @Composable
 fun AlterSendScreen(
     onBack: () -> Unit,
+    onNavigateHome: () -> Unit,
     viewModel: AlterSendViewModel = hiltViewModel()
 ) {
     val colors = JediShareTheme.colors
@@ -69,13 +73,27 @@ fun AlterSendScreen(
             viewModel.host(uris)
         }
     }
+    val leaveScreen = {
+        viewModel.reset()
+        onBack()
+    }
+
+    BackHandler(onBack = leaveScreen)
+
+    LaunchedEffect(state.phase) {
+        if (state.phase == AlterSendConnectionPhase.Complete) {
+            delay(1500)
+            viewModel.reset()
+            onNavigateHome()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
     ) {
-        BackBar(title = "AlterSend", onBack = onBack)
+        BackBar(title = "AlterSend", onBack = leaveScreen)
 
         Column(
             modifier = Modifier
