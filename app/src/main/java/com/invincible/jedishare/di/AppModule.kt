@@ -60,6 +60,7 @@ object AppModule {
             JediShareDatabase::class.java,
             JediShareDatabase.DATABASE_NAME
         )
+        .addMigrations(JediShareDatabase.MIGRATION_2_3)
         .fallbackToDestructiveMigration()
         .build()
 

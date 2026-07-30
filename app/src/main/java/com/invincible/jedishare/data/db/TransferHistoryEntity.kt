@@ -42,6 +42,10 @@ data class TransferHistoryEntity(
     @ColumnInfo(name = "content_uri")
     val contentUri: String? = null,
 
+    /** Whether this transfer used AlterSend end-to-end encrypted mode. */
+    @ColumnInfo(name = "is_altersend")
+    val isAlterSend: Boolean = false,
+
     /** Unix epoch timestamp (ms) when the transfer completed. */
     @ColumnInfo(name = "timestamp_ms")
     val timestampMs: Long = System.currentTimeMillis()
