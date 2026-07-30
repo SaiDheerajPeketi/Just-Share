@@ -12,6 +12,7 @@ import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.altersend.AlterSendConnectionPhase
 import com.invincible.jedishare.domain.altersend.AlterSendFileOffer
 import com.invincible.jedishare.domain.altersend.AlterSendInvite
+import com.invincible.jedishare.domain.altersend.AlterSendInviteMode
 import com.invincible.jedishare.domain.altersend.AlterSendProtocol
 import com.invincible.jedishare.domain.altersend.AlterSendTransferProgress
 import com.invincible.jedishare.domain.altersend.AlterSendUiState
@@ -33,6 +34,7 @@ import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
 import java.security.MessageDigest
+import java.security.SecureRandom
 import kotlin.coroutines.coroutineContext
 
 class AlterSendSocketTransfer(
@@ -51,6 +53,7 @@ class AlterSendSocketTransfer(
         private const val FRAME_ACK = 6
         private const val FRAME_ERROR = 7
         private const val SOCKET_TIMEOUT_MS = 45_000
+        private const val DEFAULT_RELAY_PORT = 41404
     }
 
     private var serverSocket: ServerSocket? = null
@@ -58,6 +61,9 @@ class AlterSendSocketTransfer(
 
     suspend fun host(topicHex: String, offers: List<AlterSendFileOffer>): AlterSendInvite =
         withContext(Dispatchers.IO) {
+            if (isAndroidEmulator()) {
+                return@withContext hostViaRelay(topicHex, offers)
+            }
             val server = ServerSocket(0).also { serverSocket = it }
             val invite = AlterSendInvite(host = localIpv4Address(), port = server.localPort, topicHex = topicHex)
             onState(
@@ -88,6 +94,37 @@ class AlterSendSocketTransfer(
             }
         }
 
+    private suspend fun hostViaRelay(topicHex: String, offers: List<AlterSendFileOffer>): AlterSendInvite {
+        val invite = AlterSendInvite(
+            host = "10.0.2.2",
+            port = DEFAULT_RELAY_PORT,
+            topicHex = topicHex,
+            mode = AlterSendInviteMode.Relay,
+            relaySessionId = randomRelaySessionId()
+        )
+        onState(
+            AlterSendUiState(
+                phase = AlterSendConnectionPhase.Hosting,
+                topicHex = invite.encode(),
+                offers = offers
+            )
+        )
+        val relayed = connectRelay(invite, isSender = true).also {
+            socket = it
+            it.soTimeout = SOCKET_TIMEOUT_MS
+        }
+        val channel = serverHandshake(relayed, topicHex)
+        onState(
+            AlterSendUiState(
+                phase = AlterSendConnectionPhase.Connected,
+                topicHex = invite.encode(),
+                offers = offers
+            )
+        )
+        sendFiles(channel, offers)
+        return invite
+    }
+
     suspend fun join(invite: AlterSendInvite): Unit = withContext(Dispatchers.IO) {
         onState(
             AlterSendUiState(
@@ -96,7 +133,11 @@ class AlterSendSocketTransfer(
             )
         )
         try {
-            val connected = Socket(invite.host, invite.port).also {
+            val connected = if (invite.mode == AlterSendInviteMode.Relay) {
+                connectRelay(invite, isSender = false)
+            } else {
+                Socket(invite.host, invite.port)
+            }.also {
                 socket = it
                 it.soTimeout = SOCKET_TIMEOUT_MS
             }
@@ -353,6 +394,34 @@ class AlterSendSocketTransfer(
             if (address != null) return address.hostAddress ?: "127.0.0.1"
         }
         return "127.0.0.1"
+    }
+
+    private fun connectRelay(invite: AlterSendInvite, isSender: Boolean): Socket {
+        val sessionId = requireNotNull(invite.relaySessionId) { "Relay invite is missing session id" }
+        val relaySocket = Socket(invite.host, invite.port)
+        val output = DataOutputStream(relaySocket.getOutputStream())
+        output.writeUTF("JSASR1")
+        output.writeUTF(sessionId)
+        output.writeUTF(if (isSender) "sender" else "receiver")
+        output.flush()
+        return relaySocket
+    }
+
+    private fun randomRelaySessionId(): String {
+        val bytes = ByteArray(16)
+        SecureRandom().nextBytes(bytes)
+        return bytes.toHex()
+    }
+
+    private fun isAndroidEmulator(): Boolean {
+        val fingerprint = android.os.Build.FINGERPRINT.lowercase()
+        val model = android.os.Build.MODEL.lowercase()
+        val product = android.os.Build.PRODUCT.lowercase()
+        return fingerprint.contains("generic") ||
+            fingerprint.contains("emulator") ||
+            model.contains("sdk") ||
+            model.contains("emulator") ||
+            product.contains("sdk")
     }
 
     private data class Frame(val type: Int, val payload: ByteArray)

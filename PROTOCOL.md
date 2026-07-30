@@ -24,6 +24,8 @@ Implemented:
 
 - Connection codes in `JSAS1:<host>:<port>:<topic>` format. The topic remains a random 32-byte value encoded as 64 hex characters.
 - Direct peer socket transport. The sender opens a local server socket and the receiver connects to the advertised host/port. This works on the same network and across the internet only when the sender address is reachable through routing/firewall/NAT.
+- Relay connection codes in `JSASR1:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. AVD builds auto-use `10.0.2.2:41404`, because `10.0.2.15` is per-emulator loopback and cannot connect two AVDs.
+- `scripts/altersend_relay.py` is a tiny TCP pipe relay for emulator/manual testing. It sees only encrypted frames after pairing the sender and receiver by `relaySessionId`.
 - Ephemeral ECDH handshake per connection using the connection topic as transcript context.
 - HKDF-HMAC-SHA256 key derivation into separate client-to-server and server-to-client AES keys.
 - AES-GCM encrypted length-prefixed frames with monotonic per-direction counters.
@@ -45,9 +47,11 @@ Compatibility note:
 
 1. Unit test topic validation, chunk tiers, chunk ranges, bitmap serialization, drive transfer success, resume bits, wrong size rejection, and short chunk rejection.
 2. Run two Android devices or emulators on a reachable network:
+   - For two AVDs, start the relay on the host first:
+     `python3 scripts/altersend_relay.py`
    - Sender picks files and displays a join code.
    - Receiver enters or scans the code.
-   - Verify both devices reach connected state over the direct socket.
+   - Verify both devices reach connected state over direct socket or relay socket.
    - Transfer a small file, a 150MB file, and a multi-GB file.
    - Kill the receiver app during transfer; verify no finalized partial file remains.
    - Pause/resume during the same live session; verify missing chunks are requested from the bitmap.
