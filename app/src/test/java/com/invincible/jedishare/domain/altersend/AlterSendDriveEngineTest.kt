@@ -61,6 +61,20 @@ class AlterSendDriveEngineTest {
         assertTrue(failed is AlterSendIntegrityException)
     }
 
+    @Test
+    fun rejectsShortChunkRead() = runBlocking {
+        val writer = MemoryWriter()
+        val failed = runCatching {
+            AlterSendDriveEngine.receiveFrom(
+                reader = ShortChunkReader(ByteArray(128)),
+                writer = writer,
+                expectedSize = 128
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failed is AlterSendIntegrityException)
+    }
+
     private class MemoryReader(private val data: ByteArray) : AlterSendChunkReader {
         override suspend fun size(): Long = data.size.toLong()
 
@@ -97,5 +111,16 @@ class AlterSendDriveEngineTest {
         }
 
         fun bytes(): ByteArray = data.copyOf()
+    }
+
+    private class ShortChunkReader(private val data: ByteArray) : AlterSendChunkReader {
+        override suspend fun size(): Long = data.size.toLong()
+
+        override suspend fun read(offset: Long, length: Int): ByteArray {
+            val start = offset.toInt()
+            return data.copyOfRange(start, start + (length - 1).coerceAtLeast(0))
+        }
+
+        override suspend fun close() = Unit
     }
 }
