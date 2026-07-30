@@ -1,6 +1,7 @@
 package com.invincible.jedishare.data.altersend
 
 import com.invincible.jedishare.domain.altersend.AlterSendInvite
+import com.invincible.jedishare.domain.altersend.AlterSendInviteMode
 import com.invincible.jedishare.domain.altersend.AlterSendProtocol
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -57,6 +58,20 @@ class AlterSendCryptoTest {
     fun inviteRoundTripsEndpointAndTopic() {
         val topic = AlterSendProtocol.generateTopicHex()
         val invite = AlterSendInvite("192.168.1.10", 45678, topic)
+
+        assertEquals(invite, AlterSendInvite.decode(invite.encode()))
+    }
+
+    @Test
+    fun relayInviteRoundTripsEndpointSessionAndTopic() {
+        val topic = AlterSendProtocol.generateTopicHex()
+        val invite = AlterSendInvite(
+            host = "10.0.2.2",
+            port = 41404,
+            topicHex = topic,
+            mode = AlterSendInviteMode.Relay,
+            relaySessionId = "abc123"
+        )
 
         assertEquals(invite, AlterSendInvite.decode(invite.encode()))
     }
