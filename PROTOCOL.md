@@ -33,15 +33,19 @@ Implemented:
 - Live transfer bitmap semantics matching upstream bit order.
 - A Kotlin drive transfer engine that reads by offset, writes by offset, supports resume bits, validates expected size, and aborts on integrity errors.
 - Socket transfer frames for manifest, start, need, chunk, complete, ack, and error.
+- Receiver-side accept/reject before any file bytes are written. Rejection is sent as an encrypted error frame and cancels the session.
+- Per-chunk SHA-256 verification inside the encrypted chunk frame. If a chunk payload is malformed or its chunk hash does not match, the receiver re-sends `need` for that chunk and the sender retries it up to four times.
 - SHA-256 complete-file integrity check before the receiver saves the file.
-- AlterSend mode UI entry, send code generation, receive code validation, progress display, settings persistence, and history metadata.
+- QR generation for sender connection codes and QR scanning through Google code scanner on the receive path.
+- A dataSync foreground service while AlterSend is hosting, joining, or transferring, so long-running transfers are less likely to be stopped by Android background limits.
+- AlterSend mode UI entry, send code generation, receive code validation, progress display, explicit completion cleanup/navigation, settings persistence, and history metadata.
 
 Compatibility note:
 
 - This Kotlin transport is not wire-compatible with upstream AlterSend's Hyperswarm/Noise/Protomux worklet.
 - It is the native Android equivalent used by Just-Share when the user selects AlterSend.
+- It does not join the upstream Hyperswarm DHT. Direct sockets and the included relay-code path are implemented; production NAT traversal still requires a reachable relay/DHT service that is not bundled with the Android app.
 - Bluetooth and Wi-Fi Direct remain separate local transfer modes.
-- QR encoding/scanning for the connection code is still a UI enhancement; manual code copy/paste is implemented.
 
 ## Integration Test Plan
 
@@ -50,10 +54,13 @@ Compatibility note:
    - For two AVDs, start the relay on the host first:
      `python3 scripts/altersend_relay.py`
    - Sender picks files and displays a join code.
-   - Receiver enters or scans the code.
+   - Receiver enters the code, copies it from another app, or scans the sender QR code.
    - Verify both devices reach connected state over direct socket or relay socket.
+   - Reject the incoming offer once; verify sender fails with "Receiver rejected transfer" and receiver returns to a cancelled state without saving a file.
    - Transfer a small file, a 150MB file, and a multi-GB file.
    - Kill the receiver app during transfer; verify no finalized partial file remains.
    - Pause/resume during the same live session; verify missing chunks are requested from the bitmap.
-   - Corrupt a chunk in a loopback/fault-injection channel; verify the receiver fails with an integrity error.
+   - Corrupt a chunk payload in a loopback/fault-injection channel; verify the receiver re-requests that chunk and the transfer continues.
+   - Corrupt a finalized file hash in a loopback/fault-injection channel; verify the receiver fails with an integrity error and does not save the file.
+   - Background the app during a large transfer; verify the AlterSend foreground notification is visible until the transfer completes, fails, or is cancelled.
 3. Regression test Bluetooth and Wi-Fi Direct separately on physical devices, because stock Android emulators do not provide real Bluetooth or Wi-Fi Direct radios.
