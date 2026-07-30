@@ -211,7 +211,15 @@ fun AppNavGraph(
         }
         composable(Screen.AlterSend.route) {
             com.invincible.jedishare.ui.screens.AlterSendScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     }
