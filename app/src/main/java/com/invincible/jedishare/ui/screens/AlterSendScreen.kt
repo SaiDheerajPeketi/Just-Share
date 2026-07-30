@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.invincible.jedishare.domain.altersend.AlterSendConnectionPhase
+import com.invincible.jedishare.domain.altersend.AlterSendFileOffer
+import com.invincible.jedishare.domain.altersend.AlterSendRole
 import com.invincible.jedishare.presentation.AlterSendViewModel
 import com.invincible.jedishare.ui.components.BackBar
 import com.invincible.jedishare.ui.components.EncryptedBadge
@@ -145,7 +147,7 @@ fun AlterSendScreen(
                     )
                 }
 
-                state.offers.forEach { offer ->
+                if (state.role != AlterSendRole.Receiver) state.offers.forEach { offer ->
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -194,6 +196,14 @@ fun AlterSendScreen(
                     icon = {
                         Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
+                )
+            }
+
+            if (state.phase == AlterSendConnectionPhase.IncomingOffer && state.role == AlterSendRole.Receiver) {
+                IncomingOfferCard(
+                    offers = state.offers,
+                    onAccept = viewModel::acceptIncomingTransfer,
+                    onReject = viewModel::rejectIncomingTransfer
                 )
             }
 
@@ -261,6 +271,67 @@ fun AlterSendScreen(
                     Text(state.errorMessage ?: "", color = colors.red, style = MaterialTheme.typography.body2)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun IncomingOfferCard(
+    offers: List<AlterSendFileOffer>,
+    onAccept: () -> Unit,
+    onReject: () -> Unit
+) {
+    val colors = JediShareTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(colors.cardBg)
+            .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+            .padding(16.dp)
+    ) {
+        Text(
+            "INCOMING TRANSFER",
+            style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+            color = colors.mutedFg
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        offers.forEach { offer ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MimeTypeIcon(mimeType = offer.mimeType, modifier = Modifier.size(40.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        offer.name,
+                        style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(formatSize(offer.sizeBytes), style = MaterialTheme.typography.caption, color = colors.mutedFg)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            PillButton(
+                label = "Cancel",
+                onClick = onReject,
+                variant = PillButtonVariant.OUTLINE,
+                size = PillButtonSize.MD,
+                modifier = Modifier.weight(1f)
+            )
+            PillButton(
+                label = "Accept",
+                onClick = onAccept,
+                size = PillButtonSize.MD,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

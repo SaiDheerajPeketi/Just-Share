@@ -12,6 +12,7 @@ import com.invincible.jedishare.domain.altersend.AlterSendUiState
 import com.invincible.jedishare.getFileDetailsFromUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -33,6 +34,7 @@ class AlterSendRepository @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var transferJob: Job? = null
     private var activeTransfer: AlterSendSocketTransfer? = null
+    private var incomingDecision: CompletableDeferred<Boolean>? = null
 
     fun host(uris: List<Uri>) {
         resetActiveTransfer()
@@ -77,6 +79,11 @@ class AlterSendRepository @Inject constructor(
                         offers = next.offers.ifEmpty { it.offers }
                     )
                 }
+            },
+            awaitIncomingDecision = {
+                CompletableDeferred<Boolean>().also { decision ->
+                    incomingDecision = decision
+                }.await()
             }
         )
         activeTransfer = transfer
@@ -144,12 +151,24 @@ class AlterSendRepository @Inject constructor(
         // No-op retained for older UI calls.
     }
 
+    fun acceptIncomingTransfer() {
+        incomingDecision?.complete(true)
+        incomingDecision = null
+    }
+
+    fun rejectIncomingTransfer() {
+        incomingDecision?.complete(false)
+        incomingDecision = null
+    }
+
     fun reset() {
         resetActiveTransfer()
         _state.value = AlterSendUiState()
     }
 
     private fun resetActiveTransfer() {
+        incomingDecision?.cancel()
+        incomingDecision = null
         transferJob?.cancel()
         transferJob = null
         activeTransfer?.close()
