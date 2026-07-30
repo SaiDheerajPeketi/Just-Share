@@ -25,7 +25,9 @@ Implemented:
 - Connection codes in `JSAS1:<host>:<port>:<topic>` format. The topic remains a random 32-byte value encoded as 64 hex characters.
 - Direct peer socket transport. The sender opens a local server socket and the receiver connects to the advertised host/port. This works on the same network and across the internet only when the sender address is reachable through routing/firewall/NAT.
 - Relay connection codes in `JSASR1:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. AVD builds auto-use `10.0.2.2:41404`, because `10.0.2.15` is per-emulator loopback and cannot connect two AVDs.
+- Hybrid connection codes in `JSASH1:<directHost>:<directPort>:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. When `ALTERSEND_RELAY_HOST` is configured for the build, real devices advertise this hybrid code. The sender waits briefly for a direct TCP peer; if none arrives, it registers with the relay. The receiver tries direct TCP first and falls back to the relay automatically.
 - `scripts/altersend_relay.py` is a tiny TCP pipe relay for emulator/manual testing. It sees only encrypted frames after pairing the sender and receiver by `relaySessionId`.
+- Production relay configuration is build-time: set Gradle properties `ALTERSEND_RELAY_HOST=<host>` and optionally `ALTERSEND_RELAY_PORT=<port>` before building. If no relay host is configured, real devices keep using direct-only `JSAS1` codes.
 - Ephemeral ECDH handshake per connection using the connection topic as transcript context.
 - HKDF-HMAC-SHA256 key derivation into separate client-to-server and server-to-client AES keys.
 - AES-GCM encrypted length-prefixed frames with monotonic per-direction counters.
@@ -44,7 +46,7 @@ Compatibility note:
 
 - This Kotlin transport is not wire-compatible with upstream AlterSend's Hyperswarm/Noise/Protomux worklet.
 - It is the native Android equivalent used by Just-Share when the user selects AlterSend.
-- It does not join the upstream Hyperswarm DHT. Direct sockets and the included relay-code path are implemented; production NAT traversal still requires a reachable relay/DHT service that is not bundled with the Android app.
+- It does not join the upstream Hyperswarm DHT. Direct sockets, relay-only codes, and direct-first relay fallback are implemented. True DHT discovery and UDP hole punching still require a compatible rendezvous/bootstrap network or a Kotlin Hyperswarm-equivalent stack that is not bundled with the Android app.
 - Bluetooth and Wi-Fi Direct remain separate local transfer modes.
 
 ## Integration Test Plan
@@ -56,6 +58,8 @@ Compatibility note:
    - Sender picks files and displays a join code.
    - Receiver enters the code, copies it from another app, or scans the sender QR code.
    - Verify both devices reach connected state over direct socket or relay socket.
+   - With a production relay configured, test `JSASH1` by placing devices on the same Wi-Fi and verifying direct connection completes before fallback.
+   - Put the receiver on mobile data and sender behind home NAT; verify direct fails and relay fallback completes.
    - Reject the incoming offer once; verify sender fails with "Receiver rejected transfer" and receiver returns to a cancelled state without saving a file.
    - Transfer a small file, a 150MB file, and a multi-GB file.
    - Kill the receiver app during transfer; verify no finalized partial file remains.
