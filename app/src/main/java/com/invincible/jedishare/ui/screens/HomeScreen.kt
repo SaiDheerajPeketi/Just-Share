@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
@@ -266,6 +267,49 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
+                CardButton(
+                    onClick = { onNavigateToScreen("altersend") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(112.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(colors.cardBg)
+                            .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(colors.red.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Shield, contentDescription = null, tint = colors.red, modifier = Modifier.size(28.dp))
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "AlterSend",
+                                style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                                color = colors.black
+                            )
+                            Text(
+                                text = "Encrypted remote transfer",
+                                style = MaterialTheme.typography.body2,
+                                color = colors.mutedFg,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                        com.invincible.jedishare.ui.components.EncryptedBadge()
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -325,4 +369,3 @@ fun HomeScreen(
         }
     }
 }
-
