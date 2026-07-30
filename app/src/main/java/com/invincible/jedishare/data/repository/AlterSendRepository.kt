@@ -1,7 +1,10 @@
 package com.invincible.jedishare.data.repository
 
+import android.content.Intent
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import com.invincible.jedishare.AlterSendForegroundService
 import com.invincible.jedishare.data.altersend.AlterSendSocketTransfer
 import com.invincible.jedishare.domain.altersend.AlterSendConnectionPhase
 import com.invincible.jedishare.domain.altersend.AlterSendFileOffer
@@ -13,6 +16,7 @@ import com.invincible.jedishare.getFileDetailsFromUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -87,16 +91,20 @@ class AlterSendRepository @Inject constructor(
             }
         )
         activeTransfer = transfer
+        startForegroundTransfer()
         transferJob = scope.launch {
             runCatching {
                 transfer.host(topicHex, offers)
             }.onFailure { error ->
+                if (error is CancellationException) return@onFailure
                 _state.update {
                     it.copy(
                         phase = AlterSendConnectionPhase.Failed,
                         errorMessage = error.localizedMessage ?: "AlterSend transfer failed"
                     )
                 }
+            }.also {
+                stopForegroundTransfer()
             }
         }
     }
@@ -133,16 +141,20 @@ class AlterSendRepository @Inject constructor(
             }
         )
         activeTransfer = transfer
+        startForegroundTransfer()
         transferJob = scope.launch {
             runCatching {
                 transfer.join(invite)
             }.onFailure { error ->
+                if (error is CancellationException) return@onFailure
                 _state.update {
                     it.copy(
                         phase = AlterSendConnectionPhase.Failed,
                         errorMessage = error.localizedMessage ?: "AlterSend transfer failed"
                     )
                 }
+            }.also {
+                stopForegroundTransfer()
             }
         }
     }
@@ -173,5 +185,26 @@ class AlterSendRepository @Inject constructor(
         transferJob = null
         activeTransfer?.close()
         activeTransfer = null
+        stopForegroundTransfer()
+    }
+
+    private fun startForegroundTransfer() {
+        val intent = Intent(context, AlterSendForegroundService::class.java).apply {
+            action = AlterSendForegroundService.ACTION_START
+        }
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+    }
+
+    private fun stopForegroundTransfer() {
+        val intent = Intent(context, AlterSendForegroundService::class.java).apply {
+            action = AlterSendForegroundService.ACTION_STOP
+        }
+        runCatching { context.startService(intent) }
     }
 }

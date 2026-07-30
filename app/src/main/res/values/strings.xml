@@ -15,4 +15,8 @@
     <string name="notif_channel_transfer_desc">Shows progress while transferring files via Wi-Fi Direct</string>
     <string name="notif_transfer_title">Just Share</string>
     <string name="notif_transfer_text">Transferring files…</string>
+    <string name="notif_channel_altersend_name">AlterSend Transfer</string>
+    <string name="notif_channel_altersend_desc">Shows progress while transferring encrypted AlterSend files</string>
+    <string name="notif_altersend_title">AlterSend</string>
+    <string name="notif_altersend_text">Encrypted transfer in progress…</string>
 </resources>
