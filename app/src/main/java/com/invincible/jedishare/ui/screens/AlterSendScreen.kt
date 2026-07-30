@@ -67,7 +67,6 @@ fun AlterSendScreen(
     val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             viewModel.host(uris)
-            viewModel.reportRuntimeUnavailable()
         }
     }
 
@@ -110,7 +109,7 @@ fun AlterSendScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     SelectionContainer {
                         Text(
-                            topic.chunked(4).joinToString(" "),
+                            topic,
                             style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.Bold),
                             color = colors.red
                         )
@@ -171,7 +170,6 @@ fun AlterSendScreen(
                     label = "Join",
                     onClick = {
                         viewModel.join(joinCode.filterNot { it.isWhitespace() })
-                        viewModel.reportRuntimeUnavailable()
                     },
                     size = PillButtonSize.LG,
                     modifier = Modifier.fillMaxWidth(),
@@ -180,6 +178,60 @@ fun AlterSendScreen(
                     }
                 )
             }
+
+            state.progress?.let { progress ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(colors.cardBg)
+                        .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        progress.fileName,
+                        style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material.LinearProgressIndicator(
+                        progress = progress.percent / 100f,
+                        color = colors.red,
+                        backgroundColor = colors.border,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(CircleShape)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "${progress.percent.toInt()}% · ${formatSize(progress.bytesTransferred)} of ${formatSize(progress.totalBytes)}",
+                        style = MaterialTheme.typography.caption,
+                        color = colors.mutedFg
+                    )
+                }
+            }
+
+            Text(
+                text = when (state.phase) {
+                    AlterSendConnectionPhase.Idle -> "Ready"
+                    AlterSendConnectionPhase.Hosting -> "Waiting for receiver..."
+                    AlterSendConnectionPhase.Joining -> "Joining..."
+                    AlterSendConnectionPhase.Connecting -> "Connecting..."
+                    AlterSendConnectionPhase.Connected -> "Connected"
+                    AlterSendConnectionPhase.IncomingOffer -> "Receiving offer..."
+                    AlterSendConnectionPhase.Transferring -> "Transferring..."
+                    AlterSendConnectionPhase.Complete -> "Transfer complete"
+                    AlterSendConnectionPhase.Cancelled -> "Cancelled"
+                    AlterSendConnectionPhase.Failed -> "Transfer failed"
+                },
+                style = MaterialTheme.typography.body2,
+                color = colors.mutedFg,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
 
             if (state.phase == AlterSendConnectionPhase.Failed && state.errorMessage != null) {
                 Box(
