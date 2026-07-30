@@ -22,31 +22,34 @@ Current AlterSend is implemented as a Bare worklet used by the desktop and React
 
 Implemented:
 
-- 64-character topic generation and validation.
+- Connection codes in `JSAS1:<host>:<port>:<topic>` format. The topic remains a random 32-byte value encoded as 64 hex characters.
+- Direct peer socket transport. The sender opens a local server socket and the receiver connects to the advertised host/port. This works on the same network and across the internet only when the sender address is reachable through routing/firewall/NAT.
+- Ephemeral ECDH handshake per connection using the connection topic as transcript context.
+- HKDF-HMAC-SHA256 key derivation into separate client-to-server and server-to-client AES keys.
+- AES-GCM encrypted length-prefixed frames with monotonic per-direction counters.
 - AlterSend chunk geometry: 64KB under 1MB, 256KB under 100MB, 1MB under 10GB, and 4MB beyond that.
 - Live transfer bitmap semantics matching upstream bit order.
 - A Kotlin drive transfer engine that reads by offset, writes by offset, supports resume bits, validates expected size, and aborts on integrity errors.
-- AlterSend mode UI entry, send code generation, receive code validation, settings persistence, and history metadata.
+- Socket transfer frames for manifest, start, need, chunk, complete, ack, and error.
+- SHA-256 complete-file integrity check before the receiver saves the file.
+- AlterSend mode UI entry, send code generation, receive code validation, progress display, settings persistence, and history metadata.
 
-Not yet bundled:
+Compatibility note:
 
-- Bare Kit Android worklet runtime.
-- Hyperswarm DHT discovery.
-- Noise-encrypted peer sockets.
-- Protomux channel bridge to the Kotlin UI state.
-- QR encoding/scanning for the join code.
-
-Do not replace the missing runtime with ad hoc Android sockets if exact AlterSend compatibility is required.
+- This Kotlin transport is not wire-compatible with upstream AlterSend's Hyperswarm/Noise/Protomux worklet.
+- It is the native Android equivalent used by Just-Share when the user selects AlterSend.
+- Bluetooth and Wi-Fi Direct remain separate local transfer modes.
+- QR encoding/scanning for the connection code is still a UI enhancement; manual code copy/paste is implemented.
 
 ## Integration Test Plan
 
 1. Unit test topic validation, chunk tiers, chunk ranges, bitmap serialization, drive transfer success, resume bits, wrong size rejection, and short chunk rejection.
-2. After Bare Kit is bundled, run two Android devices or emulators with internet access:
+2. Run two Android devices or emulators on a reachable network:
    - Sender picks files and displays a join code.
    - Receiver enters or scans the code.
-   - Verify both devices reach connected state through Hyperswarm.
+   - Verify both devices reach connected state over the direct socket.
    - Transfer a small file, a 150MB file, and a multi-GB file.
-   - Kill the receiver app during transfer; verify upstream-compatible disconnect behavior and no finalized partial file.
+   - Kill the receiver app during transfer; verify no finalized partial file remains.
    - Pause/resume during the same live session; verify missing chunks are requested from the bitmap.
-   - Corrupt a chunk in a loopback/fault-injection channel; verify the receiver aborts or re-requests according to the final worklet bridge behavior.
+   - Corrupt a chunk in a loopback/fault-injection channel; verify the receiver fails with an integrity error.
 3. Regression test Bluetooth and Wi-Fi Direct separately on physical devices, because stock Android emulators do not provide real Bluetooth or Wi-Fi Direct radios.

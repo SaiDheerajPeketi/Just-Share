@@ -327,7 +327,12 @@ class AlterSendSocketTransfer(
                 put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/JustShare")
             }
         }
-        val uri = resolver.insert(MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL), values)
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Files.getContentUri("external")
+        }
+        val uri = resolver.insert(collection, values)
         if (uri != null) {
             resolver.openOutputStream(uri).use { out ->
                 temp.inputStream().use { input -> input.copyTo(requireNotNull(out)) }
