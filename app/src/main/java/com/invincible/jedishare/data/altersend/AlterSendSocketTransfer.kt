@@ -40,7 +40,8 @@ import kotlin.coroutines.coroutineContext
 class AlterSendSocketTransfer(
     private val context: Context,
     private val historyRepository: TransferHistoryRepository,
-    private val onState: (AlterSendUiState) -> Unit
+    private val onState: (AlterSendUiState) -> Unit,
+    private val awaitIncomingDecision: suspend (List<AlterSendFileOffer>) -> Boolean = { true }
 ) {
     companion object {
         private const val MAGIC = 0x4A534153 // JSAS
@@ -225,6 +226,9 @@ class AlterSendSocketTransfer(
 
             channel.writeFrame(FRAME_START, startPayload(offer, chunkSize))
             val need = channel.readFrame()
+            if (need.type == FRAME_ERROR) {
+                throw IllegalStateException(need.payload.decodeToString())
+            }
             if (need.type != FRAME_NEED) throw EOFException("Receiver did not request chunks")
             val indices = parseNeedPayload(need.payload, offer.id)
 
@@ -269,6 +273,11 @@ class AlterSendSocketTransfer(
         if (manifest.type != FRAME_MANIFEST) throw EOFException("Sender did not send a manifest")
         val offers = manifest.payload.toOffers()
         onState(AlterSendUiState(phase = AlterSendConnectionPhase.IncomingOffer, offers = offers))
+        if (!awaitIncomingDecision(offers)) {
+            channel.writeFrame(FRAME_ERROR, "Receiver rejected transfer".encodeToByteArray())
+            onState(AlterSendUiState(phase = AlterSendConnectionPhase.Cancelled, offers = offers))
+            return
+        }
 
         offers.forEach { offer ->
             coroutineContext.ensureActive()

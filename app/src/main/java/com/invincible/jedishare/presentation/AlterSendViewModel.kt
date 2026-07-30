@@ -20,5 +20,9 @@ class AlterSendViewModel @Inject constructor(
 
     fun reportRuntimeUnavailable() = repository.reportRuntimeUnavailable()
 
+    fun acceptIncomingTransfer() = repository.acceptIncomingTransfer()
+
+    fun rejectIncomingTransfer() = repository.rejectIncomingTransfer()
+
     fun reset() = repository.reset()
 }
