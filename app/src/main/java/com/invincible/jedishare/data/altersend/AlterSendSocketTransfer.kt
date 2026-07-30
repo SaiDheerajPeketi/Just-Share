@@ -232,14 +232,13 @@ class AlterSendSocketTransfer(
             if (need.type != FRAME_NEED) throw EOFException("Receiver did not request chunks")
             val indices = parseNeedPayload(need.payload, offer.id)
 
-            val digest = MessageDigest.getInstance("SHA-256")
+            val fileHash = sha256Uri(uri)
             for (index in indices) {
                 coroutineContext.ensureActive()
                 if (index < 0 || index >= totalChunks) throw IllegalArgumentException("Invalid chunk index")
                 val range = AlterSendProtocol.chunkRange(index, offer.sizeBytes, chunkSize)
                 val bytes = readUriRange(uri, range.offset, range.length)
-                digest.update(bytes)
-                channel.writeFrame(FRAME_CHUNK, chunkPayload(offer.id, index, bytes))
+                sendChunkWithRetry(channel, offer, index, bytes)
                 val sentBytes = minOf(offer.sizeBytes, (index + 1L) * chunkSize)
                 onState(
                     AlterSendUiState(
@@ -249,7 +248,7 @@ class AlterSendSocketTransfer(
                     )
                 )
             }
-            channel.writeFrame(FRAME_COMPLETE, completePayload(offer.id, digest.digest()))
+            channel.writeFrame(FRAME_COMPLETE, completePayload(offer.id, fileHash))
             val ack = channel.readFrame()
             if (ack.type != FRAME_ACK) throw EOFException("Receiver did not acknowledge ${offer.name}")
             historyRepository.addEntry(
@@ -293,21 +292,32 @@ class AlterSendSocketTransfer(
             channel.writeFrame(FRAME_NEED, needPayload(offer.id, missing))
 
             val temp = File.createTempFile("altersend-", ".part", context.cacheDir)
-            val digest = MessageDigest.getInstance("SHA-256")
+            val verifiedChunks = BooleanArray(totalChunks)
             RandomAccessFile(temp, "rw").use { output ->
                 output.setLength(offer.sizeBytes)
                 var received = 0L
-                repeat(totalChunks) {
+                while (verifiedChunks.count { it } < totalChunks) {
                     val chunk = channel.readFrame()
                     if (chunk.type != FRAME_CHUNK) throw EOFException("Expected chunk for ${offer.name}")
                     val parsed = parseChunkPayload(chunk.payload)
                     if (parsed.id != offer.id) throw IllegalStateException("Chunk belongs to another file")
+                    if (parsed.index < 0 || parsed.index >= totalChunks) {
+                        throw IllegalStateException("Chunk index is outside the announced file range")
+                    }
                     val range = AlterSendProtocol.chunkRange(parsed.index, offer.sizeBytes, chunkSize)
-                    if (parsed.data.size != range.length) throw IllegalStateException("Corrupted chunk length")
+                    if (parsed.data.size != range.length || !sha256(parsed.data).contentEquals(parsed.sha256)) {
+                        channel.writeFrame(FRAME_NEED, needPayload(offer.id, listOf(parsed.index)))
+                        continue
+                    }
+                    if (verifiedChunks[parsed.index]) {
+                        channel.writeFrame(FRAME_ACK, chunkAckPayload(offer.id, parsed.index))
+                        continue
+                    }
                     output.seek(range.offset)
                     output.write(parsed.data)
-                    digest.update(parsed.data)
+                    verifiedChunks[parsed.index] = true
                     received += parsed.data.size
+                    channel.writeFrame(FRAME_ACK, chunkAckPayload(offer.id, parsed.index))
                     onState(
                         AlterSendUiState(
                             phase = AlterSendConnectionPhase.Transferring,
@@ -321,7 +331,7 @@ class AlterSendSocketTransfer(
             val complete = channel.readFrame()
             if (complete.type != FRAME_COMPLETE) throw EOFException("Sender did not complete ${offer.name}")
             val expectedHash = parseCompletePayload(complete.payload, offer.id)
-            val actualHash = digest.digest()
+            val actualHash = sha256File(temp)
             if (!actualHash.contentEquals(expectedHash)) {
                 temp.delete()
                 channel.writeFrame(FRAME_ERROR, "Integrity check failed".encodeToByteArray())
@@ -366,6 +376,63 @@ class AlterSendSocketTransfer(
             return out
         }
     }
+
+    private fun sendChunkWithRetry(
+        channel: SecureChannel,
+        offer: AlterSendFileOffer,
+        index: Int,
+        bytes: ByteArray
+    ) {
+        var attempts = 0
+        while (attempts < 4) {
+            attempts += 1
+            channel.writeFrame(FRAME_CHUNK, chunkPayload(offer.id, index, bytes))
+            val response = channel.readFrame()
+            when (response.type) {
+                FRAME_ACK -> {
+                    parseChunkAckPayload(response.payload, offer.id, index)
+                    return
+                }
+                FRAME_NEED -> {
+                    val requested = parseNeedPayload(response.payload, offer.id)
+                    if (index !in requested) throw EOFException("Receiver requested an unexpected chunk")
+                }
+                FRAME_ERROR -> throw IllegalStateException(response.payload.decodeToString())
+                else -> throw EOFException("Receiver sent an unexpected chunk response")
+            }
+        }
+        throw EOFException("Receiver could not verify chunk $index of ${offer.name}")
+    }
+
+    private fun sha256Uri(uri: Uri): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        context.contentResolver.openInputStream(uri).use { input ->
+            requireNotNull(input) { "Could not open $uri" }
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest()
+    }
+
+    private fun sha256File(file: File): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest()
+    }
+
+    private fun sha256(bytes: ByteArray): ByteArray =
+        MessageDigest.getInstance("SHA-256").digest(bytes)
 
     private fun saveTempFile(offer: AlterSendFileOffer, temp: File): Uri? {
         val resolver = context.contentResolver
@@ -464,7 +531,9 @@ class AlterSendSocketTransfer(
             val encryptedSize = input.readInt()
             require(encryptedSize >= 0 && encryptedSize <= 16 * 1024 * 1024) { "Invalid frame size" }
             val encrypted = ByteArray(encryptedSize).also { input.readFully(it) }
-            val plain = AlterSendCrypto.decrypt(keys.receiveKey, receiveCounter++, encrypted)
+            val counter = receiveCounter
+            val plain = AlterSendCrypto.decrypt(keys.receiveKey, counter, encrypted)
+            receiveCounter = counter + 1
             DataInputStream(ByteArrayInputStream(plain)).use { frame ->
                 val type = frame.readInt()
                 val payloadSize = frame.readInt()
@@ -553,21 +622,36 @@ class AlterSendSocketTransfer(
             DataOutputStream(bytes).use { out ->
                 out.writeUTF(id)
                 out.writeInt(index)
+                out.writeBytesWithLength(sha256(data))
                 out.writeBytesWithLength(data)
             }
             bytes.toByteArray()
         }
     }
 
-    private data class ChunkPayload(val id: String, val index: Int, val data: ByteArray)
+    private data class ChunkPayload(val id: String, val index: Int, val sha256: ByteArray, val data: ByteArray)
 
     private fun parseChunkPayload(bytes: ByteArray): ChunkPayload {
         DataInputStream(ByteArrayInputStream(bytes)).use { input ->
             return ChunkPayload(
                 id = input.readUTF(),
                 index = input.readInt(),
+                sha256 = input.readBytesWithLength(),
                 data = input.readBytesWithLength()
             )
+        }
+    }
+
+    private fun chunkAckPayload(id: String, index: Int): ByteArray =
+        JSONObject().apply {
+            put("id", id)
+            put("index", index)
+        }.toString().encodeToByteArray()
+
+    private fun parseChunkAckPayload(bytes: ByteArray, expectedId: String, expectedIndex: Int) {
+        val json = JSONObject(bytes.decodeToString())
+        require(json.getString("id") == expectedId && json.getInt("index") == expectedIndex) {
+            "Chunk acknowledgement belongs to another chunk"
         }
     }
 
