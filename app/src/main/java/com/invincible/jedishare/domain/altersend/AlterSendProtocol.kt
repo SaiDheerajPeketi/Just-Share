@@ -68,6 +68,6 @@ data class AlterSendChunkRange(
     val length: Int
 )
 
-internal fun ByteArray.toHex(): String = joinToString(separator = "") { byte ->
+fun ByteArray.toHex(): String = joinToString(separator = "") { byte ->
     "%02x".format(byte.toInt() and 0xff)
 }
