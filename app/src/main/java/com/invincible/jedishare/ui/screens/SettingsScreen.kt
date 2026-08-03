@@ -12,11 +12,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.RemoveRedEye
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,16 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.invincible.jedishare.ui.components.BottomNav
 import com.invincible.jedishare.ui.theme.JediShareTheme
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     onNavigateToNavRoute: (String) -> Unit,
-    transferViewModel: com.invincible.jedishare.presentation.TransferViewModel,
-    settingsViewModel: com.invincible.jedishare.presentation.SettingsViewModel = hiltViewModel()
+    transferViewModel: com.invincible.jedishare.presentation.TransferViewModel
 ) {
     val colors = JediShareTheme.colors
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -52,7 +44,6 @@ fun SettingsScreen(
     
 
     val savedTransferMethod by dataStore.defaultTransferMethod.collectAsStateWithLifecycle(initialValue = "wifi")
-    val encRequired by settingsViewModel.alwaysRequireEncryptionVerification.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -158,66 +149,6 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Wi-Fi Direct", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
                     CustomRadioButton(selected = savedTransferMethod == "wifi", color = colors.red)
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Security Section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.cardBg, RoundedCornerShape(16.dp))
-                    .padding(vertical = 16.dp)
-            ) {
-                Text(
-                    text = "SECURITY",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.mutedFg,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                )
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Always require encryption\nverification", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium, lineHeight = 20.sp), color = colors.black, modifier = Modifier.weight(1f))
-                    Spacer(modifier = Modifier.width(16.dp))
-                    CustomToggle(
-                        on = encRequired,
-                        onChange = {
-                            settingsViewModel.setAlwaysRequireEncryptionVerification(!encRequired)
-                        },
-                        trackOnColor = colors.red, // App theme red track
-                        trackOffColor = colors.border,
-                        thumbOnColor = Color.White, // White thumb
-                        thumbOffColor = Color.White,
-                        thumbIcon = Icons.Default.Check,
-                        thumbIconTint = colors.red
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(colors.border))
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { /* Handle Trusted Devices */ }
-                        )
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Phone, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(text = "Trusted Devices", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.mutedFg, modifier = Modifier.size(20.dp))
                 }
             }
         }
