@@ -239,7 +239,7 @@ fun SelectFilesScreen(
                     if (method == "altersend") {
                         alterSendViewModel.host(uris)
                         viewModel.clearSelection()
-                        onNavigateToScreen("altersend")
+                        onNavigateToScreen("remote-transfer-progress")
                     } else {
                         transferViewModel.setMethod(method)
                         transferViewModel.setUris(uris)

@@ -22,6 +22,7 @@ sealed class Screen(val route: String) {
     object DiscoverBT : Screen("discover-bt")
     object DiscoverWifi : Screen("discover-wifi")
     object TransferProgress : Screen("transfer-progress")
+    object RemoteTransferProgress : Screen("remote-transfer-progress")
     object History : Screen("history")
     object Settings : Screen("settings")
     object ScanQr : Screen("scan-qr")
@@ -181,6 +182,16 @@ fun AppNavGraph(
                 }
             )
         }
+        composable(Screen.RemoteTransferProgress.route) {
+            com.invincible.jedishare.ui.screens.RemoteTransferProgressScreen(
+                onNavigateHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
         composable(
             route = Screen.History.route,
             enterTransition = { androidx.compose.animation.EnterTransition.None },
@@ -220,7 +231,8 @@ fun AppNavGraph(
                         launchSingleTop = true
                     }
                 },
-                onSelectFiles = { navController.navigate(Screen.SelectFiles.createRoute("altersend")) }
+                onSelectFiles = { navController.navigate(Screen.SelectFiles.createRoute("altersend")) },
+                onNavigateProgress = { navController.navigate(Screen.RemoteTransferProgress.route) }
             )
         }
     }

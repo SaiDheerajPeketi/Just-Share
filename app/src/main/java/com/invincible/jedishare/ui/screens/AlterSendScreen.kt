@@ -81,6 +81,7 @@ fun AlterSendScreen(
     onBack: () -> Unit,
     onNavigateHome: () -> Unit,
     onSelectFiles: () -> Unit,
+    onNavigateProgress: () -> Unit,
     viewModel: AlterSendViewModel = hiltViewModel()
 ) {
     val colors = JediShareTheme.colors
@@ -103,6 +104,7 @@ fun AlterSendScreen(
             onCode = { code ->
                 joinCode = code
                 viewModel.join(code)
+                onNavigateProgress()
             },
             onError = { message -> scanError = message }
         )
@@ -186,7 +188,7 @@ fun AlterSendScreen(
                     )
                     if (topic.startsWith("JSAS")) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        AlterSendQrCode(content = topic, modifier = Modifier.align(Alignment.CenterHorizontally))
+                        RemoteTransferQrCode(content = topic, modifier = Modifier.align(Alignment.CenterHorizontally))
                     }
                 }
 
@@ -250,6 +252,7 @@ fun AlterSendScreen(
                         label = "Join",
                         onClick = {
                             viewModel.join(joinCode.filterNot { it.isWhitespace() })
+                            onNavigateProgress()
                         },
                         size = PillButtonSize.MD,
                         modifier = Modifier.weight(1f)
@@ -338,7 +341,7 @@ fun AlterSendScreen(
 }
 
 @Composable
-private fun AlterSendQrCode(content: String, modifier: Modifier = Modifier) {
+fun RemoteTransferQrCode(content: String, modifier: Modifier = Modifier) {
     val matrix = remember(content) {
         runCatching {
             QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, 256, 256)
