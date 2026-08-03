@@ -598,15 +598,17 @@ class AlterSendSocketTransfer(
         val host = BuildConfig.ALTERSEND_RELAY_HOST.trim()
         val port = BuildConfig.ALTERSEND_RELAY_PORT
         return buildList {
-            if (host.isNotBlank() && port in 1..65535) {
-                add(host to port)
-            }
+            // After direct P2P fails, prefer public relay nodes before the owner's domain relay.
             BuildConfig.ALTERSEND_PUBLIC_RELAY_NODES
                 .split(',', ';')
                 .mapNotNull { raw -> parseRelayEndpoint(raw.trim()) }
                 .forEach { endpoint ->
                     if (endpoint !in this) add(endpoint)
                 }
+            if (host.isNotBlank() && port in 1..65535) {
+                val configuredRelay = host to port
+                if (configuredRelay !in this) add(configuredRelay)
+            }
         }
     }
 
