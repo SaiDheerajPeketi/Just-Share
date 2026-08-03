@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import android.content.Context
 
 /**
- * Room database for JediShare.
+ * Room database for Just Share.
  *
  * Currently contains the [TransferHistoryEntity] table.
  * Increment version and add migrations when adding new tables / modifying columns.

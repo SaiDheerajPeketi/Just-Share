@@ -26,7 +26,7 @@ object AlterSendProtocol {
 
     fun normalizeTopicHex(value: String): String {
         val normalized = value.trim().lowercase()
-        require(isValidTopicHex(normalized)) { "Invalid AlterSend topic" }
+        require(isValidTopicHex(normalized)) { "Invalid Remote Transfer topic" }
         return normalized
     }
 

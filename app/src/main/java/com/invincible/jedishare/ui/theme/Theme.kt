@@ -114,7 +114,7 @@ object JediShareTheme {
 
 @Composable
 fun JediShareTheme(content: @Composable () -> Unit) {
-    Timber.d("Global - JediShareTheme called")
+    Timber.d("Global - Just Share theme called")
     
     val context = androidx.compose.ui.platform.LocalContext.current
     val dataStore = dagger.hilt.android.EntryPointAccessors.fromApplication(

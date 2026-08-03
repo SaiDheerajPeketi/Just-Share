@@ -1,6 +1,6 @@
-# JediShare Repository Analysis & Migration Plan
+# Just Share Repository Analysis & Migration Plan
 
-This document serves as the master blueprint and analysis for the Just-Share (JediShare) project across all branches.
+This document serves as the master blueprint and analysis for the Just Share project across all branches.
 
 ## 1. Current State: What is Built
 

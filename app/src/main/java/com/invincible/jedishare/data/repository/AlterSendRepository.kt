@@ -100,7 +100,7 @@ class AlterSendRepository @Inject constructor(
                 _state.update {
                     it.copy(
                         phase = AlterSendConnectionPhase.Failed,
-                        errorMessage = error.localizedMessage ?: "AlterSend transfer failed"
+                        errorMessage = error.localizedMessage ?: "Remote Transfer failed"
                     )
                 }
             }.also {
@@ -116,7 +116,7 @@ class AlterSendRepository @Inject constructor(
                 _state.value = AlterSendUiState(
                     role = AlterSendRole.Receiver,
                     phase = AlterSendConnectionPhase.Failed,
-                    errorMessage = "Enter a valid AlterSend connection code."
+                    errorMessage = "Enter a valid Remote Transfer connection code."
                 )
                 return
             }
@@ -150,7 +150,7 @@ class AlterSendRepository @Inject constructor(
                 _state.update {
                     it.copy(
                         phase = AlterSendConnectionPhase.Failed,
-                        errorMessage = error.localizedMessage ?: "AlterSend transfer failed"
+                        errorMessage = error.localizedMessage ?: "Remote Transfer failed"
                     )
                 }
             }.also {

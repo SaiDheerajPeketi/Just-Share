@@ -45,19 +45,19 @@ class FileTransferRepository @Inject constructor(
                 when {
                     mimeType.startsWith("image/") -> put(
                         MediaStore.Images.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_PICTURES + "/JustShare"
+                        Environment.DIRECTORY_PICTURES + "/Just Share"
                     )
                     mimeType.startsWith("audio/") -> put(
                         MediaStore.Audio.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_MUSIC + "/JustShare"
+                        Environment.DIRECTORY_MUSIC + "/Just Share"
                     )
                     mimeType.startsWith("video/") -> put(
                         MediaStore.Video.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_MOVIES + "/JustShare"
+                        Environment.DIRECTORY_MOVIES + "/Just Share"
                     )
                     else -> put(
                         MediaStore.Downloads.RELATIVE_PATH,
-                        Environment.DIRECTORY_DOWNLOADS + "/JustShare"
+                        Environment.DIRECTORY_DOWNLOADS + "/Just Share"
                     )
                 }
             }

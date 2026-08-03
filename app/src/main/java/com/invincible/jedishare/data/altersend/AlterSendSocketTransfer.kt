@@ -247,7 +247,7 @@ class AlterSendSocketTransfer(
         val topic = input.readUTF()
         val clientPublic = input.readBytesWithLength()
         require(clientMagic == MAGIC && version == VERSION && topic == expectedTopic) {
-            "AlterSend peer sent an invalid handshake"
+            "Remote Transfer peer sent an invalid handshake"
         }
 
         val keyPair = AlterSendCrypto.generateKeyPair()
@@ -285,7 +285,7 @@ class AlterSendSocketTransfer(
         val topic = input.readUTF()
         val serverPublic = input.readBytesWithLength()
         require(serverMagic == MAGIC && version == VERSION && topic == topicHex) {
-            "AlterSend host sent an invalid handshake"
+            "Remote Transfer host sent an invalid handshake"
         }
 
         val keys = AlterSendCrypto.deriveKeys(
@@ -339,8 +339,8 @@ class AlterSendSocketTransfer(
                     mimeType = offer.mimeType,
                     fileSizeBytes = offer.sizeBytes,
                     isSender = true,
-                    transferMethod = "AlterSend",
-                    remoteDeviceName = "AlterSend peer",
+                    transferMethod = "Remote Transfer",
+                    remoteDeviceName = "Remote Transfer peer",
                     contentUri = uri.toString(),
                     isAlterSend = true
                 )
@@ -428,8 +428,8 @@ class AlterSendSocketTransfer(
                     mimeType = offer.mimeType,
                     fileSizeBytes = offer.sizeBytes,
                     isSender = false,
-                    transferMethod = "AlterSend",
-                    remoteDeviceName = "AlterSend peer",
+                    transferMethod = "Remote Transfer",
+                    remoteDeviceName = "Remote Transfer peer",
                     contentUri = savedUri?.toString(),
                     isAlterSend = true
                 )
@@ -523,7 +523,7 @@ class AlterSendSocketTransfer(
             put(MediaStore.Files.FileColumns.MIME_TYPE, offer.mimeType ?: "*/*")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Files.FileColumns.IS_PENDING, 1)
-                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/JustShare")
+                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Just Share")
             }
         }
         val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

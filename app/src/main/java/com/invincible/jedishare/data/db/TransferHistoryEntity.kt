@@ -42,7 +42,7 @@ data class TransferHistoryEntity(
     @ColumnInfo(name = "content_uri")
     val contentUri: String? = null,
 
-    /** Whether this transfer used AlterSend end-to-end encrypted mode. */
+    /** Whether this transfer used Remote Transfer end-to-end encrypted mode. */
     @ColumnInfo(name = "is_altersend")
     val isAlterSend: Boolean = false,
 

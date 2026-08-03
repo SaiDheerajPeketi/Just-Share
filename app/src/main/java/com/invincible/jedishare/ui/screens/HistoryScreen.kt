@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -249,18 +250,28 @@ fun HistoryScreen(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         
                                         Column(horizontalAlignment = Alignment.End) {
+                                            val methodIcon = when {
+                                                item.isAlterSend -> Icons.Default.Lock
+                                                item.transferMethod == "bt" -> Icons.Default.Bluetooth
+                                                else -> Icons.Default.Wifi
+                                            }
+                                            val methodLabel = when {
+                                                item.isAlterSend -> "Remote"
+                                                item.transferMethod == "bt" -> "BT"
+                                                else -> "Wi-Fi"
+                                            }
                                             Row(
                                                 modifier = Modifier.background(colors.border, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Icon(
-                                                    if (item.transferMethod == "bt") Icons.Default.Bluetooth else Icons.Default.Wifi,
+                                                    methodIcon,
                                                     contentDescription = null,
                                                     tint = colors.mutedFg,
                                                     modifier = Modifier.size(10.dp)
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text(text = if (item.transferMethod == "bt") "BT" else "Wi-Fi", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = colors.mutedFg)
+                                                Text(text = methodLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = colors.mutedFg)
                                             }
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Icon(

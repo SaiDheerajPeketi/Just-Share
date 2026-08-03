@@ -1,6 +1,6 @@
-# AlterSend Protocol Notes
+# Remote Transfer Protocol Notes
 
-This app treats AlterSend as a third transfer mode. Bluetooth and Wi-Fi Direct remain local transfer modes and are not modified by AlterSend.
+This app treats Remote Transfer as a third transfer mode. Bluetooth and Wi-Fi Direct remain local transfer modes and are not modified by Remote Transfer.
 
 ## Upstream AlterSend Model
 
@@ -37,7 +37,7 @@ Implemented:
 - Ephemeral ECDH handshake per connection using the connection topic as transcript context.
 - HKDF-HMAC-SHA256 key derivation into separate client-to-server and server-to-client AES keys.
 - AES-GCM encrypted length-prefixed frames with monotonic per-direction counters.
-- AlterSend chunk geometry: 64KB under 1MB, 256KB under 100MB, 1MB under 10GB, and 4MB beyond that.
+- Remote Transfer chunk geometry: 64KB under 1MB, 256KB under 100MB, 1MB under 10GB, and 4MB beyond that.
 - Live transfer bitmap semantics matching upstream bit order.
 - A Kotlin drive transfer engine that reads by offset, writes by offset, supports resume bits, validates expected size, and aborts on integrity errors.
 - Socket transfer frames for manifest, start, need, chunk, complete, ack, and error.
@@ -45,13 +45,13 @@ Implemented:
 - Per-chunk SHA-256 verification inside the encrypted chunk frame. If a chunk payload is malformed or its chunk hash does not match, the receiver re-sends `need` for that chunk and the sender retries it up to four times.
 - SHA-256 complete-file integrity check before the receiver saves the file.
 - QR generation for sender connection codes and QR scanning through Google code scanner on the receive path.
-- A dataSync foreground service while AlterSend is hosting, joining, or transferring, so long-running transfers are less likely to be stopped by Android background limits.
-- AlterSend mode UI entry, send code generation, receive code validation, progress display, explicit completion cleanup/navigation, settings persistence, and history metadata.
+- A dataSync foreground service while Remote Transfer is hosting, joining, or transferring, so long-running transfers are less likely to be stopped by Android background limits.
+- Remote Transfer mode UI entry, send code generation, receive code validation, progress display, explicit completion cleanup/navigation, settings persistence, and history metadata.
 
 Compatibility note:
 
 - This Kotlin transport is not wire-compatible with upstream AlterSend's Hyperswarm/Noise/Protomux worklet.
-- It is the native Android equivalent used by Just-Share when the user selects AlterSend.
+- It is the native Android equivalent used by Just Share when the user selects Remote Transfer.
 - It does not join the upstream Hyperswarm DHT. Direct sockets, relay-only codes, and direct-first relay fallback are implemented. True DHT discovery and UDP/TCP hole punching still require a compatible rendezvous/bootstrap protocol, peer public endpoint exchange, simultaneous punch attempts, and either UDP-based transport or carefully managed TCP simultaneous-open behavior. That hole-punching layer is not bundled with the Android app yet.
 - Bluetooth and Wi-Fi Direct remain separate local transfer modes.
 
@@ -75,5 +75,5 @@ Compatibility note:
    - Pause/resume during the same live session; verify missing chunks are requested from the bitmap.
    - Corrupt a chunk payload in a loopback/fault-injection channel; verify the receiver re-requests that chunk and the transfer continues.
    - Corrupt a finalized file hash in a loopback/fault-injection channel; verify the receiver fails with an integrity error and does not save the file.
-   - Background the app during a large transfer; verify the AlterSend foreground notification is visible until the transfer completes, fails, or is cancelled.
+   - Background the app during a large transfer; verify the Remote Transfer foreground notification is visible until the transfer completes, fails, or is cancelled.
 3. Regression test Bluetooth and Wi-Fi Direct separately on physical devices, because stock Android emulators do not provide real Bluetooth or Wi-Fi Direct radios.

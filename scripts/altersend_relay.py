@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""AlterSend TCP relay.
+"""Remote Transfer TCP relay.
 
 Pairs one sender and one receiver by relay session id, then pipes encrypted
-AlterSend frames in both directions. The relay only sees the Java-UTF
+Remote Transfer frames in both directions. The relay only sees the Java-UTF
 registration header and opaque encrypted bytes after pairing.
 """
 
@@ -191,7 +191,7 @@ def serve(args: argparse.Namespace) -> None:
         server.bind((args.host, args.port))
         server.listen(args.backlog)
         server.settimeout(1.0)
-        logging.info("AlterSend relay listening on %s:%s", args.host, args.port)
+        logging.info("Remote Transfer relay listening on %s:%s", args.host, args.port)
 
         while not state.stopping.is_set():
             try:
@@ -206,11 +206,11 @@ def serve(args: argparse.Namespace) -> None:
             ).start()
 
     cleanup_pending(state, 0)
-    logging.info("AlterSend relay stopped")
+    logging.info("Remote Transfer relay stopped")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Host a Just-Share AlterSend relay")
+    parser = argparse.ArgumentParser(description="Host a Just Share Remote Transfer relay")
     parser.add_argument("--host", default=DEFAULT_HOST, help="listen address")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="listen port")
     parser.add_argument("--backlog", type=int, default=256, help="TCP listen backlog")

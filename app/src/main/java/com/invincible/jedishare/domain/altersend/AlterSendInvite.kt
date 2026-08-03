@@ -39,12 +39,12 @@ data class AlterSendInvite(
             if (trimmed.startsWith(HYBRID_PREFIX)) {
                 val raw = trimmed.removePrefix(HYBRID_PREFIX)
                 val parts = raw.split(":")
-                require(parts.size == 6) { "Invalid AlterSend hybrid code" }
+                require(parts.size == 6) { "Invalid Remote Transfer hybrid code" }
                 val directPort = parts[1].toIntOrNull()
                 val fallbackPort = parts[3].toIntOrNull()
-                require(directPort != null && directPort in 1..65535) { "Invalid AlterSend direct port" }
-                require(fallbackPort != null && fallbackPort in 1..65535) { "Invalid AlterSend relay port" }
-                require(parts[4].isNotBlank()) { "Invalid AlterSend relay session" }
+                require(directPort != null && directPort in 1..65535) { "Invalid Remote Transfer direct port" }
+                require(fallbackPort != null && fallbackPort in 1..65535) { "Invalid Remote Transfer relay port" }
+                require(parts[4].isNotBlank()) { "Invalid Remote Transfer relay session" }
                 return AlterSendInvite(
                     host = parts[0],
                     port = directPort,
@@ -59,10 +59,10 @@ data class AlterSendInvite(
             if (trimmed.startsWith(RELAY_PREFIX)) {
                 val raw = trimmed.removePrefix(RELAY_PREFIX)
                 val parts = raw.split(":")
-                require(parts.size == 4) { "Invalid AlterSend relay code" }
+                require(parts.size == 4) { "Invalid Remote Transfer relay code" }
                 val port = parts[1].toIntOrNull()
-                require(port != null && port in 1..65535) { "Invalid AlterSend relay port" }
-                require(parts[2].isNotBlank()) { "Invalid AlterSend relay session" }
+                require(port != null && port in 1..65535) { "Invalid Remote Transfer relay port" }
+                require(parts[2].isNotBlank()) { "Invalid Remote Transfer relay session" }
                 return AlterSendInvite(
                     host = parts[0],
                     port = port,
@@ -74,9 +74,9 @@ data class AlterSendInvite(
 
             val raw = trimmed.removePrefix(DIRECT_PREFIX)
             val parts = raw.split(":")
-            require(parts.size == 3) { "Invalid AlterSend code" }
+            require(parts.size == 3) { "Invalid Remote Transfer code" }
             val port = parts[1].toIntOrNull()
-            require(port != null && port in 1..65535) { "Invalid AlterSend port" }
+            require(port != null && port in 1..65535) { "Invalid Remote Transfer port" }
             return AlterSendInvite(
                 host = parts[0],
                 port = port,

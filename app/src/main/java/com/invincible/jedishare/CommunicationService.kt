@@ -59,7 +59,7 @@ data class WifiTransferUpdate(
  * - Removed the 5s pre-send delay which was causing noticeable lag.
  * - Replaced file-size progress condition `while(currSize < size || progress != 100)`
  *   with a proper EOF sentinel approach (matching the Bluetooth path).
- * - MediaStore entries now saved into /JediShare subfolders (consistent with FileTransferRepository).
+ * - MediaStore entries now saved into /Just Share subfolders (consistent with FileTransferRepository).
  * - File writing uses copyOfRange(0, bytesRead) to avoid writing stale buffer bytes.
  * - All dead commented-out code removed.
  * - Added proper null-safety throughout.
@@ -642,7 +642,7 @@ class CommunicationService : Service() {
 
     /**
      * Creates a MediaStore entry for the incoming file.
-     * Stores files in app-specific subfolders (/JediShare) for clean organization.
+     * Stores files in app-specific subfolders (/Just Share) for clean organization.
      */
     private fun createMediaStoreEntry(fileInfo: FileInfo): Uri? {
         Timber.d("CommunicationService - createMediaStoreEntry called")
@@ -654,10 +654,10 @@ class CommunicationService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Files.FileColumns.IS_PENDING, 1)
                 when {
-                    mimeType.startsWith("image/") -> put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/JustShare")
-                    mimeType.startsWith("audio/") -> put(MediaStore.Audio.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MUSIC}/JustShare")
-                    mimeType.startsWith("video/") -> put(MediaStore.Video.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MOVIES}/JustShare")
-                    else                          -> put(MediaStore.Downloads.RELATIVE_PATH,     "${Environment.DIRECTORY_DOWNLOADS}/JustShare")
+                    mimeType.startsWith("image/") -> put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Just Share")
+                    mimeType.startsWith("audio/") -> put(MediaStore.Audio.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MUSIC}/Just Share")
+                    mimeType.startsWith("video/") -> put(MediaStore.Video.Media.RELATIVE_PATH,  "${Environment.DIRECTORY_MOVIES}/Just Share")
+                    else                          -> put(MediaStore.Downloads.RELATIVE_PATH,     "${Environment.DIRECTORY_DOWNLOADS}/Just Share")
                 }
             }
         }
