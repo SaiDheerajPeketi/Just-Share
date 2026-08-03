@@ -17,7 +17,6 @@ import androidx.compose.ui.res.painterResource
 import com.invincible.jedishare.R
 import com.invincible.jedishare.data.UserPreferencesDataStore
 import com.invincible.jedishare.ui.theme.JediShareTheme
-import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
@@ -34,7 +33,6 @@ fun SplashScreen(
 
     LaunchedEffect(isFirstLaunch) {
         if (isFirstLaunch != null) {
-            delay(1200)
             onNavigateNext(isFirstLaunch!!)
         }
     }
