@@ -42,8 +42,32 @@ class PendingSession:
 
 
 @dataclass
+class PunchPeer:
+    conn: socket.socket
+    host: str
+    port: int
+
+
+@dataclass
+class PendingPunchSession:
+    created_at: float
+    sender: Optional[PunchPeer] = None
+    receiver: Optional[PunchPeer] = None
+
+    def set_peer(self, role: str, peer: PunchPeer) -> None:
+        old = getattr(self, role)
+        if old is not None:
+            close_quietly(old.conn)
+        setattr(self, role, peer)
+
+    def ready(self) -> bool:
+        return self.sender is not None and self.receiver is not None
+
+
+@dataclass
 class RelayState:
     pending: Dict[str, PendingSession] = field(default_factory=dict)
+    pending_punch: Dict[str, PendingPunchSession] = field(default_factory=dict)
     lock: threading.Lock = field(default_factory=threading.Lock)
     stopping: threading.Event = field(default_factory=threading.Event)
 
@@ -62,6 +86,13 @@ def read_utf(conn: socket.socket) -> str:
     raw = read_exact(conn, 2)
     size = struct.unpack(">H", raw)[0]
     return read_exact(conn, size).decode("utf-8")
+
+
+def write_utf(conn: socket.socket, value: str) -> None:
+    data = value.encode("utf-8")
+    if len(data) > 65535:
+        raise ValueError("UTF value is too large")
+    conn.sendall(struct.pack(">H", len(data)) + data)
 
 
 def close_quietly(conn: Optional[socket.socket]) -> None:
@@ -123,6 +154,16 @@ def cleanup_pending(state: RelayState, max_age_seconds: int) -> None:
         logging.info("expiring pending session=%s", session[:12])
         close_quietly(entry.sender)
         close_quietly(entry.receiver)
+    expired_punch = []
+    with state.lock:
+        for session, entry in list(state.pending_punch.items()):
+            if entry.created_at < cutoff:
+                expired_punch.append((session, entry))
+                del state.pending_punch[session]
+    for session, entry in expired_punch:
+        logging.info("expiring pending punch session=%s", session[:12])
+        close_quietly(entry.sender.conn if entry.sender else None)
+        close_quietly(entry.receiver.conn if entry.receiver else None)
 
 
 def cleanup_loop(state: RelayState, max_age_seconds: int) -> None:
@@ -139,6 +180,10 @@ def register_connection(
 ) -> None:
     try:
         magic = read_utf(conn)
+        if magic == "JSASHP1":
+            register_punch_connection(state, conn, addr, max_pending_sessions)
+            return
+
         session = read_utf(conn)
         role = read_utf(conn)
         if magic != "JSASR1" or role not in ("sender", "receiver") or not session:
@@ -164,6 +209,55 @@ def register_connection(
     except Exception as exc:
         logging.warning("registration failed from=%s error=%s", addr, exc)
         close_quietly(conn)
+
+
+def register_punch_connection(
+    state: RelayState,
+    conn: socket.socket,
+    addr: tuple,
+    max_pending_sessions: int,
+) -> None:
+    session = read_utf(conn)
+    role = read_utf(conn)
+    advertised_port = int(read_utf(conn))
+    if role not in ("sender", "receiver") or not session:
+        raise ValueError("invalid punch registration")
+    if advertised_port < 0 or advertised_port > 65535:
+        raise ValueError("invalid punch port")
+
+    peer = PunchPeer(
+        conn=conn,
+        host=addr[0],
+        port=advertised_port if advertised_port > 0 else addr[1],
+    )
+    with state.lock:
+        if session not in state.pending_punch and len(state.pending_punch) >= max_pending_sessions:
+            raise RuntimeError("relay pending-punch limit reached")
+        entry = state.pending_punch.setdefault(session, PendingPunchSession(created_at=time.monotonic()))
+        entry.set_peer(role, peer)
+        if not entry.ready():
+            logging.info("registered %s punch session=%s from=%s:%s", role, session[:12], peer.host, peer.port)
+            return
+
+        sender = entry.sender
+        receiver = entry.receiver
+        del state.pending_punch[session]
+
+    if sender is None or receiver is None:
+        close_quietly(conn)
+        return
+
+    send_punch_peer(sender.conn, receiver)
+    send_punch_peer(receiver.conn, sender)
+    close_quietly(sender.conn)
+    close_quietly(receiver.conn)
+    logging.info("exchanged punch endpoints session=%s", session[:12])
+
+
+def send_punch_peer(conn: socket.socket, peer: PunchPeer) -> None:
+    write_utf(conn, "OK")
+    write_utf(conn, peer.host)
+    write_utf(conn, str(peer.port))
 
 
 def serve(args: argparse.Namespace) -> None:

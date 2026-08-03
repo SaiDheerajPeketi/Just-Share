@@ -24,15 +24,15 @@ Implemented:
 
 - Connection codes in `JSAS1:<host>:<port>:<topic>` format. The topic remains a random 32-byte value encoded as 64 hex characters.
 - Direct peer socket transport. The sender opens a local server socket and the receiver connects to the advertised host/port. This works on the same network and across the internet only when the sender address is reachable through routing/firewall/NAT.
-- Relay connection codes in `JSASR1:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. AVD builds auto-use `10.0.2.2:41404`, because `10.0.2.15` is per-emulator loopback and cannot connect two AVDs.
-- Hybrid connection codes in `JSASH1:<directHost>:<directPort>:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. When a relay endpoint is reachable, real devices advertise this hybrid code. The sender waits briefly for a direct TCP peer; if none arrives, it registers with the relay. The receiver tries direct TCP first and falls back automatically.
-- `scripts/altersend_relay.py` is a TCP pipe relay for emulator/manual testing or a small production deployment. It handles many concurrent pending sessions, expires unmatched registrations, and sees only encrypted frames after pairing the sender and receiver by `relaySessionId`.
+- Relay connection codes in `JSASR1:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. AVD builds probe `10.0.2.2:41404` first, then public/configured relays, because `10.0.2.15` is per-emulator loopback and cannot connect two AVDs.
+- Hybrid connection codes in `JSASH1:<directHost>:<directPort>:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. When a relay endpoint is reachable, real devices advertise this hybrid code. The sender waits briefly for a direct TCP peer; if none arrives, it uses the relay for rendezvous endpoint exchange, then falls back to the relay pipe. The receiver tries direct TCP first, then rendezvous direct, then relay pipe.
+- `scripts/altersend_relay.py` is a TCP pipe relay and rendezvous server for emulator/manual testing or a small production deployment. It handles many concurrent pending sessions, expires unmatched registrations, sees only encrypted frames after relay pairing, and sees only endpoint metadata during rendezvous pairing.
 - Production relay configuration is build-time. Public relay nodes can be supplied as `ALTERSEND_PUBLIC_RELAY_NODES=host1:41404,host2:41404`. Your own relay can be supplied as `ALTERSEND_RELAY_HOST=<domain>` and optionally `ALTERSEND_RELAY_PORT=<port>`. Use a DNS name such as `relay.example.com` pointing to your public IP so you can move the relay later by changing DNS without rebuilding the app. Real devices probe relay endpoints with a short TCP connect check.
 - Current connection order is:
   1. Direct TCP to the advertised peer endpoint.
-  2. Hole punching: not implemented yet.
-  3. First reachable public relay from `ALTERSEND_PUBLIC_RELAY_NODES`.
-  4. Your configured relay domain from `ALTERSEND_RELAY_HOST`.
+  2. Relay-assisted TCP rendezvous direct attempt using `JSASHP1` endpoint exchange.
+  3. First reachable public relay pipe from `ALTERSEND_PUBLIC_RELAY_NODES`.
+  4. Your configured relay pipe domain from `ALTERSEND_RELAY_HOST`.
   If no relay is reachable, real devices keep using direct-only `JSAS1` codes.
 - Ephemeral ECDH handshake per connection using the connection topic as transcript context.
 - HKDF-HMAC-SHA256 key derivation into separate client-to-server and server-to-client AES keys.
@@ -52,7 +52,7 @@ Compatibility note:
 
 - This Kotlin transport is not wire-compatible with upstream AlterSend's Hyperswarm/Noise/Protomux worklet.
 - It is the native Android equivalent used by Just Share when the user selects Remote Transfer.
-- It does not join the upstream Hyperswarm DHT. Direct sockets, relay-only codes, and direct-first relay fallback are implemented. True DHT discovery and UDP/TCP hole punching still require a compatible rendezvous/bootstrap protocol, peer public endpoint exchange, simultaneous punch attempts, and either UDP-based transport or carefully managed TCP simultaneous-open behavior. That hole-punching layer is not bundled with the Android app yet.
+- It does not join the upstream Hyperswarm DHT. Direct sockets, relay-only codes, direct-first relay fallback, public relay probing, and relay-assisted TCP rendezvous are implemented. The rendezvous path helps public-IP, port-forwarded, and some permissive NAT cases. It is not a full UDP hole-punching stack and will still fall back to relay on symmetric NAT, CGNAT, or networks that block inbound peer sockets.
 - Bluetooth and Wi-Fi Direct remain separate local transfer modes.
 
 ## Integration Test Plan

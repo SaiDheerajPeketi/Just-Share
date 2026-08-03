@@ -60,6 +60,7 @@ class AlterSendSocketTransfer(
         private const val SOCKET_TIMEOUT_MS = 45_000
         private const val DIRECT_CONNECT_TIMEOUT_MS = 6_000
         private const val DIRECT_ACCEPT_TIMEOUT_MS = 8_000
+        private const val RENDEZVOUS_ACCEPT_TIMEOUT_MS = 10_000
         private const val RELAY_PROBE_TIMEOUT_MS = 1_500
     }
 
@@ -137,18 +138,24 @@ class AlterSendSocketTransfer(
 
         try {
             val channel = try {
-                val accepted = server.accept().also {
-                    socket = it
-                    it.soTimeout = SOCKET_TIMEOUT_MS
-                }
+                val accepted = acceptServerConnection(server)
                 serverHandshake(accepted, topicHex)
             } catch (_: SocketTimeoutException) {
-                runCatching { server.close() }
-                val relayed = connectRelay(invite, isSender = true).also {
-                    socket = it
-                    it.soTimeout = SOCKET_TIMEOUT_MS
+                val rendezvous = runCatching {
+                    exchangeRendezvousEndpoint(invite, isSender = true, listenPort = server.localPort)
+                    server.soTimeout = RENDEZVOUS_ACCEPT_TIMEOUT_MS
+                    acceptServerConnection(server)
+                }.getOrNull()
+                if (rendezvous != null) {
+                    serverHandshake(rendezvous, topicHex)
+                } else {
+                    runCatching { server.close() }
+                    val relayed = connectRelay(invite, isSender = true).also {
+                        socket = it
+                        it.soTimeout = SOCKET_TIMEOUT_MS
+                    }
+                    serverHandshake(relayed, topicHex)
                 }
-                serverHandshake(relayed, topicHex)
             }
             onState(
                 AlterSendUiState(
@@ -228,10 +235,19 @@ class AlterSendSocketTransfer(
             AlterSendInviteMode.Relay -> connectRelay(invite, isSender = false)
             AlterSendInviteMode.Hybrid -> {
                 runCatching { connectDirect(invite.host, invite.port) }
-                    .getOrElse { connectRelay(invite, isSender = false) }
+                    .getOrElse {
+                        runCatching { connectRendezvousDirect(invite) }
+                            .getOrElse { connectRelay(invite, isSender = false) }
+                    }
             }
         }
     }
+
+    private fun acceptServerConnection(server: ServerSocket): Socket =
+        server.accept().also {
+            socket = it
+            it.soTimeout = SOCKET_TIMEOUT_MS
+        }
 
     private fun connectDirect(host: String, port: Int): Socket {
         return Socket().apply {
@@ -575,6 +591,41 @@ class AlterSendSocketTransfer(
         output.writeUTF(if (isSender) "sender" else "receiver")
         output.flush()
         return relaySocket
+    }
+
+    private fun connectRendezvousDirect(invite: AlterSendInvite): Socket {
+        val endpoint = exchangeRendezvousEndpoint(invite, isSender = false, listenPort = 0)
+        return connectDirect(endpoint.first, endpoint.second)
+    }
+
+    private fun exchangeRendezvousEndpoint(
+        invite: AlterSendInvite,
+        isSender: Boolean,
+        listenPort: Int
+    ): Pair<String, Int> {
+        val sessionId = requireNotNull(invite.relaySessionId) { "Rendezvous invite is missing session id" }
+        val relayHost = invite.relayHost ?: invite.host
+        val relayPort = invite.relayPort ?: invite.port
+        Socket().use { rendezvousSocket ->
+            rendezvousSocket.connect(InetSocketAddress(relayHost, relayPort), DIRECT_CONNECT_TIMEOUT_MS)
+            rendezvousSocket.soTimeout = SOCKET_TIMEOUT_MS
+            val output = DataOutputStream(rendezvousSocket.getOutputStream())
+            val input = DataInputStream(rendezvousSocket.getInputStream())
+            output.writeUTF("JSASHP1")
+            output.writeUTF(sessionId)
+            output.writeUTF(if (isSender) "sender" else "receiver")
+            output.writeUTF(listenPort.coerceIn(0, 65535).toString())
+            output.flush()
+
+            val status = input.readUTF()
+            if (status != "OK") throw EOFException("Remote Transfer rendezvous failed")
+            val host = input.readUTF()
+            val port = input.readUTF().toIntOrNull()
+            if (host.isBlank() || port == null || port !in 1..65535) {
+                throw EOFException("Remote Transfer rendezvous returned an invalid peer endpoint")
+            }
+            return host to port
+        }
     }
 
     private fun randomRelaySessionId(): String {
