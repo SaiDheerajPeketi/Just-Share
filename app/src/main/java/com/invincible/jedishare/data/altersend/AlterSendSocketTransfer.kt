@@ -15,6 +15,7 @@ import com.invincible.jedishare.domain.altersend.AlterSendFileOffer
 import com.invincible.jedishare.domain.altersend.AlterSendInvite
 import com.invincible.jedishare.domain.altersend.AlterSendInviteMode
 import com.invincible.jedishare.domain.altersend.AlterSendProtocol
+import com.invincible.jedishare.domain.altersend.AlterSendRelayDirectory
 import com.invincible.jedishare.domain.altersend.AlterSendTransferProgress
 import com.invincible.jedishare.domain.altersend.AlterSendUiState
 import com.invincible.jedishare.domain.altersend.toHex
@@ -60,7 +61,6 @@ class AlterSendSocketTransfer(
         private const val DIRECT_CONNECT_TIMEOUT_MS = 6_000
         private const val DIRECT_ACCEPT_TIMEOUT_MS = 8_000
         private const val RELAY_PROBE_TIMEOUT_MS = 1_500
-        private const val DEFAULT_RELAY_PORT = 41404
     }
 
     private var serverSocket: ServerSocket? = null
@@ -605,34 +605,12 @@ class AlterSendSocketTransfer(
     }
 
     private fun configuredRelayEndpoints(includeAndroidHostRelay: Boolean = false): List<Pair<String, Int>> {
-        val host = BuildConfig.ALTERSEND_RELAY_HOST.trim()
-        val port = BuildConfig.ALTERSEND_RELAY_PORT
-        return buildList {
-            if (includeAndroidHostRelay) {
-                add("10.0.2.2" to DEFAULT_RELAY_PORT)
-            }
-            // After direct P2P fails, prefer public relay nodes before the owner's domain relay.
-            BuildConfig.ALTERSEND_PUBLIC_RELAY_NODES
-                .split(',', ';')
-                .mapNotNull { raw -> parseRelayEndpoint(raw.trim()) }
-                .forEach { endpoint ->
-                    if (endpoint !in this) add(endpoint)
-                }
-            if (host.isNotBlank() && port in 1..65535) {
-                val configuredRelay = host to port
-                if (configuredRelay !in this) add(configuredRelay)
-            }
-        }
-    }
-
-    private fun parseRelayEndpoint(value: String): Pair<String, Int>? {
-        if (value.isBlank()) return null
-        val separator = value.lastIndexOf(':')
-        if (separator <= 0 || separator == value.lastIndex) return null
-        val host = value.substring(0, separator).trim()
-        val port = value.substring(separator + 1).trim().toIntOrNull()
-        if (host.isBlank() || port == null || port !in 1..65535) return null
-        return host to port
+        return AlterSendRelayDirectory.endpoints(
+            publicRelayNodes = BuildConfig.ALTERSEND_PUBLIC_RELAY_NODES,
+            configuredHost = BuildConfig.ALTERSEND_RELAY_HOST,
+            configuredPort = BuildConfig.ALTERSEND_RELAY_PORT,
+            includeAndroidHostRelay = includeAndroidHostRelay
+        ).map { endpoint -> endpoint.host to endpoint.port }
     }
 
     private data class Frame(val type: Int, val payload: ByteArray)
