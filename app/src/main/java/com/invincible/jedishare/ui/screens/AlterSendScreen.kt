@@ -1,5 +1,7 @@
 package com.invincible.jedishare.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.invincible.jedishare.domain.altersend.AlterSendConnectionPhase
@@ -92,6 +95,23 @@ fun AlterSendScreen(
     }
     val qrScanner = remember(context, scannerOptions) {
         GmsBarcodeScanning.getClient(context, scannerOptions)
+    }
+    val startQrScan = {
+        scanError = null
+        qrScanner.startQrScan(
+            onCode = { code ->
+                joinCode = code
+                viewModel.join(code)
+            },
+            onError = { message -> scanError = message }
+        )
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            startQrScan()
+        } else {
+            scanError = "Camera permission is required to scan an AlterSend QR code."
+        }
     }
     val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
@@ -217,14 +237,11 @@ fun AlterSendScreen(
                     PillButton(
                         label = "Scan QR",
                         onClick = {
-                            scanError = null
-                            qrScanner.startQrScan(
-                                onCode = { code ->
-                                    joinCode = code
-                                    viewModel.join(code)
-                                },
-                                onError = { message -> scanError = message }
-                            )
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                startQrScan()
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
                         },
                         variant = PillButtonVariant.OUTLINE,
                         size = PillButtonSize.MD,
