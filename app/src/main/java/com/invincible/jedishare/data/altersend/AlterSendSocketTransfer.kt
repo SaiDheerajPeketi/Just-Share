@@ -69,7 +69,11 @@ class AlterSendSocketTransfer(
     suspend fun host(topicHex: String, offers: List<AlterSendFileOffer>): AlterSendInvite =
         withContext(Dispatchers.IO) {
             if (isAndroidEmulator()) {
-                return@withContext hostViaRelay(topicHex, offers)
+                val relayEndpoint = reachableRelayEndpoint(includeAndroidHostRelay = true)
+                    ?: throw IllegalStateException(
+                        "No Remote Transfer relay is reachable. Start a local relay on 10.0.2.2:41404 or check your configured relay."
+                    )
+                return@withContext hostViaRelay(topicHex, offers, relayEndpoint)
             }
             val relayEndpoint = reachableRelayEndpoint()
             if (relayEndpoint != null) {
@@ -160,10 +164,14 @@ class AlterSendSocketTransfer(
         }
     }
 
-    private suspend fun hostViaRelay(topicHex: String, offers: List<AlterSendFileOffer>): AlterSendInvite {
+    private suspend fun hostViaRelay(
+        topicHex: String,
+        offers: List<AlterSendFileOffer>,
+        relayEndpoint: Pair<String, Int>
+    ): AlterSendInvite {
         val invite = AlterSendInvite(
-            host = "10.0.2.2",
-            port = DEFAULT_RELAY_PORT,
+            host = relayEndpoint.first,
+            port = relayEndpoint.second,
             topicHex = topicHex,
             mode = AlterSendInviteMode.Relay,
             relaySessionId = randomRelaySessionId()
@@ -558,7 +566,9 @@ class AlterSendSocketTransfer(
         val sessionId = requireNotNull(invite.relaySessionId) { "Relay invite is missing session id" }
         val relayHost = invite.relayHost ?: invite.host
         val relayPort = invite.relayPort ?: invite.port
-        val relaySocket = Socket(relayHost, relayPort)
+        val relaySocket = Socket().apply {
+            connect(InetSocketAddress(relayHost, relayPort), DIRECT_CONNECT_TIMEOUT_MS)
+        }
         val output = DataOutputStream(relaySocket.getOutputStream())
         output.writeUTF("JSASR1")
         output.writeUTF(sessionId)
@@ -584,8 +594,8 @@ class AlterSendSocketTransfer(
             product.contains("sdk")
     }
 
-    private fun reachableRelayEndpoint(): Pair<String, Int>? {
-        return configuredRelayEndpoints().firstOrNull { endpoint ->
+    private fun reachableRelayEndpoint(includeAndroidHostRelay: Boolean = false): Pair<String, Int>? {
+        return configuredRelayEndpoints(includeAndroidHostRelay).firstOrNull { endpoint ->
             runCatching {
                 Socket().use { probe ->
                     probe.connect(InetSocketAddress(endpoint.first, endpoint.second), RELAY_PROBE_TIMEOUT_MS)
@@ -594,10 +604,13 @@ class AlterSendSocketTransfer(
         }
     }
 
-    private fun configuredRelayEndpoints(): List<Pair<String, Int>> {
+    private fun configuredRelayEndpoints(includeAndroidHostRelay: Boolean = false): List<Pair<String, Int>> {
         val host = BuildConfig.ALTERSEND_RELAY_HOST.trim()
         val port = BuildConfig.ALTERSEND_RELAY_PORT
         return buildList {
+            if (includeAndroidHostRelay) {
+                add("10.0.2.2" to DEFAULT_RELAY_PORT)
+            }
             // After direct P2P fails, prefer public relay nodes before the owner's domain relay.
             BuildConfig.ALTERSEND_PUBLIC_RELAY_NODES
                 .split(',', ';')
