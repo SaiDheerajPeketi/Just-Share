@@ -268,7 +268,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 CardButton(
-                    onClick = { onNavigateToScreen("select-files/altersend") },
+                    onClick = { onNavigateToScreen("altersend") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(112.dp)
