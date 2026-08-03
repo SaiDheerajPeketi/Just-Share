@@ -20,7 +20,6 @@ class AlterSendForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForegroundNotification()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -31,6 +30,8 @@ class AlterSendForegroundService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        createNotificationChannel()
+        startForegroundNotification()
         return START_NOT_STICKY
     }
 
