@@ -20,18 +20,19 @@ class AlterSendForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        startForegroundNotification()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        createNotificationChannel()
+        startForegroundNotification()
         if (intent?.action == ACTION_STOP) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
-        createNotificationChannel()
-        startForegroundNotification()
         return START_NOT_STICKY
     }
 

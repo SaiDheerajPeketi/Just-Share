@@ -202,6 +202,9 @@ class AlterSendRepository @Inject constructor(
     }
 
     private fun stopForegroundTransfer() {
-        runCatching { context.stopService(Intent(context, AlterSendForegroundService::class.java)) }
+        val intent = Intent(context, AlterSendForegroundService::class.java).apply {
+            action = AlterSendForegroundService.ACTION_STOP
+        }
+        runCatching { context.startService(intent) }
     }
 }
