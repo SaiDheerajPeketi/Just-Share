@@ -59,6 +59,7 @@ class AlterSendSocketTransfer(
         private const val SOCKET_TIMEOUT_MS = 45_000
         private const val DIRECT_CONNECT_TIMEOUT_MS = 6_000
         private const val DIRECT_ACCEPT_TIMEOUT_MS = 8_000
+        private const val RELAY_PROBE_TIMEOUT_MS = 1_500
         private const val DEFAULT_RELAY_PORT = 41404
     }
 
@@ -70,7 +71,7 @@ class AlterSendSocketTransfer(
             if (isAndroidEmulator()) {
                 return@withContext hostViaRelay(topicHex, offers)
             }
-            val relayEndpoint = configuredRelayEndpoint()
+            val relayEndpoint = reachableRelayEndpoint()
             if (relayEndpoint != null) {
                 return@withContext hostHybrid(topicHex, offers, relayEndpoint)
             }
@@ -583,10 +584,40 @@ class AlterSendSocketTransfer(
             product.contains("sdk")
     }
 
-    private fun configuredRelayEndpoint(): Pair<String, Int>? {
+    private fun reachableRelayEndpoint(): Pair<String, Int>? {
+        return configuredRelayEndpoints().firstOrNull { endpoint ->
+            runCatching {
+                Socket().use { probe ->
+                    probe.connect(InetSocketAddress(endpoint.first, endpoint.second), RELAY_PROBE_TIMEOUT_MS)
+                }
+            }.isSuccess
+        }
+    }
+
+    private fun configuredRelayEndpoints(): List<Pair<String, Int>> {
         val host = BuildConfig.ALTERSEND_RELAY_HOST.trim()
         val port = BuildConfig.ALTERSEND_RELAY_PORT
-        return if (host.isBlank() || port !in 1..65535) null else host to port
+        return buildList {
+            if (host.isNotBlank() && port in 1..65535) {
+                add(host to port)
+            }
+            BuildConfig.ALTERSEND_PUBLIC_RELAY_NODES
+                .split(',', ';')
+                .mapNotNull { raw -> parseRelayEndpoint(raw.trim()) }
+                .forEach { endpoint ->
+                    if (endpoint !in this) add(endpoint)
+                }
+        }
+    }
+
+    private fun parseRelayEndpoint(value: String): Pair<String, Int>? {
+        if (value.isBlank()) return null
+        val separator = value.lastIndexOf(':')
+        if (separator <= 0 || separator == value.lastIndex) return null
+        val host = value.substring(0, separator).trim()
+        val port = value.substring(separator + 1).trim().toIntOrNull()
+        if (host.isBlank() || port == null || port !in 1..65535) return null
+        return host to port
     }
 
     private data class Frame(val type: Int, val payload: ByteArray)
