@@ -26,7 +26,7 @@ Implemented:
 - Direct peer socket transport. The sender opens a local server socket and the receiver connects to the advertised host/port. This works on the same network and across the internet only when the sender address is reachable through routing/firewall/NAT.
 - Relay connection codes in `JSASR1:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. AVD builds auto-use `10.0.2.2:41404`, because `10.0.2.15` is per-emulator loopback and cannot connect two AVDs.
 - Hybrid connection codes in `JSASH1:<directHost>:<directPort>:<relayHost>:<relayPort>:<relaySessionId>:<topic>` format. When `ALTERSEND_RELAY_HOST` is configured for the build, real devices advertise this hybrid code. The sender waits briefly for a direct TCP peer; if none arrives, it registers with the relay. The receiver tries direct TCP first and falls back to the relay automatically.
-- `scripts/altersend_relay.py` is a tiny TCP pipe relay for emulator/manual testing. It sees only encrypted frames after pairing the sender and receiver by `relaySessionId`.
+- `scripts/altersend_relay.py` is a TCP pipe relay for emulator/manual testing or a small production deployment. It handles many concurrent pending sessions, expires unmatched registrations, and sees only encrypted frames after pairing the sender and receiver by `relaySessionId`.
 - Production relay configuration is build-time: set Gradle properties `ALTERSEND_RELAY_HOST=<host>` and optionally `ALTERSEND_RELAY_PORT=<port>` before building. If no relay host is configured, real devices keep using direct-only `JSAS1` codes.
 - Ephemeral ECDH handshake per connection using the connection topic as transcript context.
 - HKDF-HMAC-SHA256 key derivation into separate client-to-server and server-to-client AES keys.
@@ -55,6 +55,9 @@ Compatibility note:
 2. Run two Android devices or emulators on a reachable network:
    - For two AVDs, start the relay on the host first:
      `python3 scripts/altersend_relay.py`
+   - On a server, run the relay with a public interface and firewall-open port:
+     `python3 scripts/altersend_relay.py --host 0.0.0.0 --port 41404`
+   - For unattended hosting, run the same command under systemd, launchd, Docker, or your process manager of choice and point `ALTERSEND_RELAY_HOST` at that server.
    - Sender picks files and displays a join code.
    - Receiver enters the code, copies it from another app, or scans the sender QR code.
    - Verify both devices reach connected state over direct socket or relay socket.
