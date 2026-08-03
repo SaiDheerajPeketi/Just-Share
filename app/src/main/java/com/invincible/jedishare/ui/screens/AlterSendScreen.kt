@@ -80,6 +80,7 @@ import kotlinx.coroutines.delay
 fun AlterSendScreen(
     onBack: () -> Unit,
     onNavigateHome: () -> Unit,
+    onSelectFiles: () -> Unit,
     viewModel: AlterSendViewModel = hiltViewModel()
 ) {
     val colors = JediShareTheme.colors
@@ -110,12 +111,7 @@ fun AlterSendScreen(
         if (granted) {
             startQrScan()
         } else {
-            scanError = "Camera permission is required to scan an AlterSend QR code."
-        }
-    }
-    val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        if (uris.isNotEmpty()) {
-            viewModel.host(uris)
+            scanError = "Camera permission is required to scan a Remote Transfer QR code."
         }
     }
     val leaveScreen = {
@@ -138,7 +134,7 @@ fun AlterSendScreen(
             .fillMaxSize()
             .background(colors.surface)
     ) {
-        BackBar(title = "AlterSend", onBack = leaveScreen)
+        BackBar(title = "Remote Transfer", onBack = leaveScreen)
 
         Column(
             modifier = Modifier
@@ -161,7 +157,7 @@ fun AlterSendScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 PillButton(
                     label = "Choose Files",
-                    onClick = { pickerLauncher.launch("*/*") },
+                    onClick = onSelectFiles,
                     size = PillButtonSize.LG,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -384,7 +380,7 @@ private fun Task<com.google.mlkit.vision.barcode.common.Barcode>.startCallbacks(
     addOnSuccessListener { barcode ->
         val code = barcode.rawValue?.filterNot { it.isWhitespace() }.orEmpty()
         if (code.isBlank()) {
-            onError("QR code did not contain an AlterSend code.")
+            onError("QR code did not contain a Remote Transfer code.")
         } else {
             onCode(code)
         }
@@ -487,7 +483,7 @@ private fun AlterSendHeader() {
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            "AlterSend",
+            "Remote Transfer",
             style = MaterialTheme.typography.h2.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
             color = colors.black
         )

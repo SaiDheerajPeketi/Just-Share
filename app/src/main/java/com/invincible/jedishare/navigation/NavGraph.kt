@@ -219,7 +219,8 @@ fun AppNavGraph(
                         }
                         launchSingleTop = true
                     }
-                }
+                },
+                onSelectFiles = { navController.navigate(Screen.SelectFiles.createRoute("altersend")) }
             )
         }
     }

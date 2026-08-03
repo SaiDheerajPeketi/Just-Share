@@ -268,7 +268,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 CardButton(
-                    onClick = { onNavigateToScreen("altersend") },
+                    onClick = { onNavigateToScreen("select-files/altersend") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(112.dp)
@@ -293,12 +293,12 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "AlterSend",
+                                text = "Remote Transfer",
                                 style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
                                 color = colors.black
                             )
                             Text(
-                                text = "Encrypted remote transfer",
+                                text = "Encrypted internet transfer",
                                 style = MaterialTheme.typography.body2,
                                 color = colors.mutedFg,
                                 modifier = Modifier.padding(top = 2.dp)

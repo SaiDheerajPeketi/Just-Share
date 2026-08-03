@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.invincible.jedishare.bytesToHumanReadableSize
+import com.invincible.jedishare.presentation.AlterSendViewModel
 import com.invincible.jedishare.presentation.SelectFileViewModel
 import com.invincible.jedishare.presentation.TransferViewModel
 import com.invincible.jedishare.ui.components.BackBar
@@ -44,6 +45,7 @@ fun SelectFilesScreen(
     method: String = "bt",
     transferViewModel: TransferViewModel,
     viewModel: SelectFileViewModel = hiltViewModel(),
+    alterSendViewModel: AlterSendViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
@@ -227,11 +229,22 @@ fun SelectFilesScreen(
 
         Box(modifier = Modifier.padding(16.dp)) {
             PillButton(
-                label = if (selectedFiles.isNotEmpty()) "Send ${selectedFiles.size} file${if (selectedFiles.size > 1) "s" else ""}" else "Select files above",
-                onClick = { 
-                    transferViewModel.setMethod(method)
-                    transferViewModel.setUris(selectedFiles.map { it.first })
-                    onNavigateToScreen("discover-$method") 
+                label = if (selectedFiles.isNotEmpty()) {
+                    if (method == "altersend") "Send encrypted ${selectedFiles.size} file${if (selectedFiles.size > 1) "s" else ""}" else "Send ${selectedFiles.size} file${if (selectedFiles.size > 1) "s" else ""}"
+                } else {
+                    "Select files above"
+                },
+                onClick = {
+                    val uris = selectedFiles.map { it.first }
+                    if (method == "altersend") {
+                        alterSendViewModel.host(uris)
+                        viewModel.clearSelection()
+                        onNavigateToScreen("altersend")
+                    } else {
+                        transferViewModel.setMethod(method)
+                        transferViewModel.setUris(uris)
+                        onNavigateToScreen("discover-$method")
+                    }
                 },
                 disabled = selectedFiles.isEmpty(),
                 size = PillButtonSize.LG,
