@@ -3,6 +3,8 @@ package com.invincible.jedishare
 import timber.log.Timber
 
 import android.content.ContentResolver
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
@@ -57,6 +59,27 @@ fun hasAllRequiredPermissions(context: android.content.Context): Boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE UTILITIES
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Retains read access to a document selected through ACTION_OPEN_DOCUMENT.
+ *
+ * A persisted grant survives app process death, but it cannot prevent the user
+ * or the document provider from deleting the underlying document.
+ */
+fun persistReadUriPermission(context: Context, uri: Uri): Boolean {
+    if (uri.scheme != ContentResolver.SCHEME_CONTENT) return false
+
+    return try {
+        context.contentResolver.takePersistableUriPermission(
+            uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
+        true
+    } catch (_: SecurityException) {
+        // MediaStore and non-document providers do not offer persistable grants.
+        false
+    }
+}
 
 /**
  * Returns [FileInfo] (name, format, size, mimeType) for the given [uri].

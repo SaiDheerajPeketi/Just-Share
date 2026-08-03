@@ -96,6 +96,12 @@ class MainActivity : ComponentActivity() {
                 }
                 else -> emptyList()
             }
+
+            // Most share-sheet grants are temporary. Retain them when the
+            // sending provider explicitly allows a persistable document grant.
+            if ((intent.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0) {
+                initialUris.forEach { persistReadUriPermission(this, it) }
+            }
         }
 
         if (initialUris.isNotEmpty()) {

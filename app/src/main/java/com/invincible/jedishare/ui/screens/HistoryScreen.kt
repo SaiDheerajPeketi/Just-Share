@@ -43,6 +43,7 @@ import java.util.*
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 
@@ -80,14 +81,18 @@ fun openFile(context: Context, item: TransferHistoryEntity) {
     
     val uri = Uri.parse(item.contentUri)
     
-    // Check if it exists and is not in the trash
+    // Check availability first. A SecurityException means the file may still
+    // exist, but this app no longer has access to it.
     var exists = false
     try {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
                 exists = true
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    val isTrashedIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.IS_TRASHED)
+                if (
+                    uri.authority == MediaStore.AUTHORITY &&
+                    android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R
+                ) {
+                    val isTrashedIndex = cursor.getColumnIndex(MediaStore.MediaColumns.IS_TRASHED)
                     if (isTrashedIndex != -1) {
                         if (cursor.getInt(isTrashedIndex) == 1) {
                             exists = false
@@ -101,7 +106,10 @@ fun openFile(context: Context, item: TransferHistoryEntity) {
         if (exists) {
             context.contentResolver.openFileDescriptor(uri, "r")?.use {}
         }
-    } catch (e: Exception) {
+    } catch (_: SecurityException) {
+        Toast.makeText(context, "File access permission has expired", Toast.LENGTH_SHORT).show()
+        return
+    } catch (_: Exception) {
         exists = false
     }
     

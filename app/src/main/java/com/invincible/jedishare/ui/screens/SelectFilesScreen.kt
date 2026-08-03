@@ -1,6 +1,7 @@
 package com.invincible.jedishare.ui.screens
 
 import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.invincible.jedishare.bytesToHumanReadableSize
+import com.invincible.jedishare.persistReadUriPermission
 import com.invincible.jedishare.presentation.AlterSendViewModel
 import com.invincible.jedishare.presentation.SelectFileViewModel
 import com.invincible.jedishare.presentation.TransferViewModel
@@ -50,6 +52,7 @@ fun SelectFilesScreen(
     onNavigateToScreen: (String) -> Unit
 ) {
     val colors = JediShareTheme.colors
+    val context = LocalContext.current
     var activeTab by rememberSaveable { mutableStateOf("docs") }
     
     val selectedFiles by viewModel.selectedFiles.collectAsState()
@@ -61,8 +64,9 @@ fun SelectFilesScreen(
         Triple("docs", "Docs", Icons.Default.InsertDriveFile)
     )
 
-    val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+    val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) {
+            uris.forEach { persistReadUriPermission(context, it) }
             viewModel.addUris(uris)
         }
     }
@@ -74,7 +78,7 @@ fun SelectFilesScreen(
             "audio" -> "audio/*"
             else -> "*/*"
         }
-        pickerLauncher.launch(mimeType)
+        pickerLauncher.launch(arrayOf(mimeType))
     }
 
     var hasLaunchedPicker by rememberSaveable { mutableStateOf(false) }
