@@ -118,6 +118,10 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
 
+    // Google Play Billing Library 9.x — required for in-app purchases and subscriptions.
+    // Any new app targeting Android must use v8+ by Aug 31 2026; using v9 directly.
+    implementation 'com.android.billingclient:billing:9.0.0'
+
     // Testing
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'

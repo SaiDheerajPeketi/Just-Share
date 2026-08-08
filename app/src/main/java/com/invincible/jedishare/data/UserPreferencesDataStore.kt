@@ -11,7 +11,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,6 +35,8 @@ class UserPreferencesDataStore @Inject constructor(
         val KEY_FIRST_LAUNCH = booleanPreferencesKey("first_launch")
         val KEY_ALWAYS_REQUIRE_ENCRYPTION_VERIFICATION =
             booleanPreferencesKey("always_require_encryption_verification")
+        /** Persistent anonymous device identity used for relay quota metering. Never changes after first write. */
+        val KEY_DEVICE_ID = stringPreferencesKey("device_id")
     }
 
     val isFirstLaunch: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -53,6 +57,32 @@ class UserPreferencesDataStore @Inject constructor(
 
     val alwaysRequireEncryptionVerification: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_ALWAYS_REQUIRE_ENCRYPTION_VERIFICATION] ?: false
+    }
+
+    /**
+     * Persistent anonymous device ID used as the billing/quota identity for AlterSend Remote.
+     * Generated once on first access via [UUID.randomUUID] and stored permanently.
+     * No login or personal information is required or stored.
+     */
+    val deviceId: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[KEY_DEVICE_ID] ?: generateAndPersistDeviceId()
+    }
+
+    /**
+     * One-shot suspend read of the device ID — guaranteed to return a non-blank UUID.
+     * Prefer this over [deviceId].first() in call sites that need the ID before a network call.
+     */
+    suspend fun ensureDeviceId(): String {
+        val existing = context.dataStore.data.first()[KEY_DEVICE_ID]
+        if (!existing.isNullOrBlank()) return existing
+        return generateAndPersistDeviceId()
+    }
+
+    private suspend fun generateAndPersistDeviceId(): String {
+        val newId = UUID.randomUUID().toString()
+        Timber.d("UserPreferencesDataStore - generated new device ID")
+        context.dataStore.edit { prefs -> prefs[KEY_DEVICE_ID] = newId }
+        return newId
     }
 
     suspend fun setDarkMode(enabled: Boolean) {

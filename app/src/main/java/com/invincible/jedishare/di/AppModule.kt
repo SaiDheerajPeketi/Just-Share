@@ -6,11 +6,16 @@ import android.content.ContentResolver
 import android.content.Context
 import androidx.room.Room
 import com.invincible.jedishare.data.UserPreferencesDataStore
+import com.invincible.jedishare.data.billing.BillingClientWrapper
+import com.invincible.jedishare.data.billing.PurchaseRepository
 import com.invincible.jedishare.data.chat.AndroidBluetoothController
 import com.invincible.jedishare.data.db.JediShareDatabase
 import com.invincible.jedishare.data.db.TransferHistoryDao
+import com.invincible.jedishare.data.remote.QuotaApiService
+import com.invincible.jedishare.data.remote.TelemetryService
 import com.invincible.jedishare.data.repository.FileTransferRepository
 import com.invincible.jedishare.data.repository.MediaRepository
+import com.invincible.jedishare.data.repository.QuotaRepository
 import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.chat.BluetoothController
 import dagger.Module
@@ -18,6 +23,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -80,4 +86,60 @@ object AppModule {
     @Singleton
     fun provideUserPreferencesDataStore(@ApplicationContext context: Context): UserPreferencesDataStore =
         UserPreferencesDataStore(context)
+
+    // ── AlterSend Remote — API & Quota ─────────────────────────────────────────
+
+    /**
+     * Base URL for the AlterSend Remote quota and purchase verification API.
+     * Override via a BuildConfig field or hardcode your Cloud Run service URL here
+     * once it is deployed.
+     */
+    @Provides
+    @Singleton
+    @Named("quotaApiBaseUrl")
+    fun provideQuotaApiBaseUrl(): String =
+        // TODO: Replace with your deployed Cloud Run service URL before release.
+        // Example: "https://just-share-api-<hash>-uc.a.run.app"
+        "https://just-share-api.example.com"
+
+    @Provides
+    @Singleton
+    fun provideQuotaApiService(@Named("quotaApiBaseUrl") baseUrl: String): QuotaApiService =
+        QuotaApiService(baseUrl)
+
+    @Provides
+    @Singleton
+    fun provideQuotaRepository(
+        apiService: QuotaApiService,
+        dataStore: UserPreferencesDataStore
+    ): QuotaRepository = QuotaRepository(apiService, dataStore)
+
+    // ── Google Play Billing ────────────────────────────────────────────────────
+
+    @Provides
+    @Singleton
+    fun provideBillingClientWrapper(
+        @ApplicationContext context: Context
+    ): BillingClientWrapper = BillingClientWrapper(context)
+
+    @Provides
+    @Singleton
+    fun providePurchaseRepository(
+        billingClientWrapper: BillingClientWrapper,
+        quotaRepository: QuotaRepository,
+        apiService: QuotaApiService,
+        dataStore: UserPreferencesDataStore,
+        @Named("quotaApiBaseUrl") baseUrl: String
+    ): PurchaseRepository = PurchaseRepository(
+        billingClientWrapper, quotaRepository, apiService, dataStore, baseUrl
+    ).also { it.startObserving() }
+
+    // ── Telemetry ───────────────────────────────────────────────────────
+
+    @Provides
+    @Singleton
+    fun provideTelemetryService(
+        apiService: QuotaApiService,
+        dataStore: UserPreferencesDataStore
+    ): TelemetryService = TelemetryService(apiService, dataStore)
 }

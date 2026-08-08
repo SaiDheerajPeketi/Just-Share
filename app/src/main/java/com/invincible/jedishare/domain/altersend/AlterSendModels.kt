@@ -20,6 +20,21 @@ enum class AlterSendConnectionPhase {
     Failed
 }
 
+/**
+ * Indicates whether the active AlterSend Remote transfer is using a direct P2P
+ * route (hole-punched) or routing through the relay server.
+ *
+ * Displayed as a badge on the progress screen alongside the existing "🔒 Encrypted" tag.
+ */
+enum class ConnectionMode {
+    /** Direct peer-to-peer socket — no relay involved. */
+    DIRECT,
+    /** Data is flowing through the relay server (relay only ever sees ciphertext). */
+    RELAY,
+    /** Local AlterSend (same LAN / Bluetooth / Wi-Fi Direct) or not yet determined. */
+    UNKNOWN
+}
+
 data class AlterSendFileOffer(
     val id: String,
     val name: String,
@@ -46,7 +61,9 @@ data class AlterSendUiState(
     val remoteDeviceName: String? = null,
     val offers: List<AlterSendFileOffer> = emptyList(),
     val progress: AlterSendTransferProgress? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /** Set once the transport path is determined; shown as a Relay/Direct badge on the progress screen. */
+    val connectionMode: ConnectionMode = ConnectionMode.UNKNOWN
 ) {
     val isEncrypted: Boolean
         get() = phase == AlterSendConnectionPhase.Connected ||

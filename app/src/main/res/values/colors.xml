@@ -10,4 +10,5 @@
     <color name="background">#FF0000</color>
     <color name="MyRed">#FFec1c22</color>
     <color name="myRedSecondary">#FFf2cdce</color>
+    <color name="splash_background">#F7F5F3</color>
 </resources>

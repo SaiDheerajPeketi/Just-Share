@@ -137,7 +137,7 @@ fun HomeScreen(
     val transferState by transferViewModel.state.collectAsStateWithLifecycle()
     val transferMethod = transferState.method
     val historyItems by historyViewModel.history.collectAsState()
-    val recentItems = historyItems.take(3)
+    val recentItems = historyItems.take(2)
 
     val infiniteTransition = rememberInfiniteTransition(label = "arrow_anim")
     val upArrowOffset by infiniteTransition.animateFloat(

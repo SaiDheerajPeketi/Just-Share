@@ -9,6 +9,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import com.invincible.jedishare.BuildConfig
 import com.invincible.jedishare.data.db.TransferHistoryEntity
+import com.invincible.jedishare.data.remote.TelemetryService
 import com.invincible.jedishare.data.repository.TransferHistoryRepository
 import com.invincible.jedishare.domain.altersend.AlterSendConnectionPhase
 import com.invincible.jedishare.domain.altersend.AlterSendFileOffer
@@ -18,6 +19,7 @@ import com.invincible.jedishare.domain.altersend.AlterSendProtocol
 import com.invincible.jedishare.domain.altersend.AlterSendRelayDirectory
 import com.invincible.jedishare.domain.altersend.AlterSendTransferProgress
 import com.invincible.jedishare.domain.altersend.AlterSendUiState
+import com.invincible.jedishare.domain.altersend.ConnectionMode
 import com.invincible.jedishare.domain.altersend.toHex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -45,7 +47,9 @@ class AlterSendSocketTransfer(
     private val context: Context,
     private val historyRepository: TransferHistoryRepository,
     private val onState: (AlterSendUiState) -> Unit,
-    private val awaitIncomingDecision: suspend (List<AlterSendFileOffer>) -> Boolean = { true }
+    private val awaitIncomingDecision: suspend (List<AlterSendFileOffer>) -> Boolean = { true },
+    /** Optional telemetry sink — null-safe so existing callers don't need to change. */
+    private val telemetryService: TelemetryService? = null
 ) {
     companion object {
         private const val MAGIC = 0x4A534153 // JSAS
@@ -371,6 +375,9 @@ class AlterSendSocketTransfer(
             )
         }
         onState(AlterSendUiState(phase = AlterSendConnectionPhase.Complete, offers = offers))
+        // Phase 5 — telemetry: emit after sender completes (connectionMode carried via onState)
+        val totalBytes = offers.sumOf { it.sizeBytes }
+        telemetryService?.onTransferCompleted(ConnectionMode.UNKNOWN, totalBytes)
     }
 
     private suspend fun receiveFiles(channel: SecureChannel) {
@@ -461,6 +468,9 @@ class AlterSendSocketTransfer(
             temp.delete()
         }
         onState(AlterSendUiState(phase = AlterSendConnectionPhase.Complete, offers = offers))
+        // Phase 5 — telemetry: emit after receiver completes
+        val totalBytes = offers.sumOf { it.sizeBytes }
+        telemetryService?.onTransferCompleted(ConnectionMode.UNKNOWN, totalBytes)
     }
 
     private fun readUriRange(uri: Uri, offset: Long, length: Int): ByteArray {
