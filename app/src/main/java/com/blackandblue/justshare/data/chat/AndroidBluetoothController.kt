@@ -244,94 +244,41 @@ class AndroidBluetoothController(
         val remoteDevice = bluetoothAdapter?.getRemoteDevice(device.address)
         stopDiscovery()
 
-        // Try secure connection first; fall back to insecure on failure (TODO-17)
-        var socket: android.bluetooth.BluetoothSocket? = try {
+        val secureSocket = try {
             remoteDevice?.createRfcommSocketToServiceRecord(UUID.fromString(SERVICE_UUID))
         } catch (e: IOException) {
             Log.e(TAG, "Failed to create secure RFCOMM socket", e)
             null
         }
-        currentClientSocket = socket
-
-        socket?.let { secureSocket ->
-            try {
-                connectSocketWithTimeout(secureSocket, "Secure")
-                val service = BluetoothDataTransferService(secureSocket)
-                dataTransferService = service
-                _isConnected.update { true }
-                emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
-                emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
-            } catch (secureEx: IOException) {
-                Log.w(TAG, "Secure connect failed, trying insecure fallback: ${secureEx.message}")
-                secureSocket.close()
-
-                // Insecure fallback
-                val insecureSocket = try {
-                    remoteDevice?.createInsecureRfcommSocketToServiceRecord(UUID.fromString(SERVICE_UUID))
-                } catch (e: IOException) {
-                    Log.e(TAG, "Failed to create insecure RFCOMM socket", e)
-                    null
-                }
-                currentClientSocket = insecureSocket
-
-                if (insecureSocket != null) {
-                    try {
-                        connectSocketWithTimeout(insecureSocket, "Insecure")
-                        val service = BluetoothDataTransferService(insecureSocket)
-                        dataTransferService = service
-                        _isConnected.update { true }
-                        emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
-                        emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
-                    } catch (insecureEx: IOException) {
-                        Log.w(TAG, "Insecure connect failed, trying reflection fallback: ${insecureEx.message}")
-                        insecureSocket.close()
-                        
-                        // Reflection fallback
-                        val fallbackSocket = try {
-                            val method = remoteDevice?.javaClass?.getMethod("createRfcommSocket", Int::class.java)
-                            method?.invoke(remoteDevice, 1) as? android.bluetooth.BluetoothSocket
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to create reflection RFCOMM socket", e)
-                            null
-                        }
-                        currentClientSocket = fallbackSocket
-
-                        if (fallbackSocket != null) {
-                            try {
-                                connectSocketWithTimeout(fallbackSocket, "Fallback")
-                                val service = BluetoothDataTransferService(fallbackSocket)
-                                dataTransferService = service
-                                _isConnected.update { true }
-                                emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
-                                emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
-                            } catch (fallbackEx: IOException) {
-                                fallbackSocket.close()
-                                currentClientSocket = null
-                                removeScannedDevice(device.address)
-                                emit(ConnectionResult.Error("Connection failed (secure + insecure + fallback): ${fallbackEx.message}"))
-                            }
-                        } else {
-                            currentClientSocket = null
-                            removeScannedDevice(device.address)
-                            emit(ConnectionResult.Error("Connection failed (reflection socket is null)"))
-                        }
-                    }
-                } else {
-                    currentClientSocket = null
-                    removeScannedDevice(device.address)
-                    emit(ConnectionResult.Error("Insecure socket is null"))
-                }
-            } finally {
-                try {
-                    currentClientSocket?.close()
-                } catch (e: IOException) {}
-                dataTransferService = null
-                currentClientSocket = null
-                _isConnected.value = false
-            }
-        } ?: run {
+        if (secureSocket == null) {
             removeScannedDevice(device.address)
-            emit(ConnectionResult.Error("Remote device not found"))
+            emit(ConnectionResult.Error("Could not create a secure Bluetooth connection"))
+            return@flow
+        }
+
+        currentClientSocket = secureSocket
+        var connectionEstablished = false
+        try {
+            connectSocketWithTimeout(secureSocket, "Secure")
+            val service = BluetoothDataTransferService(secureSocket)
+            dataTransferService = service
+            connectionEstablished = true
+            _isConnected.value = true
+            emit(ConnectionResult.ConnectionEstablished(remoteDevice?.name))
+            emitAll(service.listenForIncomingMessages().map { it.toConnectionResult() })
+        } catch (error: IOException) {
+            removeScannedDevice(device.address)
+            val message = if (connectionEstablished) {
+                "Bluetooth connection lost: ${error.message ?: "I/O error"}"
+            } else {
+                "Secure Bluetooth connection failed: ${error.message ?: "connection refused"}"
+            }
+            emit(ConnectionResult.Error(message))
+        } finally {
+            runCatching { secureSocket.close() }
+            dataTransferService = null
+            currentClientSocket = null
+            _isConnected.value = false
         }
     }.onCompletion { 
         Timber.d("AndroidBluetoothController - connectToDevice flow completed/cancelled")
