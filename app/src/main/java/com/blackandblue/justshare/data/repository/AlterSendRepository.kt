@@ -33,7 +33,8 @@ import javax.inject.Singleton
 class AlterSendRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val historyRepository: TransferHistoryRepository,
-    private val telemetryService: TelemetryService
+    private val telemetryService: TelemetryService,
+    private val quotaRepository: QuotaRepository
 ) {
     private val _state = MutableStateFlow(AlterSendUiState())
     val state: StateFlow<AlterSendUiState> = _state.asStateFlow()
@@ -94,21 +95,8 @@ class AlterSendRepository @Inject constructor(
             telemetryService = telemetryService
         )
         activeTransfer = transfer
-        startForegroundTransfer()
-        transferJob = scope.launch {
-            runCatching {
-                transfer.host(topicHex, offers)
-            }.onFailure { error ->
-                if (error is CancellationException) return@onFailure
-                _state.update {
-                    it.copy(
-                        phase = AlterSendConnectionPhase.Failed,
-                        errorMessage = error.localizedMessage ?: "Remote Transfer failed"
-                    )
-                }
-            }.also {
-                stopForegroundTransfer()
-            }
+        launchQuotaCheckedTransfer(offers.sumOf { it.sizeBytes }) {
+            transfer.host(topicHex, offers)
         }
     }
 
@@ -150,21 +138,8 @@ class AlterSendRepository @Inject constructor(
             telemetryService = telemetryService
         )
         activeTransfer = transfer
-        startForegroundTransfer()
-        transferJob = scope.launch {
-            runCatching {
-                transfer.join(invite)
-            }.onFailure { error ->
-                if (error is CancellationException) return@onFailure
-                _state.update {
-                    it.copy(
-                        phase = AlterSendConnectionPhase.Failed,
-                        errorMessage = error.localizedMessage ?: "Remote Transfer failed"
-                    )
-                }
-            }.also {
-                stopForegroundTransfer()
-            }
+        launchQuotaCheckedTransfer(estimatedBytes = 0L) {
+            transfer.join(invite)
         }
     }
 
@@ -195,6 +170,51 @@ class AlterSendRepository @Inject constructor(
         activeTransfer?.close()
         activeTransfer = null
         stopForegroundTransfer()
+    }
+
+    private fun launchQuotaCheckedTransfer(
+        estimatedBytes: Long,
+        action: suspend () -> Unit
+    ) {
+        transferJob = scope.launch {
+            when (quotaRepository.checkRelayAllowed(estimatedBytes.coerceAtLeast(0L))) {
+                RelayCheckResult.Allowed -> Unit
+                RelayCheckResult.Exhausted -> {
+                    _state.update {
+                        it.copy(
+                            phase = AlterSendConnectionPhase.Failed,
+                            errorMessage = "Remote Transfer quota exhausted."
+                        )
+                    }
+                    return@launch
+                }
+                RelayCheckResult.NetworkError -> {
+                    _state.update {
+                        it.copy(
+                            phase = AlterSendConnectionPhase.Failed,
+                            errorMessage = "Could not verify Remote Transfer quota. Try again when online."
+                        )
+                    }
+                    return@launch
+                }
+            }
+
+            startForegroundTransfer()
+            try {
+                action()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                _state.update {
+                    it.copy(
+                        phase = AlterSendConnectionPhase.Failed,
+                        errorMessage = error.localizedMessage ?: "Remote Transfer failed"
+                    )
+                }
+            } finally {
+                stopForegroundTransfer()
+            }
+        }
     }
 
     private fun startForegroundTransfer() {
