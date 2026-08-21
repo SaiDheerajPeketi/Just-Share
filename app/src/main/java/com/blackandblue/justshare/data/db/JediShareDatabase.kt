@@ -26,6 +26,14 @@ abstract class JediShareDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "jedishare_db"
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE transfer_history ADD COLUMN content_uri TEXT"
+                )
+            }
+        }
+
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
