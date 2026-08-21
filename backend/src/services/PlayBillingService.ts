@@ -8,7 +8,7 @@ export class PlayBillingService {
 
   constructor() {
     this.firestore = new Firestore();
-    this.packageName = process.env.ANDROID_PACKAGE_NAME || 'com.invincible.jedishare';
+    this.packageName = process.env.ANDROID_PACKAGE_NAME || 'com.blackandblue.justshare';
   }
 
   private async getAndroidPublisher() {

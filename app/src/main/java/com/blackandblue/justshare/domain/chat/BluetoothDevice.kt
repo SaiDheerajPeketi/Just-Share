@@ -1,0 +1,10 @@
+package com.blackandblue.justshare.domain.chat
+
+import timber.log.Timber
+
+typealias BluetoothDeviceDomain = BluetoothDevice
+
+data class BluetoothDevice(
+    val name: String?,
+    val address: String
+)

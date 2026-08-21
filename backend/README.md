@@ -13,7 +13,7 @@ Backend service for Just-Share AlterSend Remote feature.
 - `PORT` (default 8080)
 - `GOOGLE_CLOUD_PROJECT` (GCP project ID)
 - `GOOGLE_APPLICATION_CREDENTIALS` (path to service account JSON)
-- `ANDROID_PACKAGE_NAME` (com.invincible.jedishare)
+- `ANDROID_PACKAGE_NAME` (com.blackandblue.justshare)
 - `FREE_TIER_GB` (default 2)
 - `PRO_TIER_GB` (default 5)
 - `DATA_PACK_GB` (default 10)

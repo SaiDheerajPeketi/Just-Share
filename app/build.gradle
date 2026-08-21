@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace 'com.invincible.jedishare'
-    compileSdk 34
+    namespace 'com.blackandblue.justshare'
+    compileSdk 35
 
     defaultConfig {
-        applicationId "com.invincible.jedishare"
+        applicationId "com.blackandblue.justshare"
         minSdk 24
         targetSdk 34
         versionCode 1
