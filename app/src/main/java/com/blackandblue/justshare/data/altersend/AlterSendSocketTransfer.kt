@@ -66,6 +66,7 @@ class AlterSendSocketTransfer(
         private const val SOCKET_TIMEOUT_MS = 45_000
         private const val DIRECT_CONNECT_TIMEOUT_MS = 6_000
         private const val DIRECT_ACCEPT_TIMEOUT_MS = 8_000
+        private const val DIRECT_ONLY_ACCEPT_TIMEOUT_MS = 20_000
         private const val RENDEZVOUS_ACCEPT_TIMEOUT_MS = 10_000
         private const val RELAY_PROBE_TIMEOUT_MS = 1_500
 
@@ -110,7 +111,10 @@ class AlterSendSocketTransfer(
             if (relayEndpoint != null) {
                 return@withContext hostHybrid(topicHex, offers, relayEndpoint)
             }
-            val server = ServerSocket(0).also { serverSocket = it }
+            val server = ServerSocket(0).also {
+                serverSocket = it
+                it.soTimeout = DIRECT_ONLY_ACCEPT_TIMEOUT_MS
+            }
             val invite = AlterSendInvite(host = localIpv4Address(), port = server.localPort, topicHex = topicHex)
             onState(
                 AlterSendUiState(
@@ -136,6 +140,13 @@ class AlterSendSocketTransfer(
                 )
                 sendFiles(channel, offers)
                 invite
+            } catch (_: SocketTimeoutException) {
+                runCatching { server.close() }
+                val fallbackRelay = reachableRelayEndpoint()
+                    ?: throw IllegalStateException(
+                        "Direct connection timed out and no relay is reachable. Check your network and try again."
+                    )
+                hostViaRelay(topicHex, offers, fallbackRelay)
             } finally {
                 close()
             }
