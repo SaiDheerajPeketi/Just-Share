@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.net.wifi.WifiManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -108,7 +109,7 @@ private fun HardwareDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(colors.surface, shape = MaterialTheme.shapes.medium)
+                .background(colors.surface, shape = RoundedCornerShape(24.dp))
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
