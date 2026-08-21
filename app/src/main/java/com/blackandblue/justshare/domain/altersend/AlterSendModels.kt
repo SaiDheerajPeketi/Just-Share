@@ -29,8 +29,10 @@ enum class AlterSendConnectionPhase {
 enum class ConnectionMode {
     /** Direct peer-to-peer socket — no relay involved. */
     DIRECT,
-    /** Data is flowing through the relay server (relay only ever sees ciphertext). */
+    /** Data is flowing through the legacy TCP relay server (relay only ever sees ciphertext). */
     RELAY,
+    /** Data is flowing through the Cloudflare Workers + Durable Objects relay (relay only ever sees ciphertext). */
+    CLOUDFLARE_RELAY,
     /** Local AlterSend (same LAN / Bluetooth / Wi-Fi Direct) or not yet determined. */
     UNKNOWN
 }

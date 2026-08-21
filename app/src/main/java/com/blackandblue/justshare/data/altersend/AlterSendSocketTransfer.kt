@@ -24,6 +24,7 @@ import com.blackandblue.justshare.domain.altersend.toHex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -41,6 +42,7 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.coroutineContext
 
 class AlterSendSocketTransfer(
@@ -66,13 +68,37 @@ class AlterSendSocketTransfer(
         private const val DIRECT_ACCEPT_TIMEOUT_MS = 8_000
         private const val RENDEZVOUS_ACCEPT_TIMEOUT_MS = 10_000
         private const val RELAY_PROBE_TIMEOUT_MS = 1_500
+
+        // ── Cloudflare relay constants ─────────────────────────────────────
+        /** Maximum binary WebSocket frame we will ever send (4 MiB). */
+        private const val CF_MAX_FRAME_BYTES = 4 * 1024 * 1024
     }
 
     private var serverSocket: ServerSocket? = null
     private var socket: Socket? = null
 
+    // Shared OkHttpClient — created lazily, reused for the session lifetime.
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .pingInterval(20, TimeUnit.SECONDS)
+            .build()
+    }
+
+    // Track the active transport so close() can shut it down regardless of type.
+    @Volatile private var activeTransport: RelayTransport? = null
+
+    // ── Public entry points ───────────────────────────────────────────────────
+
     suspend fun host(topicHex: String, offers: List<AlterSendFileOffer>): AlterSendInvite =
         withContext(Dispatchers.IO) {
+            // ── Feature flag: try Cloudflare relay first ───────────────────
+            if (BuildConfig.CF_RELAY_ENABLED && BuildConfig.CF_RELAY_BASE_URL.isNotBlank()) {
+                return@withContext hostViaCloudflare(topicHex, offers)
+            }
+
             if (isAndroidEmulator()) {
                 val relayEndpoint = reachableRelayEndpoint(includeAndroidHostRelay = true)
                     ?: throw IllegalStateException(
@@ -99,7 +125,8 @@ class AlterSendSocketTransfer(
                     socket = it
                     it.soTimeout = SOCKET_TIMEOUT_MS
                 }
-                val channel = serverHandshake(accepted, topicHex)
+                val transport = DirectSocketTransport(accepted).also { activeTransport = it }
+                val channel = serverHandshake(transport, topicHex)
                 onState(
                     AlterSendUiState(
                         phase = AlterSendConnectionPhase.Connected,
@@ -141,26 +168,29 @@ class AlterSendSocketTransfer(
         )
 
         try {
-            val channel = try {
+            val transport: RelayTransport = try {
                 val accepted = acceptServerConnection(server)
-                serverHandshake(accepted, topicHex)
+                DirectSocketTransport(accepted).also { activeTransport = it }
             } catch (_: SocketTimeoutException) {
-                val rendezvous = runCatching {
+                val rendezvousTransport = runCatching {
                     exchangeRendezvousEndpoint(invite, isSender = true, listenPort = server.localPort)
                     server.soTimeout = RENDEZVOUS_ACCEPT_TIMEOUT_MS
-                    acceptServerConnection(server)
+                    val rendezvous = acceptServerConnection(server)
+                    DirectSocketTransport(rendezvous)
                 }.getOrNull()
-                if (rendezvous != null) {
-                    serverHandshake(rendezvous, topicHex)
+                if (rendezvousTransport != null) {
+                    activeTransport = rendezvousTransport
+                    rendezvousTransport
                 } else {
                     runCatching { server.close() }
                     val relayed = connectRelay(invite, isSender = true).also {
                         socket = it
                         it.soTimeout = SOCKET_TIMEOUT_MS
                     }
-                    serverHandshake(relayed, topicHex)
+                    DirectSocketTransport(relayed).also { activeTransport = it }
                 }
             }
+            val channel = serverHandshake(transport, topicHex)
             onState(
                 AlterSendUiState(
                     phase = AlterSendConnectionPhase.Connected,
@@ -199,7 +229,8 @@ class AlterSendSocketTransfer(
                 socket = it
                 it.soTimeout = SOCKET_TIMEOUT_MS
             }
-            val channel = serverHandshake(relayed, topicHex)
+            val transport = DirectSocketTransport(relayed).also { activeTransport = it }
+            val channel = serverHandshake(transport, topicHex)
             onState(
                 AlterSendUiState(
                     phase = AlterSendConnectionPhase.Connected,
@@ -214,6 +245,72 @@ class AlterSendSocketTransfer(
         }
     }
 
+    // ── Cloudflare host path ──────────────────────────────────────────────────
+
+    private suspend fun hostViaCloudflare(
+        topicHex: String,
+        offers: List<AlterSendFileOffer>
+    ): AlterSendInvite {
+        val sessionId = randomHex32()
+        val (token, expiry) = CloudflareRelayToken.generate(
+            secretHex  = BuildConfig.CF_RELAY_HMAC_SECRET,
+            sessionId  = sessionId,
+            role       = "sender"
+        )
+        // Generate the receiver token so the Sender can embed it in the invite.
+        val (receiverToken, receiverExpiry) = CloudflareRelayToken.generate(
+            secretHex  = BuildConfig.CF_RELAY_HMAC_SECRET,
+            sessionId  = sessionId,
+            role       = "receiver"
+        )
+        val invite = AlterSendInvite(
+            host        = "",   // unused for Cloudflare mode
+            port        = 0,    // unused for Cloudflare mode
+            topicHex    = topicHex,
+            mode        = AlterSendInviteMode.Cloudflare,
+            cfSessionId = sessionId,
+            cfRelayUrl  = BuildConfig.CF_RELAY_BASE_URL,
+            cfExpiry    = receiverExpiry,
+            cfToken     = receiverToken   // receiver's token is what goes in the QR code
+        )
+        onState(
+            AlterSendUiState(
+                phase   = AlterSendConnectionPhase.Hosting,
+                topicHex = invite.encode(),
+                offers  = offers
+            )
+        )
+
+        try {
+            val wsUrl = CloudflareWebSocketTransport.buildUrl(
+                baseUrl   = BuildConfig.CF_RELAY_BASE_URL,
+                sessionId = sessionId,
+                role      = "sender",
+                token     = token,
+                expiry    = expiry
+            )
+            val cfTransport = CloudflareWebSocketTransport(wsUrl, okHttpClient)
+            cfTransport.connect()
+            activeTransport = cfTransport
+
+            val channel = serverHandshake(cfTransport, topicHex)
+            onState(
+                AlterSendUiState(
+                    phase          = AlterSendConnectionPhase.Connected,
+                    topicHex       = invite.encode(),
+                    offers         = offers,
+                    connectionMode = ConnectionMode.CLOUDFLARE_RELAY
+                )
+            )
+            sendFiles(channel, offers, connectionMode = ConnectionMode.CLOUDFLARE_RELAY)
+            return invite
+        } finally {
+            close()
+        }
+    }
+
+    // ── Join (receiver side) ──────────────────────────────────────────────────
+
     suspend fun join(invite: AlterSendInvite): Unit = withContext(Dispatchers.IO) {
         onState(
             AlterSendUiState(
@@ -222,27 +319,63 @@ class AlterSendSocketTransfer(
             )
         )
         try {
-            val connected = connectForInvite(invite).also {
-                socket = it
-                it.soTimeout = SOCKET_TIMEOUT_MS
-            }
-            val channel = clientHandshake(connected, invite.topicHex)
-            receiveFiles(channel)
+            val (transport, connectionMode) = connectTransportForInvite(invite)
+            activeTransport = transport
+            val channel = clientHandshake(transport, invite.topicHex)
+            receiveFiles(channel, connectionMode)
         } finally {
             close()
         }
     }
 
-    private fun connectForInvite(invite: AlterSendInvite): Socket {
+    /**
+     * Returns the appropriate [RelayTransport] and [ConnectionMode] for the invite.
+     */
+    private fun connectTransportForInvite(invite: AlterSendInvite): Pair<RelayTransport, ConnectionMode> {
         return when (invite.mode) {
-            AlterSendInviteMode.Direct -> connectDirect(invite.host, invite.port)
-            AlterSendInviteMode.Relay -> connectRelay(invite, isSender = false)
+            AlterSendInviteMode.Cloudflare -> {
+                val sessionId  = requireNotNull(invite.cfSessionId)
+                val relayUrl   = requireNotNull(invite.cfRelayUrl)
+                val expiry     = requireNotNull(invite.cfExpiry)
+                val token      = requireNotNull(invite.cfToken)
+                val wsUrl = CloudflareWebSocketTransport.buildUrl(
+                    baseUrl   = relayUrl,
+                    sessionId = sessionId,
+                    role      = "receiver",
+                    token     = token,
+                    expiry    = expiry
+                )
+                val transport = CloudflareWebSocketTransport(wsUrl, okHttpClient)
+                transport.connect()
+                transport to ConnectionMode.CLOUDFLARE_RELAY
+            }
+            AlterSendInviteMode.Direct -> {
+                val sock = connectDirect(invite.host, invite.port).also {
+                    socket = it
+                    it.soTimeout = SOCKET_TIMEOUT_MS
+                }
+                DirectSocketTransport(sock) to ConnectionMode.DIRECT
+            }
+            AlterSendInviteMode.Relay -> {
+                val sock = connectRelay(invite, isSender = false).also {
+                    socket = it
+                    it.soTimeout = SOCKET_TIMEOUT_MS
+                }
+                DirectSocketTransport(sock) to ConnectionMode.RELAY
+            }
             AlterSendInviteMode.Hybrid -> {
-                runCatching { connectDirect(invite.host, invite.port) }
-                    .getOrElse {
-                        runCatching { connectRendezvousDirect(invite) }
-                            .getOrElse { connectRelay(invite, isSender = false) }
+                val (sock, mode) = runCatching {
+                    connectDirect(invite.host, invite.port) to ConnectionMode.DIRECT
+                }.getOrElse {
+                    runCatching {
+                        connectRendezvousDirect(invite) to ConnectionMode.DIRECT
+                    }.getOrElse {
+                        connectRelay(invite, isSender = false) to ConnectionMode.RELAY
                     }
+                }
+                sock.soTimeout = SOCKET_TIMEOUT_MS
+                socket = sock
+                DirectSocketTransport(sock) to mode
             }
         }
     }
@@ -260,78 +393,104 @@ class AlterSendSocketTransfer(
     }
 
     fun close() {
+        runCatching { activeTransport?.close() }
         runCatching { socket?.close() }
         runCatching { serverSocket?.close() }
+        activeTransport = null
         socket = null
         serverSocket = null
     }
 
-    private fun serverHandshake(socket: Socket, expectedTopic: String): SecureChannel {
-        val input = DataInputStream(socket.getInputStream())
-        val output = DataOutputStream(socket.getOutputStream())
+    // ── Handshake helpers ─────────────────────────────────────────────────────
+    //
+    // The ECDH handshake is unchanged — it runs on top of the RelayTransport.
+    // Cloudflare sees only the ciphertext that SecureChannel produces.
 
-        val clientMagic = input.readInt()
-        val version = input.readInt()
-        val topic = input.readUTF()
-        val clientPublic = input.readBytesWithLength()
-        require(clientMagic == MAGIC && version == VERSION && topic == expectedTopic) {
-            "Remote Transfer peer sent an invalid handshake"
+    private fun serverHandshake(transport: RelayTransport, expectedTopic: String): SecureChannel {
+        // Read client hello
+        val helloBytes = transport.readBytes()
+        DataInputStream(ByteArrayInputStream(helloBytes)).use { input ->
+            val clientMagic   = input.readInt()
+            val version       = input.readInt()
+            val topic         = input.readUTF()
+            val clientPublic  = input.readBytesWithLength()
+            require(clientMagic == MAGIC && version == VERSION && topic == expectedTopic) {
+                "Remote Transfer peer sent an invalid handshake"
+            }
+
+            val keyPair      = AlterSendCrypto.generateKeyPair()
+            val serverPublic = keyPair.public.encoded
+
+            // Write server hello
+            val helloOut = ByteArrayOutputStream()
+            DataOutputStream(helloOut).use { out ->
+                out.writeInt(MAGIC)
+                out.writeInt(VERSION)
+                out.writeUTF(expectedTopic)
+                out.writeBytesWithLength(serverPublic)
+            }
+            transport.sendBytes(helloOut.toByteArray())
+
+            val keys = AlterSendCrypto.deriveKeys(
+                privateKey   = keyPair.private,
+                clientPublic = clientPublic,
+                serverPublic = serverPublic,
+                topicHex     = expectedTopic,
+                isClient     = false
+            )
+            return SecureChannel(transport, keys)
         }
-
-        val keyPair = AlterSendCrypto.generateKeyPair()
-        val serverPublic = keyPair.public.encoded
-        output.writeInt(MAGIC)
-        output.writeInt(VERSION)
-        output.writeUTF(expectedTopic)
-        output.writeBytesWithLength(serverPublic)
-        output.flush()
-
-        val keys = AlterSendCrypto.deriveKeys(
-            privateKey = keyPair.private,
-            clientPublic = clientPublic,
-            serverPublic = serverPublic,
-            topicHex = expectedTopic,
-            isClient = false
-        )
-        return SecureChannel(input, output, keys)
     }
 
-    private fun clientHandshake(socket: Socket, topicHex: String): SecureChannel {
-        val input = DataInputStream(socket.getInputStream())
-        val output = DataOutputStream(socket.getOutputStream())
-        val keyPair = AlterSendCrypto.generateKeyPair()
+    private fun clientHandshake(transport: RelayTransport, topicHex: String): SecureChannel {
+        val keyPair      = AlterSendCrypto.generateKeyPair()
         val clientPublic = keyPair.public.encoded
 
-        output.writeInt(MAGIC)
-        output.writeInt(VERSION)
-        output.writeUTF(topicHex)
-        output.writeBytesWithLength(clientPublic)
-        output.flush()
-
-        val serverMagic = input.readInt()
-        val version = input.readInt()
-        val topic = input.readUTF()
-        val serverPublic = input.readBytesWithLength()
-        require(serverMagic == MAGIC && version == VERSION && topic == topicHex) {
-            "Remote Transfer host sent an invalid handshake"
+        // Write client hello
+        val helloOut = ByteArrayOutputStream()
+        DataOutputStream(helloOut).use { out ->
+            out.writeInt(MAGIC)
+            out.writeInt(VERSION)
+            out.writeUTF(topicHex)
+            out.writeBytesWithLength(clientPublic)
         }
+        transport.sendBytes(helloOut.toByteArray())
 
-        val keys = AlterSendCrypto.deriveKeys(
-            privateKey = keyPair.private,
-            clientPublic = clientPublic,
-            serverPublic = serverPublic,
-            topicHex = topicHex,
-            isClient = true
-        )
-        return SecureChannel(input, output, keys)
+        // Read server hello
+        val helloBytes  = transport.readBytes()
+        DataInputStream(ByteArrayInputStream(helloBytes)).use { input ->
+            val serverMagic  = input.readInt()
+            val version      = input.readInt()
+            val topic        = input.readUTF()
+            val serverPublic = input.readBytesWithLength()
+            require(serverMagic == MAGIC && version == VERSION && topic == topicHex) {
+                "Remote Transfer host sent an invalid handshake"
+            }
+
+            val keys = AlterSendCrypto.deriveKeys(
+                privateKey   = keyPair.private,
+                clientPublic = clientPublic,
+                serverPublic = serverPublic,
+                topicHex     = topicHex,
+                isClient     = true
+            )
+            return SecureChannel(transport, keys)
+        }
     }
 
-    private suspend fun sendFiles(channel: SecureChannel, offers: List<AlterSendFileOffer>) {
+    // ── File transfer logic ───────────────────────────────────────────────────
+    // Unchanged from the original; just passes connectionMode through to telemetry.
+
+    private suspend fun sendFiles(
+        channel: SecureChannel,
+        offers: List<AlterSendFileOffer>,
+        connectionMode: ConnectionMode = ConnectionMode.UNKNOWN
+    ) {
         channel.writeFrame(FRAME_MANIFEST, offers.toManifestBytes())
         offers.forEach { offer ->
             coroutineContext.ensureActive()
             val uri = offer.uri ?: throw IllegalArgumentException("Missing sender file URI")
-            val chunkSize = AlterSendProtocol.selectChunkSize(offer.sizeBytes)
+            val chunkSize   = AlterSendProtocol.selectChunkSize(offer.sizeBytes)
             val totalChunks = AlterSendProtocol.chunkCount(offer.sizeBytes, chunkSize)
 
             channel.writeFrame(FRAME_START, startPayload(offer, chunkSize))
@@ -352,9 +511,10 @@ class AlterSendSocketTransfer(
                 val sentBytes = minOf(offer.sizeBytes, (index + 1L) * chunkSize)
                 onState(
                     AlterSendUiState(
-                        phase = AlterSendConnectionPhase.Transferring,
-                        offers = offers,
-                        progress = AlterSendTransferProgress(offer.id, offer.name, sentBytes, offer.sizeBytes)
+                        phase    = AlterSendConnectionPhase.Transferring,
+                        offers   = offers,
+                        progress = AlterSendTransferProgress(offer.id, offer.name, sentBytes, offer.sizeBytes),
+                        connectionMode = connectionMode
                     )
                 )
             }
@@ -363,24 +523,26 @@ class AlterSendSocketTransfer(
             if (ack.type != FRAME_ACK) throw EOFException("Receiver did not acknowledge ${offer.name}")
             historyRepository.addEntry(
                 TransferHistoryEntity(
-                    fileName = offer.name,
-                    mimeType = offer.mimeType,
-                    fileSizeBytes = offer.sizeBytes,
-                    isSender = true,
-                    transferMethod = "Remote Transfer",
+                    fileName         = offer.name,
+                    mimeType         = offer.mimeType,
+                    fileSizeBytes    = offer.sizeBytes,
+                    isSender         = true,
+                    transferMethod   = "Remote Transfer",
                     remoteDeviceName = "Remote Transfer peer",
-                    contentUri = uri.toString(),
-                    isAlterSend = true
+                    contentUri       = uri.toString(),
+                    isAlterSend      = true
                 )
             )
         }
         onState(AlterSendUiState(phase = AlterSendConnectionPhase.Complete, offers = offers))
-        // Phase 5 — telemetry: emit after sender completes (connectionMode carried via onState)
         val totalBytes = offers.sumOf { it.sizeBytes }
-        telemetryService?.onTransferCompleted(ConnectionMode.UNKNOWN, totalBytes)
+        telemetryService?.onTransferCompleted(connectionMode, totalBytes)
     }
 
-    private suspend fun receiveFiles(channel: SecureChannel) {
+    private suspend fun receiveFiles(
+        channel: SecureChannel,
+        connectionMode: ConnectionMode = ConnectionMode.UNKNOWN
+    ) {
         val manifest = channel.readFrame()
         if (manifest.type != FRAME_MANIFEST) throw EOFException("Sender did not send a manifest")
         val offers = manifest.payload.toOffers()
@@ -399,9 +561,9 @@ class AlterSendSocketTransfer(
             if (announced.id != offer.id || announced.sizeBytes != offer.sizeBytes) {
                 throw IllegalStateException("Sender announced inconsistent file metadata")
             }
-            val chunkSize = AlterSendProtocol.selectChunkSize(offer.sizeBytes)
+            val chunkSize   = AlterSendProtocol.selectChunkSize(offer.sizeBytes)
             val totalChunks = AlterSendProtocol.chunkCount(offer.sizeBytes, chunkSize)
-            val missing = (0 until totalChunks).toList()
+            val missing     = (0 until totalChunks).toList()
             channel.writeFrame(FRAME_NEED, needPayload(offer.id, missing))
 
             val temp = File.createTempFile("altersend-", ".part", context.cacheDir)
@@ -433,9 +595,10 @@ class AlterSendSocketTransfer(
                     channel.writeFrame(FRAME_ACK, chunkAckPayload(offer.id, parsed.index))
                     onState(
                         AlterSendUiState(
-                            phase = AlterSendConnectionPhase.Transferring,
-                            offers = offers,
-                            progress = AlterSendTransferProgress(offer.id, offer.name, received, offer.sizeBytes)
+                            phase    = AlterSendConnectionPhase.Transferring,
+                            offers   = offers,
+                            progress = AlterSendTransferProgress(offer.id, offer.name, received, offer.sizeBytes),
+                            connectionMode = connectionMode
                         )
                     )
                 }
@@ -444,7 +607,7 @@ class AlterSendSocketTransfer(
             val complete = channel.readFrame()
             if (complete.type != FRAME_COMPLETE) throw EOFException("Sender did not complete ${offer.name}")
             val expectedHash = parseCompletePayload(complete.payload, offer.id)
-            val actualHash = sha256File(temp)
+            val actualHash   = sha256File(temp)
             if (!actualHash.contentEquals(expectedHash)) {
                 temp.delete()
                 channel.writeFrame(FRAME_ERROR, "Integrity check failed".encodeToByteArray())
@@ -455,23 +618,24 @@ class AlterSendSocketTransfer(
             channel.writeFrame(FRAME_ACK, offer.id.encodeToByteArray())
             historyRepository.addEntry(
                 TransferHistoryEntity(
-                    fileName = offer.name,
-                    mimeType = offer.mimeType,
-                    fileSizeBytes = offer.sizeBytes,
-                    isSender = false,
-                    transferMethod = "Remote Transfer",
+                    fileName         = offer.name,
+                    mimeType         = offer.mimeType,
+                    fileSizeBytes    = offer.sizeBytes,
+                    isSender         = false,
+                    transferMethod   = "Remote Transfer",
                     remoteDeviceName = "Remote Transfer peer",
-                    contentUri = savedUri?.toString(),
-                    isAlterSend = true
+                    contentUri       = savedUri?.toString(),
+                    isAlterSend      = true
                 )
             )
             temp.delete()
         }
         onState(AlterSendUiState(phase = AlterSendConnectionPhase.Complete, offers = offers))
-        // Phase 5 — telemetry: emit after receiver completes
         val totalBytes = offers.sumOf { it.sizeBytes }
-        telemetryService?.onTransferCompleted(ConnectionMode.UNKNOWN, totalBytes)
+        telemetryService?.onTransferCompleted(connectionMode, totalBytes)
     }
+
+    // ── IO helpers ────────────────────────────────────────────────────────────
 
     private fun readUriRange(uri: Uri, offset: Long, length: Int): ByteArray {
         context.contentResolver.openInputStream(uri).use { input ->
@@ -620,7 +784,7 @@ class AlterSendSocketTransfer(
             rendezvousSocket.connect(InetSocketAddress(relayHost, relayPort), DIRECT_CONNECT_TIMEOUT_MS)
             rendezvousSocket.soTimeout = SOCKET_TIMEOUT_MS
             val output = DataOutputStream(rendezvousSocket.getOutputStream())
-            val input = DataInputStream(rendezvousSocket.getInputStream())
+            val input  = DataInputStream(rendezvousSocket.getInputStream())
             output.writeUTF("JSASHP1")
             output.writeUTF(sessionId)
             output.writeUTF(if (isSender) "sender" else "receiver")
@@ -644,10 +808,17 @@ class AlterSendSocketTransfer(
         return bytes.toHex()
     }
 
+    /** Generates a 32-char hex string suitable for a Cloudflare session id. */
+    private fun randomHex32(): String {
+        val bytes = ByteArray(16)
+        SecureRandom().nextBytes(bytes)
+        return bytes.toHex()
+    }
+
     private fun isAndroidEmulator(): Boolean {
         val fingerprint = android.os.Build.FINGERPRINT.lowercase()
-        val model = android.os.Build.MODEL.lowercase()
-        val product = android.os.Build.PRODUCT.lowercase()
+        val model       = android.os.Build.MODEL.lowercase()
+        val product     = android.os.Build.PRODUCT.lowercase()
         return fingerprint.contains("generic") ||
             fingerprint.contains("emulator") ||
             model.contains("sdk") ||
@@ -667,21 +838,29 @@ class AlterSendSocketTransfer(
 
     private fun configuredRelayEndpoints(includeAndroidHostRelay: Boolean = false): List<Pair<String, Int>> {
         return AlterSendRelayDirectory.endpoints(
-            publicRelayNodes = BuildConfig.ALTERSEND_PUBLIC_RELAY_NODES,
-            configuredHost = BuildConfig.ALTERSEND_RELAY_HOST,
-            configuredPort = BuildConfig.ALTERSEND_RELAY_PORT,
+            publicRelayNodes     = BuildConfig.ALTERSEND_PUBLIC_RELAY_NODES,
+            configuredHost       = BuildConfig.ALTERSEND_RELAY_HOST,
+            configuredPort       = BuildConfig.ALTERSEND_RELAY_PORT,
             includeAndroidHostRelay = includeAndroidHostRelay
         ).map { endpoint -> endpoint.host to endpoint.port }
     }
 
+    // ── SecureChannel — now backed by RelayTransport ──────────────────────────
+
     private data class Frame(val type: Int, val payload: ByteArray)
 
+    /**
+     * Encrypted frame layer, unchanged from the original.
+     * Now reads/writes through a [RelayTransport] instead of raw DataStreams.
+     *
+     * Each write/read call corresponds to exactly one transport send/receive,
+     * so this maps cleanly onto both TCP stream framing and WebSocket messages.
+     */
     private class SecureChannel(
-        private val input: DataInputStream,
-        private val output: DataOutputStream,
+        private val transport: RelayTransport,
         private val keys: AlterSendHandshakeKeys
     ) {
-        private var sendCounter = 0L
+        private var sendCounter    = 0L
         private var receiveCounter = 0L
 
         @Synchronized
@@ -695,21 +874,17 @@ class AlterSendSocketTransfer(
                 bytes.toByteArray()
             }
             val encrypted = AlterSendCrypto.encrypt(keys.sendKey, sendCounter++, plain)
-            output.writeInt(encrypted.size)
-            output.write(encrypted)
-            output.flush()
+            transport.sendBytes(encrypted)
         }
 
         @Synchronized
         fun readFrame(): Frame {
-            val encryptedSize = input.readInt()
-            require(encryptedSize >= 0 && encryptedSize <= 16 * 1024 * 1024) { "Invalid frame size" }
-            val encrypted = ByteArray(encryptedSize).also { input.readFully(it) }
-            val counter = receiveCounter
-            val plain = AlterSendCrypto.decrypt(keys.receiveKey, counter, encrypted)
-            receiveCounter = counter + 1
+            val encrypted   = transport.readBytes()
+            val counter     = receiveCounter
+            val plain       = AlterSendCrypto.decrypt(keys.receiveKey, counter, encrypted)
+            receiveCounter  = counter + 1
             DataInputStream(ByteArrayInputStream(plain)).use { frame ->
-                val type = frame.readInt()
+                val type        = frame.readInt()
                 val payloadSize = frame.readInt()
                 require(payloadSize >= 0 && payloadSize <= 16 * 1024 * 1024) { "Invalid payload size" }
                 val payload = ByteArray(payloadSize).also { frame.readFully(it) }
@@ -717,6 +892,8 @@ class AlterSendSocketTransfer(
             }
         }
     }
+
+    // ── Payload serialization helpers (unchanged) ─────────────────────────────
 
     private fun DataInputStream.readBytesWithLength(): ByteArray {
         val size = readInt()
@@ -749,8 +926,8 @@ class AlterSendSocketTransfer(
                 val json = array.getJSONObject(index)
                 add(
                     AlterSendFileOffer(
-                        id = json.getString("id"),
-                        name = json.getString("name"),
+                        id       = json.getString("id"),
+                        name     = json.getString("name"),
                         sizeBytes = json.getLong("sizeBytes"),
                         mimeType = json.optString("mimeType").takeIf { it.isNotBlank() && it != "null" }
                     )
@@ -771,10 +948,10 @@ class AlterSendSocketTransfer(
     private fun parseStartPayload(bytes: ByteArray): AlterSendFileOffer {
         val json = JSONObject(bytes.decodeToString())
         return AlterSendFileOffer(
-            id = json.getString("id"),
-            name = json.getString("name"),
+            id        = json.getString("id"),
+            name      = json.getString("name"),
             sizeBytes = json.getLong("sizeBytes"),
-            mimeType = json.optString("mimeType").takeIf { it.isNotBlank() && it != "null" }
+            mimeType  = json.optString("mimeType").takeIf { it.isNotBlank() && it != "null" }
         )
     }
 
@@ -808,10 +985,10 @@ class AlterSendSocketTransfer(
     private fun parseChunkPayload(bytes: ByteArray): ChunkPayload {
         DataInputStream(ByteArrayInputStream(bytes)).use { input ->
             return ChunkPayload(
-                id = input.readUTF(),
-                index = input.readInt(),
+                id     = input.readUTF(),
+                index  = input.readInt(),
                 sha256 = input.readBytesWithLength(),
-                data = input.readBytesWithLength()
+                data   = input.readBytesWithLength()
             )
         }
     }

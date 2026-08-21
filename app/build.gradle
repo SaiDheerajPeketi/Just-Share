@@ -31,6 +31,22 @@ android {
         buildConfigField "String", "ALTERSEND_PUBLIC_RELAY_NODES", "\"${alterSendPublicRelayNodes}\""
         buildConfigField "String", "QUOTA_API_BASE_URL", "\"${quotaApiBaseUrl}\""
 
+        // ── Cloudflare WebSocket Relay ─────────────────────────────────────
+        // CF_RELAY_BASE_URL   : wss://relay.justshare.app  (or ws://localhost:8787 for dev)
+        // CF_RELAY_HMAC_SECRET: 32-byte hex — must match the Wrangler secret
+        // CF_RELAY_ENABLED    : set to "true" to activate the Cloudflare relay path
+        //
+        // Add these to local.properties (never commit secrets to git):
+        //   CF_RELAY_BASE_URL=wss://relay.justshare.app
+        //   CF_RELAY_HMAC_SECRET=<your 32-byte hex>
+        //   CF_RELAY_ENABLED=true
+        def cfRelayBaseUrl    = (project.findProperty("CF_RELAY_BASE_URL")    ?: "").toString()
+        def cfRelayHmacSecret = (project.findProperty("CF_RELAY_HMAC_SECRET") ?: "").toString()
+        def cfRelayEnabled    = (project.findProperty("CF_RELAY_ENABLED")     ?: "false").toString()
+        buildConfigField "String",  "CF_RELAY_BASE_URL",    "\"${cfRelayBaseUrl}\""
+        buildConfigField "String",  "CF_RELAY_HMAC_SECRET", "\"${cfRelayHmacSecret}\""
+        buildConfigField "boolean", "CF_RELAY_ENABLED",     cfRelayEnabled
+
         vectorDrawables {
             useSupportLibrary true
         }
@@ -154,6 +170,9 @@ dependencies {
 
     // Timber for logging
     implementation 'com.jakewharton.timber:timber:5.0.1'
+
+    // OkHttp – used by CloudflareWebSocketTransport for the relay WebSocket connection
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
 
 tasks.configureEach { task ->
