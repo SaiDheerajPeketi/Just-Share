@@ -21,6 +21,8 @@ import com.blackandblue.justshare.domain.altersend.AlterSendTransferProgress
 import com.blackandblue.justshare.domain.altersend.AlterSendUiState
 import com.blackandblue.justshare.domain.altersend.ConnectionMode
 import com.blackandblue.justshare.domain.altersend.toHex
+import com.blackandblue.justshare.domain.transfer.RemoteHostRoute
+import com.blackandblue.justshare.domain.transfer.TransferOrchestration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -95,21 +97,28 @@ class AlterSendSocketTransfer(
 
     suspend fun host(topicHex: String, offers: List<AlterSendFileOffer>): AlterSendInvite =
         withContext(Dispatchers.IO) {
-            // ── Feature flag: try Cloudflare relay first ───────────────────
-            if (BuildConfig.CF_RELAY_ENABLED && BuildConfig.CF_RELAY_BASE_URL.isNotBlank()) {
-                return@withContext hostViaCloudflare(topicHex, offers)
+            val cloudflareConfigured = BuildConfig.CF_RELAY_BASE_URL.isNotBlank()
+            val emulator = isAndroidEmulator()
+            val relayEndpoint = if (BuildConfig.CF_RELAY_ENABLED && cloudflareConfigured) {
+                null
+            } else {
+                reachableRelayEndpoint(includeAndroidHostRelay = emulator)
             }
-
-            if (isAndroidEmulator()) {
-                val relayEndpoint = reachableRelayEndpoint(includeAndroidHostRelay = true)
-                    ?: throw IllegalStateException(
-                        "No Remote Transfer relay is reachable. Start a local relay on 10.0.2.2:41404 or check your configured relay."
-                    )
-                return@withContext hostViaRelay(topicHex, offers, relayEndpoint)
-            }
-            val relayEndpoint = reachableRelayEndpoint()
-            if (relayEndpoint != null) {
-                return@withContext hostHybrid(topicHex, offers, relayEndpoint)
+            when (
+                TransferOrchestration.remoteHostRoute(
+                    cloudflareEnabled = BuildConfig.CF_RELAY_ENABLED,
+                    cloudflareUrlConfigured = cloudflareConfigured,
+                    emulator = emulator,
+                    relayReachable = relayEndpoint != null
+                )
+            ) {
+                RemoteHostRoute.Cloudflare -> return@withContext hostViaCloudflare(topicHex, offers)
+                RemoteHostRoute.Relay -> return@withContext hostViaRelay(topicHex, offers, requireNotNull(relayEndpoint))
+                RemoteHostRoute.Hybrid -> return@withContext hostHybrid(topicHex, offers, requireNotNull(relayEndpoint))
+                RemoteHostRoute.Unavailable -> throw IllegalStateException(
+                    "No Remote Transfer relay is reachable. Start a local relay on 10.0.2.2:41404 or check your configured relay."
+                )
+                RemoteHostRoute.Direct -> Unit
             }
             val server = ServerSocket(0).also {
                 serverSocket = it

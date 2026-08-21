@@ -16,6 +16,7 @@ import com.blackandblue.justshare.domain.chat.BluetoothDeviceDomain
 import com.blackandblue.justshare.domain.chat.BluetoothMessage
 import com.blackandblue.justshare.domain.chat.ConnectionResult
 import com.blackandblue.justshare.domain.chat.FileInfo
+import com.blackandblue.justshare.domain.transfer.TransferOrchestration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -71,7 +72,11 @@ class BluetoothViewModel @Inject constructor(
         // connection once the selected device appears in the bonded-device list.
         bluetoothController.pairedDevices.onEach { pairedDevices ->
             val pendingDevice = pendingPairDevice ?: return@onEach
-            if (pairedDevices.any { it.address == pendingDevice.address }) {
+            if (TransferOrchestration.shouldConnectAfterBond(
+                    pendingAddress = pendingDevice.address,
+                    pairedAddresses = pairedDevices.mapTo(mutableSetOf()) { it.address }
+                )
+            ) {
                 pendingPairDevice = null
                 connectToDevice(pendingDevice)
             }

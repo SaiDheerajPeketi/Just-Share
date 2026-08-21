@@ -38,6 +38,7 @@ class TelemetryService @Inject constructor(
         emit(
             eventName = when (connectionMode) {
                 ConnectionMode.RELAY -> TelemetryEvent.RELAY_SESSION_COMPLETED
+                ConnectionMode.CLOUDFLARE_RELAY -> TelemetryEvent.RELAY_SESSION_COMPLETED
                 ConnectionMode.DIRECT -> TelemetryEvent.DIRECT_SESSION_COMPLETED
                 ConnectionMode.UNKNOWN -> TelemetryEvent.DIRECT_SESSION_COMPLETED
             },
@@ -48,7 +49,7 @@ class TelemetryService @Inject constructor(
 
     /** Call when a remote transfer session starts (before bytes flow). */
     fun onTransferStarted(connectionMode: ConnectionMode) {
-        if (connectionMode == ConnectionMode.RELAY) {
+        if (connectionMode == ConnectionMode.RELAY || connectionMode == ConnectionMode.CLOUDFLARE_RELAY) {
             emit(eventName = TelemetryEvent.RELAY_SESSION_STARTED, connectionMode = connectionMode.name)
         }
     }

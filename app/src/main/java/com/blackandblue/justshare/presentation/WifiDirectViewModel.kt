@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.core.location.LocationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.blackandblue.justshare.domain.transfer.TransferOrchestration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -101,10 +102,16 @@ class WifiDirectViewModel @Inject constructor(
     val connectionInfoListener = WifiP2pManager.ConnectionInfoListener { info ->
         Log.d(TAG, "ConnectionInfo: $info")
         if (!info.groupFormed) {
+            val groupState = TransferOrchestration.wifiGroupState(
+                senderRole = isSenderRole,
+                groupFormed = false,
+                groupOwner = info.isGroupOwner,
+                connectedClientCount = 0
+            )
             _uiState.update {
                 it.copy(
-                    isConnected = false,
-                    connectionStatus = if (isSenderRole) "" else "hosting"
+                    isConnected = groupState.connected,
+                    connectionStatus = groupState.status
                 )
             }
             return@ConnectionInfoListener
@@ -113,8 +120,18 @@ class WifiDirectViewModel @Inject constructor(
         cancelConnectTimeout()
         startCommunicationService(info)
         if (!info.isGroupOwner) {
+            val groupState = TransferOrchestration.wifiGroupState(
+                senderRole = isSenderRole,
+                groupFormed = true,
+                groupOwner = false,
+                connectedClientCount = 0
+            )
             _uiState.update {
-                it.copy(isConnected = true, connectionStatus = "connected", errorMessage = null)
+                it.copy(
+                    isConnected = groupState.connected,
+                    connectionStatus = groupState.status,
+                    errorMessage = null
+                )
             }
             return@ConnectionInfoListener
         }
@@ -127,15 +144,22 @@ class WifiDirectViewModel @Inject constructor(
         }
 
         manager.requestGroupInfo(channel) { group ->
-            val hasConnectedClient = group?.clientList?.isNotEmpty() == true
-            Log.d(TAG, "GroupInfo: connectedClients=${group?.clientList?.size ?: 0}")
+            val connectedClientCount = group?.clientList?.size ?: 0
+            val groupState = TransferOrchestration.wifiGroupState(
+                senderRole = isSenderRole,
+                groupFormed = true,
+                groupOwner = true,
+                connectedClientCount = connectedClientCount
+            )
+            val hasConnectedClient = groupState.connected
+            Log.d(TAG, "GroupInfo: connectedClients=$connectedClientCount")
             val wasConnected = _uiState.value.isConnected
             _uiState.update {
                 it.copy(
                     // Only mark as "connected" once a real client has joined the group.
                     // Until then stay in "hosting" so we don't prematurely navigate.
-                    isConnected = hasConnectedClient,
-                    connectionStatus = if (hasConnectedClient) "connected" else "hosting",
+                    isConnected = groupState.connected,
+                    connectionStatus = groupState.status,
                     errorMessage = null
                 )
             }
