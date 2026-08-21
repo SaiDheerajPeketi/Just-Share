@@ -5,6 +5,7 @@ import timber.log.Timber
 import android.content.ContentResolver
 import android.content.Context
 import androidx.room.Room
+import com.blackandblue.justshare.BuildConfig
 import com.blackandblue.justshare.data.UserPreferencesDataStore
 import com.blackandblue.justshare.data.billing.BillingClientWrapper
 import com.blackandblue.justshare.data.billing.PurchaseRepository
@@ -89,18 +90,11 @@ object AppModule {
 
     // ── AlterSend Remote — API & Quota ─────────────────────────────────────────
 
-    /**
-     * Base URL for the AlterSend Remote quota and purchase verification API.
-     * Override via a BuildConfig field or hardcode your Cloud Run service URL here
-     * once it is deployed.
-     */
     @Provides
     @Singleton
     @Named("quotaApiBaseUrl")
     fun provideQuotaApiBaseUrl(): String =
-        // TODO: Replace with your deployed Cloud Run service URL before release.
-        // Example: "https://just-share-api-<hash>-uc.a.run.app"
-        "https://just-share-api.example.com"
+        BuildConfig.QUOTA_API_BASE_URL.trimEnd('/')
 
     @Provides
     @Singleton

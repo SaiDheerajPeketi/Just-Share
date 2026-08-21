@@ -6,6 +6,11 @@ plugins {
     id 'kotlin-parcelize'
 }
 
+def quotaApiBaseUrl = providers.gradleProperty("QUOTA_API_BASE_URL")
+    .orElse(providers.environmentVariable("QUOTA_API_BASE_URL"))
+    .orElse("")
+    .get()
+
 android {
     namespace 'com.blackandblue.justshare'
     compileSdk 35
@@ -24,6 +29,7 @@ android {
         buildConfigField "String", "ALTERSEND_RELAY_HOST", "\"${alterSendRelayHost}\""
         buildConfigField "int", "ALTERSEND_RELAY_PORT", alterSendRelayPort
         buildConfigField "String", "ALTERSEND_PUBLIC_RELAY_NODES", "\"${alterSendPublicRelayNodes}\""
+        buildConfigField "String", "QUOTA_API_BASE_URL", "\"${quotaApiBaseUrl}\""
 
         vectorDrawables {
             useSupportLibrary true
@@ -148,6 +154,18 @@ dependencies {
 
     // Timber for logging
     implementation 'com.jakewharton.timber:timber:5.0.1'
+}
+
+tasks.configureEach { task ->
+    if (task.name in ["assembleRelease", "bundleRelease", "packageRelease"]) {
+        task.doFirst {
+            if (!quotaApiBaseUrl.startsWith("https://")) {
+                throw new GradleException(
+                    "Release builds require QUOTA_API_BASE_URL to be a production HTTPS endpoint."
+                )
+            }
+        }
+    }
 }
 
 // Allow references to generated code
