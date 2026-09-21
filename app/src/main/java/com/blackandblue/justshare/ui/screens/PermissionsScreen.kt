@@ -32,12 +32,10 @@ fun PermissionsScreen(onContinue: () -> Unit) {
     val colors = JediShareTheme.colors
     val context = LocalContext.current
 
-    val storagePerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    val storagePerms = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+        listOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
     } else {
-        listOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        emptyList()
     }
 
     val btPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -67,7 +65,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
     var wifiGranted by remember { mutableStateOf(checkPerms(wifiPerms)) }
     var notifGranted by remember { mutableStateOf(checkPerms(notifPerms)) }
 
-    val hasRequired = storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)
+    val hasRequired = storageGranted && (btGranted || wifiGranted)
 
     LaunchedEffect(hasRequired) {
         if (hasRequired) {
@@ -81,7 +79,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
         wifiGranted = checkPerms(wifiPerms)
         notifGranted = checkPerms(notifPerms)
         
-        if (storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)) {
+        if (storageGranted && (btGranted || wifiGranted)) {
             // Permissions granted, button will update to Continue
         }
     }
@@ -89,8 +87,8 @@ fun PermissionsScreen(onContinue: () -> Unit) {
     val permissions = listOf(
         Triple("Bluetooth", "Find & connect nearby devices", Icons.Default.Bluetooth) to btGranted,
         Triple("Wi-Fi Direct", "High-speed peer-to-peer transfers", Icons.Default.Wifi) to wifiGranted,
-        Triple("Storage", "Read & save transferred files", Icons.Default.Image) to storageGranted,
-        Triple("Notifications", "Transfer progress updates", Icons.Default.Notifications) to (notifPerms.isEmpty() || notifGranted)
+        Triple("File access", "Choose only the files you want to send", Icons.Default.FolderOpen) to storageGranted,
+        Triple("Notifications", "Optional transfer progress updates", Icons.Default.Notifications) to (notifPerms.isEmpty() || notifGranted)
     )
 
     Column(
@@ -181,12 +179,10 @@ fun PermissionsScreen(onContinue: () -> Unit) {
 }
 
 fun hasRequiredPermissions(context: android.content.Context): Boolean {
-    val storagePerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    val storagePerms = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+        listOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
     } else {
-        listOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        emptyList()
     }
 
     val btPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -201,12 +197,6 @@ fun hasRequiredPermissions(context: android.content.Context): Boolean {
         listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
     }
 
-    val notifPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.POST_NOTIFICATIONS)
-    } else {
-        emptyList()
-    }
-
     fun checkPerms(perms: List<String>) = perms.all { 
         ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED 
     }
@@ -214,7 +204,5 @@ fun hasRequiredPermissions(context: android.content.Context): Boolean {
     val storageGranted = checkPerms(storagePerms)
     val btGranted = checkPerms(btPerms)
     val wifiGranted = checkPerms(wifiPerms)
-    val notifGranted = checkPerms(notifPerms)
-
-    return storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)
+    return storageGranted && (btGranted || wifiGranted)
 }

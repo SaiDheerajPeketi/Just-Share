@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "appName": "Just Share",
+  "themeId": "justshare",
+  "connectedCanvas": false,
+  "locales": ["en"],
+  "locale": "en",
+  "device": "android",
+  "orientation": "portrait",
+  "appIcon": "",
+  "slidesByDevice": {
+    "iphone": [],
+    "ipad": [],
+    "android": [
+      {
+        "id": "justshare-intro",
+        "layout": "hero",
+        "label": { "en": "FULL QUALITY" },
+        "headline": { "en": "Files go straight\nto the other phone." },
+        "screenshot": "/screenshots/android/phone/en/justshare-first.png"
+      },
+      {
+        "id": "justshare-permissions",
+        "layout": "device-bottom",
+        "label": { "en": "CLEAR PERMISSIONS" },
+        "headline": { "en": "You stay\nin control." },
+        "screenshot": "/screenshots/android/phone/en/justshare-onboarding2.png"
+      },
+      {
+        "id": "justshare-home",
+        "layout": "device-top",
+        "label": { "en": "SEND OR RECEIVE" },
+        "headline": { "en": "Nearby sharing,\nmade obvious." },
+        "screenshot": "/screenshots/android/phone/en/justshare-home2.png",
+        "inverted": true
+      },
+      {
+        "id": "justshare-remote",
+        "layout": "device-bottom",
+        "label": { "en": "WHEN YOU'RE APART" },
+        "headline": { "en": "Protected remote\ntransfer." },
+        "screenshot": "/screenshots/android/phone/en/justshare-remote.png"
+      },
+      {
+        "id": "justshare-settings",
+        "layout": "device-top",
+        "label": { "en": "YOUR DEFAULTS" },
+        "headline": { "en": "Choose how\nyou transfer." },
+        "screenshot": "/screenshots/android/phone/en/justshare-settings-fixed.png",
+        "inverted": true
+      }
+    ],
+    "android-7": [],
+    "android-10": [],
+    "feature-graphic": [
+      {
+        "id": "justshare-feature",
+        "layout": "feature-graphic",
+        "label": {},
+        "headline": { "en": "Full-quality files. Straight to the other phone." },
+        "screenshot": ""
+      }
+    ]
+  }
+}

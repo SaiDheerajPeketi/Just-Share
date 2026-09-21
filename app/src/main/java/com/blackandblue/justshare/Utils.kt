@@ -18,12 +18,10 @@ import com.blackandblue.justshare.domain.chat.FileInfo
 // ─────────────────────────────────────────────────────────────────────────────
 
 fun hasAllRequiredPermissions(context: android.content.Context): Boolean {
-    val storagePerms = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        listOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO, android.Manifest.permission.READ_MEDIA_AUDIO)
-    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-        listOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+    val storagePerms = if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.P) {
+        listOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
     } else {
-        listOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        emptyList()
     }
 
     val btPerms = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -38,12 +36,6 @@ fun hasAllRequiredPermissions(context: android.content.Context): Boolean {
         listOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
     }
 
-    val notifPerms = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        listOf(android.Manifest.permission.POST_NOTIFICATIONS)
-    } else {
-        emptyList()
-    }
-
     fun checkPerms(perms: List<String>) = perms.all { 
         androidx.core.content.ContextCompat.checkSelfPermission(context, it) == android.content.pm.PackageManager.PERMISSION_GRANTED 
     }
@@ -51,9 +43,7 @@ fun hasAllRequiredPermissions(context: android.content.Context): Boolean {
     val storageGranted = checkPerms(storagePerms)
     val btGranted = checkPerms(btPerms)
     val wifiGranted = checkPerms(wifiPerms)
-    val notifGranted = checkPerms(notifPerms)
-
-    return storageGranted && (notifPerms.isEmpty() || notifGranted) && (btGranted || wifiGranted)
+    return storageGranted && (btGranted || wifiGranted)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
