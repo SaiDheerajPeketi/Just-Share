@@ -370,14 +370,14 @@ function getDefaultRects(
         caption: { x: cW * 0.08, y: cH * 0.08, width: capW, height: capH, align: "center" },
         device: {
           x: (cW - deviceW) / 2,
-          y: cH - deviceH - cH * 0.02,
+          y: cH - deviceH + cH * 0.02,
           width: deviceW,
           height: deviceH,
         },
       };
     case "device-top":
       return {
-        caption: { x: cW * 0.08, y: cH * 0.65, width: capW, height: capH, align: "center" },
+        caption: { x: cW * 0.08, y: cH * 0.68, width: capW, height: capH, align: "center" },
         device: {
           x: (cW - deviceW) / 2,
           y: -cH * 0.1,

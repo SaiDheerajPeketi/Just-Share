@@ -445,6 +445,7 @@ export function ScreenshotEditor() {
             const filename = `${String(i + 1).padStart(2, "0")}-${slide.layout}.png`;
             const path = `${platform}/${state.device}/${size.w}x${size.h}/${locale}/${filename}`;
             zip.file(path, base64, { base64: true });
+            await persistExport(path, base64);
             okCount += 1;
           } catch (e) {
             failed += 1;
@@ -486,6 +487,18 @@ export function ScreenshotEditor() {
       toast.error(`${failed} of ${totalUnits} renders failed`, {
         description: errors.slice(0, 3).join("\n"),
       });
+    }
+  }
+
+  async function persistExport(relativePath: string, base64: string) {
+    const response = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: relativePath, base64 }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error || `Couldn't save ${relativePath}`);
     }
   }
 

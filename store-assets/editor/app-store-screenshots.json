@@ -3,61 +3,155 @@
   "appName": "Just Share",
   "themeId": "justshare",
   "connectedCanvas": false,
-  "locales": ["en"],
+  "locales": [
+    "en"
+  ],
   "locale": "en",
   "device": "android",
   "orientation": "portrait",
   "appIcon": "",
   "slidesByDevice": {
     "iphone": [],
-    "ipad": [],
     "android": [
       {
         "id": "justshare-intro",
         "layout": "hero",
-        "label": { "en": "FULL QUALITY" },
-        "headline": { "en": "Files go straight\nto the other phone." },
+        "label": {
+          "en": "FULL QUALITY"
+        },
+        "headline": {
+          "en": "Files go straight\nto the other phone."
+        },
         "screenshot": "/screenshots/android/phone/en/justshare-first.png"
       },
       {
         "id": "justshare-permissions",
         "layout": "device-bottom",
-        "label": { "en": "CLEAR PERMISSIONS" },
-        "headline": { "en": "You stay\nin control." },
+        "label": {
+          "en": "CLEAR PERMISSIONS"
+        },
+        "headline": {
+          "en": "Stay in control."
+        },
         "screenshot": "/screenshots/android/phone/en/justshare-onboarding2.png"
       },
       {
         "id": "justshare-home",
         "layout": "device-top",
-        "label": { "en": "SEND OR RECEIVE" },
-        "headline": { "en": "Nearby sharing,\nmade obvious." },
+        "label": {
+          "en": "SEND OR RECEIVE"
+        },
+        "headline": {
+          "en": "Nearby sharing,\nmade obvious."
+        },
         "screenshot": "/screenshots/android/phone/en/justshare-home2.png",
         "inverted": true
       },
       {
         "id": "justshare-remote",
         "layout": "device-bottom",
-        "label": { "en": "WHEN YOU'RE APART" },
-        "headline": { "en": "Protected remote\ntransfer." },
+        "label": {
+          "en": "WHEN YOU'RE APART"
+        },
+        "headline": {
+          "en": "Protected remote\ntransfer."
+        },
         "screenshot": "/screenshots/android/phone/en/justshare-remote.png"
       },
       {
         "id": "justshare-settings",
         "layout": "device-top",
-        "label": { "en": "YOUR DEFAULTS" },
-        "headline": { "en": "Choose how\nyou transfer." },
+        "label": {
+          "en": "YOUR DEFAULTS"
+        },
+        "headline": {
+          "en": "Choose how\nyou transfer."
+        },
         "screenshot": "/screenshots/android/phone/en/justshare-settings-fixed.png",
         "inverted": true
       }
     ],
-    "android-7": [],
-    "android-10": [],
+    "ipad": [],
+    "android-7": [
+      {
+        "id": "justshare-7-intro",
+        "layout": "hero",
+        "label": {
+          "en": "FULL QUALITY"
+        },
+        "headline": {
+          "en": "Share files\nwithout the cloud."
+        },
+        "screenshot": "/screenshots/android/tablet7/en/justshare-tablet-intro.png"
+      },
+      {
+        "id": "justshare-7-permissions",
+        "layout": "device-bottom",
+        "label": {
+          "en": "CLEAR PERMISSIONS"
+        },
+        "headline": {
+          "en": "Permissions,\nclearly explained."
+        },
+        "screenshot": "/screenshots/android/tablet7/en/justshare-tablet-permissions.png"
+      },
+      {
+        "id": "justshare-7-home",
+        "layout": "device-top",
+        "label": {
+          "en": "SEND OR RECEIVE"
+        },
+        "headline": {
+          "en": "Nearby or remote.\nYou choose."
+        },
+        "screenshot": "/screenshots/android/tablet7/en/justshare-tablet-home.png",
+        "inverted": true
+      }
+    ],
+    "android-10": [
+      {
+        "id": "justshare-10-intro",
+        "layout": "hero",
+        "label": {
+          "en": "FULL QUALITY"
+        },
+        "headline": {
+          "en": "Share files\nwithout the cloud."
+        },
+        "screenshot": "/screenshots/android/tablet10/en/justshare-tablet-intro.png"
+      },
+      {
+        "id": "justshare-10-permissions",
+        "layout": "device-bottom",
+        "label": {
+          "en": "CLEAR PERMISSIONS"
+        },
+        "headline": {
+          "en": "Permissions,\nclearly explained."
+        },
+        "screenshot": "/screenshots/android/tablet10/en/justshare-tablet-permissions.png"
+      },
+      {
+        "id": "justshare-10-home",
+        "layout": "device-top",
+        "label": {
+          "en": "SEND OR RECEIVE"
+        },
+        "headline": {
+          "en": "Nearby or remote.\nYou choose."
+        },
+        "screenshot": "/screenshots/android/tablet10/en/justshare-tablet-home.png",
+        "inverted": true
+      }
+    ],
     "feature-graphic": [
       {
         "id": "justshare-feature",
         "layout": "feature-graphic",
         "label": {},
-        "headline": { "en": "Full-quality files. Straight to the other phone." },
+        "headline": {
+          "en": "Full-quality files. Straight to the other phone."
+        },
         "screenshot": ""
       }
     ]
