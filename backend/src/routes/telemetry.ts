@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { Firestore, FieldValue } from '@google-cloud/firestore';
 import { deviceAuth } from '../middleware/deviceAuth';
+import { appCheckAuth } from '../middleware/appCheckAuth';
 
 const router = Router();
 const firestore = new Firestore();
 
-router.use(deviceAuth);
+router.use(appCheckAuth, deviceAuth);
 
 router.post('/', async (req, res) => {
   const { deviceId, event, bytes, connectionMode } = req.body;

@@ -30,7 +30,7 @@ Nearby transfer remains free. The optional Pro unlock enables protected remote r
 
 PRIVACY AND CONTROL
 
-Just Share does not contain advertising. It requests access only when a feature needs it, and Android shows an ongoing notification while an active foreground transfer requires one. Optional Firebase diagnostics and RevenueCat purchase processing use pseudonymous operational identifiers as described in the privacy policy.
+Just Share does not contain advertising. It requests access only when a feature needs it, and Android shows an ongoing notification while an active foreground transfer requires one. Firebase App Check uses Play Integrity to protect the remote API from automated abuse. Optional Firebase diagnostics and RevenueCat purchase processing use pseudonymous operational identifiers as described in the privacy policy.
 
 Network speed and availability depend on both devices, the connection and file size. Nearby transfer does not use a personal cloud account; remote relay may use internet or mobile data.
 

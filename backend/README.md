@@ -14,6 +14,7 @@ Backend service for Just-Share AlterSend Remote feature.
 - `GOOGLE_CLOUD_PROJECT` (GCP project ID)
 - `GOOGLE_APPLICATION_CREDENTIALS` (path to service account JSON)
 - `ANDROID_PACKAGE_NAME` (com.blackandblue.justshare)
+- `FIREBASE_APP_ID` (the exact Firebase Android app id allowed by App Check)
 - `FREE_TIER_GB` (default 2)
 - `PRO_TIER_GB` (default 5)
 - `DATA_PACK_GB` (default 10)
@@ -23,6 +24,8 @@ Backend service for Just-Share AlterSend Remote feature.
 - `PUBSUB_PUSH_SERVICE_ACCOUNT` (the least-privilege push identity allowed to call RTDN)
 - `PRO_PRODUCT_ID` (default "pro_unlock")
 - `CF_RELAY_HMAC_SECRET` (64 hex characters; set to the same protected secret as the Cloudflare Worker)
+
+All mobile API routes require a valid `X-Firebase-AppCheck` token issued for `FIREBASE_APP_ID` plus the pseudonymous `X-Device-Id` quota key. Configure the Firebase App Check Play Integrity provider before exposing the service. The RTDN route uses its separate authenticated Pub/Sub push identity.
 
 The relay HMAC secret is server-only. Never place it in Android build properties, CI build arguments,
 the APK, QR codes, logs, or source control. Android obtains five-minute session credentials from the

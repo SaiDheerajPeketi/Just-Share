@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { PlayBillingService } from '../services/PlayBillingService';
 import { QuotaService } from '../services/QuotaService';
 import { deviceAuth } from '../middleware/deviceAuth';
+import { appCheckAuth } from '../middleware/appCheckAuth';
 
 const router = Router();
 const billingService = new PlayBillingService();
 const quotaService = new QuotaService();
 
-router.use(deviceAuth);
+router.use(appCheckAuth, deviceAuth);
 
 router.post('/verify', async (req, res) => {
   const { deviceId, productId, purchaseToken } = req.body;

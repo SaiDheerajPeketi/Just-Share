@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { QuotaService } from '../services/QuotaService';
 import { deviceAuth } from '../middleware/deviceAuth';
+import { appCheckAuth } from '../middleware/appCheckAuth';
 
 const router = Router();
 const quotaService = new QuotaService();
 
-router.use(deviceAuth);
+router.use(appCheckAuth, deviceAuth);
 
 router.get('/:deviceId', async (req, res) => {
   const { deviceId } = req.params;

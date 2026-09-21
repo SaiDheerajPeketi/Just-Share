@@ -2,12 +2,13 @@ import { createHmac } from 'crypto';
 import { Router } from 'express';
 import { QuotaService } from '../services/QuotaService';
 import { deviceAuth } from '../middleware/deviceAuth';
+import { appCheckAuth } from '../middleware/appCheckAuth';
 
 const router = Router();
 const quotaService = new QuotaService();
 const TOKEN_TTL_SECONDS = 300;
 
-router.use(deviceAuth);
+router.use(appCheckAuth, deviceAuth);
 
 function sign(
   secret: string,

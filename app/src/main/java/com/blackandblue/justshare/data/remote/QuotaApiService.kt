@@ -1,14 +1,18 @@
 package com.blackandblue.justshare.data.remote
 
 import android.util.Log
+import com.blackandblue.justshare.BuildConfig
 import com.blackandblue.justshare.domain.billing.Plan
 import com.blackandblue.justshare.domain.billing.QuotaState
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.appcheck.FirebaseAppCheck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
@@ -124,11 +128,13 @@ class QuotaApiService @Inject constructor(
     // ── Internal HTTP helpers ───────────────────────────────────────────────
 
     private fun get(url: String, deviceId: String): JSONObject? {
+        val appCheckToken = appCheckToken() ?: return null
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS
             setRequestProperty("X-Device-Id", deviceId)
+            setRequestProperty("X-Firebase-AppCheck", appCheckToken)
             setRequestProperty("Accept", "application/json")
         }
         return try {
@@ -142,12 +148,14 @@ class QuotaApiService @Inject constructor(
 
     /** Returns the HTTP response code. */
     private fun post(url: String, deviceId: String, body: String): Int {
+        val appCheckToken = appCheckToken() ?: return HttpURLConnection.HTTP_UNAUTHORIZED
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS
             doOutput = true
             setRequestProperty("X-Device-Id", deviceId)
+            setRequestProperty("X-Firebase-AppCheck", appCheckToken)
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
         }
@@ -161,12 +169,15 @@ class QuotaApiService @Inject constructor(
 
     /** Returns the HTTP response code AND body JSON. */
     fun postForJson(url: String, deviceId: String, body: String): Pair<Int, JSONObject?> {
+        val appCheckToken = appCheckToken()
+            ?: return Pair(HttpURLConnection.HTTP_UNAUTHORIZED, null)
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS
             doOutput = true
             setRequestProperty("X-Device-Id", deviceId)
+            setRequestProperty("X-Firebase-AppCheck", appCheckToken)
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
         }
@@ -179,6 +190,19 @@ class QuotaApiService @Inject constructor(
         } finally {
             conn.disconnect()
         }
+    }
+
+    private fun appCheckToken(): String? {
+        if (!BuildConfig.FIREBASE_CONFIGURED) return null
+        return runCatching {
+            Tasks.await(
+                FirebaseAppCheck.getInstance().getAppCheckToken(false),
+                TIMEOUT_MS.toLong(),
+                TimeUnit.MILLISECONDS
+            ).token.takeIf { it.isNotBlank() }
+        }.onFailure {
+            Log.w(TAG, "App attestation unavailable", it)
+        }.getOrNull()
     }
 
     // ── Parsing ─────────────────────────────────────────────────────────────

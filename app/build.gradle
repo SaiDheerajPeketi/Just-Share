@@ -174,9 +174,12 @@ dependencies {
     implementation 'com.android.billingclient:billing:8.3.0'
     implementation 'com.revenuecat.purchases:purchases:10.19.1'
 
+    // 33.7.0 remains the newest line compatible with this app's Kotlin 2.0 toolchain.
     implementation platform('com.google.firebase:firebase-bom:33.7.0')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.firebase:firebase-appcheck-playintegrity'
+    debugImplementation 'com.google.firebase:firebase-appcheck-debug'
 
     // Testing
     testImplementation 'junit:junit:4.13.2'

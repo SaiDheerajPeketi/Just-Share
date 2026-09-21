@@ -21,6 +21,9 @@ class SharingApp: Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        if (BuildConfig.FIREBASE_CONFIGURED) {
+            AppCheckInstaller.install()
+        }
         JustShareTelemetry.initialize(this)
         JustShareTelemetry.log("app_open")
         configureRevenueCat()
