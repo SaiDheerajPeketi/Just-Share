@@ -5,10 +5,12 @@
  *   GET /v1/session/:id  (WebSocket upgrade)
  *       Query params:
  *         role   = "sender" | "receiver"
- *         token  = HMAC-SHA256 hex of "<sessionId>:<role>:<expiry>:<limit>" signed with
- *                  CF_RELAY_HMAC_SECRET  (held only by the Worker and token service)
  *         expiry = Unix epoch seconds (token lifetime; Android uses +300s)
  *         limit  = Reserved byte ceiling returned by the token service
+ *       Header:
+ *         X-JustShare-Relay-Token = HMAC-SHA256 hex of
+ *                  "<sessionId>:<role>:<expiry>:<limit>". Keeping it out of the
+ *                  URL prevents routine request logs from retaining credentials.
  *
  *   GET /v1/health
  *       Returns 200 { status: "ok" } — useful for monitoring.
@@ -49,6 +51,8 @@ export interface Env {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const SESSION_ID_RE = /^[0-9a-f]{32}$/i;
+const HMAC_SECRET_RE = /^[0-9a-f]{64}$/i;
+const MAX_TOKEN_LIFETIME_SECONDS = 600;
 
 // ── Main Worker handler ────────────────────────────────────────────────────
 export default {
@@ -84,21 +88,27 @@ export default {
     }
 
     // ── 4 & 5. Token expiry + HMAC signature validation ───────────────────
-    const token  = url.searchParams.get("token")  ?? "";
+    const token  = request.headers.get("X-JustShare-Relay-Token") ?? "";
     const expiry = url.searchParams.get("expiry") ?? "";
     const limit = url.searchParams.get("limit") ?? "";
 
     const expiryTs = parseInt(expiry, 10);
     const limitBytes = Number(limit);
     const configuredLimit = Number(env.CF_RELAY_SESSION_QUOTA_BYTES);
+    const nowSeconds = Date.now() / 1000;
     if (
       isNaN(expiryTs) ||
-      Date.now() / 1000 > expiryTs ||
+      nowSeconds > expiryTs ||
+      expiryTs > nowSeconds + MAX_TOKEN_LIFETIME_SECONDS ||
       !Number.isSafeInteger(limitBytes) ||
       limitBytes <= 0 ||
       limitBytes > configuredLimit
     ) {
-      return jsonResponse({ error: "Token expired or missing expiry" }, 401);
+      return jsonResponse({ error: "Invalid or expired token" }, 401);
+    }
+
+    if (!HMAC_SECRET_RE.test(env.CF_RELAY_HMAC_SECRET) || !HMAC_SECRET_RE.test(token)) {
+      return jsonResponse({ error: "Invalid token" }, 401);
     }
 
     const isValid = await verifyHmac(

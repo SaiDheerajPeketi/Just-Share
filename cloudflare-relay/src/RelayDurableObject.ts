@@ -34,6 +34,11 @@ interface SessionMeta {
   createdAt:        number;  // epoch ms
 }
 
+interface RelaySocketAttachment {
+  role: typeof ROLE_SENDER | typeof ROLE_RECEIVER;
+  bytesRelayed: number;
+}
+
 export class RelayDurableObject extends DurableObject<Env> {
   private persistedBytes = 0;
   private meta: SessionMeta = {
@@ -51,6 +56,12 @@ export class RelayDurableObject extends DurableObject<Env> {
       if (stored) {
         this.meta = stored;
         this.persistedBytes = stored.bytesRelayed;
+      }
+      for (const socket of ctx.getWebSockets()) {
+        const attachment = socket.deserializeAttachment() as RelaySocketAttachment | null;
+        if (attachment && Number.isSafeInteger(attachment.bytesRelayed)) {
+          this.meta.bytesRelayed = Math.max(this.meta.bytesRelayed, attachment.bytesRelayed);
+        }
       }
     });
   }
@@ -86,6 +97,10 @@ export class RelayDurableObject extends DurableObject<Env> {
 
     // Accept and tag the socket so we know its role in message/close callbacks.
     this.ctx.acceptWebSocket(server, [role]);
+    server.serializeAttachment({
+      role,
+      bytesRelayed: this.meta.bytesRelayed,
+    } satisfies RelaySocketAttachment);
 
     if (role === ROLE_SENDER)   this.meta.senderAttached   = true;
     if (role === ROLE_RECEIVER) this.meta.receiverAttached = true;
@@ -112,6 +127,13 @@ export class RelayDurableObject extends DurableObject<Env> {
     if (this.meta.bytesRelayed > this.meta.quotaBytes) {
       this.closeAll(CLOSE_QUOTA_EXCEEDED, "Session quota exceeded");
       return;
+    }
+    for (const socket of this.ctx.getWebSockets()) {
+      const [socketRole] = this.ctx.getTags(socket);
+      socket.serializeAttachment({
+        role: socketRole as RelaySocketAttachment["role"],
+        bytesRelayed: this.meta.bytesRelayed,
+      } satisfies RelaySocketAttachment);
     }
     if (this.meta.bytesRelayed - this.persistedBytes >= 8 * 1024 * 1024) {
       await this.ctx.storage.put("meta", this.meta);

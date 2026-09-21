@@ -300,11 +300,14 @@ class AlterSendSocketTransfer(
                 baseUrl   = BuildConfig.CF_RELAY_BASE_URL,
                 sessionId = sessionId,
                 role      = "sender",
-                token     = credentials.senderToken,
                 expiry    = credentials.expiresAt,
                 maxBytes  = credentials.maxBytes
             )
-            val cfTransport = CloudflareWebSocketTransport(wsUrl, okHttpClient)
+            val cfTransport = CloudflareWebSocketTransport(
+                wsUrl,
+                credentials.senderToken,
+                okHttpClient
+            )
             cfTransport.connect()
             activeTransport = cfTransport
 
@@ -358,11 +361,10 @@ class AlterSendSocketTransfer(
                     baseUrl   = relayUrl,
                     sessionId = sessionId,
                     role      = "receiver",
-                    token     = token,
                     expiry    = expiry,
                     maxBytes  = maxBytes
                 )
-                val transport = CloudflareWebSocketTransport(wsUrl, okHttpClient)
+                val transport = CloudflareWebSocketTransport(wsUrl, token, okHttpClient)
                 transport.connect()
                 transport to ConnectionMode.CLOUDFLARE_RELAY
             }

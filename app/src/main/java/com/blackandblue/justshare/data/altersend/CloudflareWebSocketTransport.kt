@@ -29,12 +29,14 @@ import java.util.concurrent.atomic.AtomicBoolean
  *   FRAME_ACK / FRAME_NEED protocol above this layer for application-level
  *   backpressure, exactly as before.
  *
- * @param wsUrl    Full wss:// URL, e.g. wss://relay.justshare.app/v1/session/abc123?role=sender&token=...&expiry=...
+ * @param wsUrl    Full wss:// URL with non-secret session metadata.
+ * @param relayToken Short-lived HMAC credential sent only as a request header.
  * @param client   Shared [OkHttpClient] instance (caller owns lifecycle).
  * @param connectTimeoutMs How long to block waiting for the WebSocket handshake.
  */
 class CloudflareWebSocketTransport(
     private val wsUrl: String,
+    private val relayToken: String,
     private val client: OkHttpClient,
     private val connectTimeoutMs: Long = 10_000L
 ) : RelayTransport {
@@ -83,7 +85,10 @@ class CloudflareWebSocketTransport(
      * @throws IOException if the connection cannot be established in time.
      */
     fun connect() {
-        val request = Request.Builder().url(wsUrl).build()
+        val request = Request.Builder()
+            .url(wsUrl)
+            .header("X-JustShare-Relay-Token", relayToken)
+            .build()
         client.newWebSocket(request, listener)
 
         // Wait for onOpen to set webSocket
@@ -142,7 +147,6 @@ class CloudflareWebSocketTransport(
          * @param baseUrl    Value of [BuildConfig.CF_RELAY_BASE_URL]
          * @param sessionId  32-char hex session id
          * @param role       "sender" or "receiver"
-         * @param token      Short-lived HMAC token issued by the backend
          * @param expiry     Unix epoch seconds (token lifetime)
          * @param maxBytes   Server-reserved byte ceiling bound into the token
          */
@@ -150,10 +154,9 @@ class CloudflareWebSocketTransport(
             baseUrl:   String,
             sessionId: String,
             role:      String,
-            token:     String,
             expiry:    Long,
             maxBytes:  Long
         ): String = "${baseUrl.trimEnd('/')}/v1/session/$sessionId" +
-                    "?role=$role&token=$token&expiry=$expiry&limit=$maxBytes"
+                    "?role=$role&expiry=$expiry&limit=$maxBytes"
     }
 }
