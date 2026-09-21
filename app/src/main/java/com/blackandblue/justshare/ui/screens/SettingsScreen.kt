@@ -49,6 +49,7 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
+            .statusBarsPadding()
     ) {
         Box(
             modifier = Modifier
