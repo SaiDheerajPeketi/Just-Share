@@ -14,6 +14,7 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
+import type { Env } from "./index";
 
 // ── Tag constants sent by the Android client during the WebSocket handshake ──
 const ROLE_SENDER   = "sender";
@@ -33,7 +34,8 @@ interface SessionMeta {
   createdAt:        number;  // epoch ms
 }
 
-export class RelayDurableObject extends DurableObject {
+export class RelayDurableObject extends DurableObject<Env> {
+  private persistedBytes = 0;
   private meta: SessionMeta = {
     senderAttached:   false,
     receiverAttached: false,
@@ -41,6 +43,17 @@ export class RelayDurableObject extends DurableObject {
     quotaBytes:       Number(this.env.CF_RELAY_SESSION_QUOTA_BYTES ?? 5_368_709_120),
     createdAt:        Date.now(),
   };
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    ctx.blockConcurrencyWhile(async () => {
+      const stored = await ctx.storage.get<SessionMeta>("meta");
+      if (stored) {
+        this.meta = stored;
+        this.persistedBytes = stored.bytesRelayed;
+      }
+    });
+  }
 
   // ── WebSocket message handler (Hibernation API) ───────────────────────────
 
@@ -50,10 +63,16 @@ export class RelayDurableObject extends DurableObject {
 
     const url    = new URL(request.url);
     const role   = url.searchParams.get("role");
+    const requestedQuota = Number(url.searchParams.get("limit"));
 
-    if (role !== ROLE_SENDER && role !== ROLE_RECEIVER) {
+    if (
+      (role !== ROLE_SENDER && role !== ROLE_RECEIVER) ||
+      !Number.isSafeInteger(requestedQuota) ||
+      requestedQuota <= 0
+    ) {
       return new Response("Invalid role", { status: 400 });
     }
+    this.meta.quotaBytes = Math.min(this.meta.quotaBytes, requestedQuota);
 
     // Reject duplicate roles (e.g. two senders racing)
     if (role === ROLE_SENDER   && this.meta.senderAttached)   {
@@ -73,6 +92,7 @@ export class RelayDurableObject extends DurableObject {
 
     // Set an alarm to expire this session if it is abandoned.
     const ttlMs = Number(this.env.CF_RELAY_SESSION_TTL_SECONDS ?? 3600) * 1000;
+    await this.ctx.storage.put("meta", this.meta);
     await this.ctx.storage.setAlarm(Date.now() + ttlMs);
 
     return new Response(null, { status: 101, webSocket: client });
@@ -92,6 +112,10 @@ export class RelayDurableObject extends DurableObject {
     if (this.meta.bytesRelayed > this.meta.quotaBytes) {
       this.closeAll(CLOSE_QUOTA_EXCEEDED, "Session quota exceeded");
       return;
+    }
+    if (this.meta.bytesRelayed - this.persistedBytes >= 8 * 1024 * 1024) {
+      await this.ctx.storage.put("meta", this.meta);
+      this.persistedBytes = this.meta.bytesRelayed;
     }
 
     // Determine direction and forward to the other socket.
@@ -122,6 +146,7 @@ export class RelayDurableObject extends DurableObject {
     const [role] = this.ctx.getTags(ws);
     if (role === ROLE_SENDER)   this.meta.senderAttached   = false;
     if (role === ROLE_RECEIVER) this.meta.receiverAttached = false;
+    await this.ctx.storage.put("meta", this.meta);
 
     // Notify the other side so it can surface a clean error to the user.
     const targetRole = role === ROLE_SENDER ? ROLE_RECEIVER : ROLE_SENDER;
@@ -140,6 +165,7 @@ export class RelayDurableObject extends DurableObject {
 
   async alarm(): Promise<void> {
     this.closeAll(CLOSE_SESSION_EXPIRED, "Session expired");
+    await this.ctx.storage.deleteAll();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

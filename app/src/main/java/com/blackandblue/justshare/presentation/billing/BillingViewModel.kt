@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 /**
@@ -86,11 +87,15 @@ class BillingViewModel @Inject constructor(
 
     private fun loadProducts() {
         viewModelScope.launch {
-            val products = billingClientWrapper.queryProducts(
-                listOf(PRO_PRODUCT_ID, DATA_PACK_PRODUCT_ID)
-            )
-            _proProductDetails.value = products.firstOrNull { it.productId == PRO_PRODUCT_ID }
-            _dataPackProductDetails.value = products.firstOrNull { it.productId == DATA_PACK_PRODUCT_ID }
+            repeat(5) { attempt ->
+                val products = billingClientWrapper.queryProducts(
+                    listOf(PRO_PRODUCT_ID, DATA_PACK_PRODUCT_ID)
+                )
+                _proProductDetails.value = products.firstOrNull { it.productId == PRO_PRODUCT_ID }
+                _dataPackProductDetails.value = products.firstOrNull { it.productId == DATA_PACK_PRODUCT_ID }
+                if (products.isNotEmpty()) return@launch
+                if (attempt < 4) delay(1_000)
+            }
         }
     }
 

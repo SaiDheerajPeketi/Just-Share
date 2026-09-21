@@ -9,6 +9,7 @@ import com.blackandblue.justshare.data.UserPreferencesDataStore
 import com.blackandblue.justshare.data.remote.QuotaApiService
 import com.blackandblue.justshare.data.remote.TelemetryEvent
 import com.blackandblue.justshare.data.repository.QuotaRepository
+import com.revenuecat.purchases.Purchases
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -57,6 +58,8 @@ class PurchaseRepository @Inject constructor(
 
     /** Start observing purchase results. Call once from the DI graph initializer or Application. */
     fun startObserving() {
+        if (observing) return
+        observing = true
         billingClientWrapper.purchaseResults
             .onEach { result ->
                 if (result is PurchaseResult.Success) {
@@ -65,6 +68,9 @@ class PurchaseRepository @Inject constructor(
             }
             .launchIn(repoScope)
     }
+
+    @Volatile
+    private var observing = false
 
     private suspend fun handlePurchase(purchase: Purchase) {
         if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) return
@@ -90,6 +96,9 @@ class PurchaseRepository @Inject constructor(
                 )
 
                 if (code in 200..299) {
+                    if (Purchases.isConfigured) {
+                        Purchases.sharedInstance.syncPurchases()
+                    }
                     // Server confirmed — now safe to finalize on the client
                     finalizeOnClient(purchase, productId)
                     quotaRepository.refresh()

@@ -92,7 +92,8 @@ class AlterSendRepository @Inject constructor(
                     incomingDecision = decision
                 }.await()
             },
-            telemetryService = telemetryService
+            telemetryService = telemetryService,
+            relayCredentialProvider = quotaRepository::createRelayCredentials
         )
         activeTransfer = transfer
         launchQuotaCheckedTransfer(offers.sumOf { it.sizeBytes }) {
@@ -135,11 +136,14 @@ class AlterSendRepository @Inject constructor(
                     incomingDecision = decision
                 }.await()
             },
-            telemetryService = telemetryService
+            telemetryService = telemetryService,
+            relayCredentialProvider = quotaRepository::createRelayCredentials
         )
         activeTransfer = transfer
-        launchQuotaCheckedTransfer(estimatedBytes = 0L) {
-            transfer.join(invite)
+        transferJob = scope.launch {
+            executeTransfer {
+                transfer.join(invite)
+            }
         }
     }
 
@@ -199,21 +203,25 @@ class AlterSendRepository @Inject constructor(
                 }
             }
 
-            startForegroundTransfer()
-            try {
-                action()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                _state.update {
-                    it.copy(
-                        phase = AlterSendConnectionPhase.Failed,
-                        errorMessage = error.localizedMessage ?: "Remote Transfer failed"
-                    )
-                }
-            } finally {
-                stopForegroundTransfer()
+            executeTransfer(action)
+        }
+    }
+
+    private suspend fun executeTransfer(action: suspend () -> Unit) {
+        startForegroundTransfer()
+        try {
+            action()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            _state.update {
+                it.copy(
+                    phase = AlterSendConnectionPhase.Failed,
+                    errorMessage = error.localizedMessage ?: "Remote Transfer failed"
+                )
             }
+        } finally {
+            stopForegroundTransfer()
         }
     }
 

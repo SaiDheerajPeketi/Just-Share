@@ -5,9 +5,10 @@
  *   GET /v1/session/:id  (WebSocket upgrade)
  *       Query params:
  *         role   = "sender" | "receiver"
- *         token  = HMAC-SHA256 hex of "<sessionId>:<role>:<expiry>" signed with
- *                  CF_RELAY_HMAC_SECRET  (secret shared with Android BuildConfig)
+ *         token  = HMAC-SHA256 hex of "<sessionId>:<role>:<expiry>:<limit>" signed with
+ *                  CF_RELAY_HMAC_SECRET  (held only by the Worker and token service)
  *         expiry = Unix epoch seconds (token lifetime; Android uses +300s)
+ *         limit  = Reserved byte ceiling returned by the token service
  *
  *   GET /v1/health
  *       Returns 200 { status: "ok" } — useful for monitoring.
@@ -35,7 +36,7 @@ export interface Env {
   /**
    * 32-byte hex HMAC secret.  Set via:
    *   npx wrangler secret put CF_RELAY_HMAC_SECRET
-   * Must match BuildConfig.CF_RELAY_HMAC_SECRET in the Android app.
+   * Must match the protected backend token-service secret. Never ship it in the app.
    */
   CF_RELAY_HMAC_SECRET: string;
 
@@ -85,15 +86,24 @@ export default {
     // ── 4 & 5. Token expiry + HMAC signature validation ───────────────────
     const token  = url.searchParams.get("token")  ?? "";
     const expiry = url.searchParams.get("expiry") ?? "";
+    const limit = url.searchParams.get("limit") ?? "";
 
     const expiryTs = parseInt(expiry, 10);
-    if (isNaN(expiryTs) || Date.now() / 1000 > expiryTs) {
+    const limitBytes = Number(limit);
+    const configuredLimit = Number(env.CF_RELAY_SESSION_QUOTA_BYTES);
+    if (
+      isNaN(expiryTs) ||
+      Date.now() / 1000 > expiryTs ||
+      !Number.isSafeInteger(limitBytes) ||
+      limitBytes <= 0 ||
+      limitBytes > configuredLimit
+    ) {
       return jsonResponse({ error: "Token expired or missing expiry" }, 401);
     }
 
     const isValid = await verifyHmac(
       env.CF_RELAY_HMAC_SECRET,
-      `${sessionId}:${role}:${expiry}`,
+      `${sessionId}:${role}:${expiry}:${limit}`,
       token
     );
     if (!isValid) {
@@ -109,7 +119,7 @@ export default {
     // Pass role to the DO via query param so it can tag the socket.
     const doUrl = new URL(request.url);
     doUrl.pathname = "/";
-    doUrl.search   = `?role=${role}`;
+    doUrl.search   = `?role=${role}&limit=${limit}`;
 
     return doStub.fetch(new Request(doUrl.toString(), request));
   },
@@ -127,7 +137,7 @@ function jsonResponse(body: unknown, status: number): Response {
 /**
  * Verify an HMAC-SHA256 signature.
  * @param secret  Hex-encoded 32-byte key (from wrangler secret)
- * @param message The exact string that was signed by the Android app
+ * @param message The exact string that was signed by the backend token service
  * @param hex     The hex signature to verify
  */
 async function verifyHmac(

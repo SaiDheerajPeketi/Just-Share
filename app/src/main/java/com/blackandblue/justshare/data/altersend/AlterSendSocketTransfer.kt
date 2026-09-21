@@ -10,6 +10,7 @@ import android.provider.MediaStore
 import com.blackandblue.justshare.BuildConfig
 import com.blackandblue.justshare.data.db.TransferHistoryEntity
 import com.blackandblue.justshare.data.remote.TelemetryService
+import com.blackandblue.justshare.data.remote.RelayCredentials
 import com.blackandblue.justshare.data.repository.TransferHistoryRepository
 import com.blackandblue.justshare.domain.altersend.AlterSendConnectionPhase
 import com.blackandblue.justshare.domain.altersend.AlterSendFileOffer
@@ -53,7 +54,8 @@ class AlterSendSocketTransfer(
     private val onState: (AlterSendUiState) -> Unit,
     private val awaitIncomingDecision: suspend (List<AlterSendFileOffer>) -> Boolean = { true },
     /** Optional telemetry sink — null-safe so existing callers don't need to change. */
-    private val telemetryService: TelemetryService? = null
+    private val telemetryService: TelemetryService? = null,
+    private val relayCredentialProvider: suspend (String, Long) -> RelayCredentials? = { _, _ -> null }
 ) {
     companion object {
         private const val MAGIC = 0x4A534153 // JSAS
@@ -272,17 +274,8 @@ class AlterSendSocketTransfer(
         offers: List<AlterSendFileOffer>
     ): AlterSendInvite {
         val sessionId = randomHex32()
-        val (token, expiry) = CloudflareRelayToken.generate(
-            secretHex  = BuildConfig.CF_RELAY_HMAC_SECRET,
-            sessionId  = sessionId,
-            role       = "sender"
-        )
-        // Generate the receiver token so the Sender can embed it in the invite.
-        val (receiverToken, receiverExpiry) = CloudflareRelayToken.generate(
-            secretHex  = BuildConfig.CF_RELAY_HMAC_SECRET,
-            sessionId  = sessionId,
-            role       = "receiver"
-        )
+        val credentials = relayCredentialProvider(sessionId, offers.sumOf { it.sizeBytes })
+            ?: throw IllegalStateException("Secure relay credentials are temporarily unavailable.")
         val invite = AlterSendInvite(
             host        = "",   // unused for Cloudflare mode
             port        = 0,    // unused for Cloudflare mode
@@ -290,8 +283,9 @@ class AlterSendSocketTransfer(
             mode        = AlterSendInviteMode.Cloudflare,
             cfSessionId = sessionId,
             cfRelayUrl  = BuildConfig.CF_RELAY_BASE_URL,
-            cfExpiry    = receiverExpiry,
-            cfToken     = receiverToken   // receiver's token is what goes in the QR code
+            cfExpiry    = credentials.expiresAt,
+            cfToken     = credentials.receiverToken,
+            cfMaxBytes  = credentials.maxBytes
         )
         onState(
             AlterSendUiState(
@@ -306,8 +300,9 @@ class AlterSendSocketTransfer(
                 baseUrl   = BuildConfig.CF_RELAY_BASE_URL,
                 sessionId = sessionId,
                 role      = "sender",
-                token     = token,
-                expiry    = expiry
+                token     = credentials.senderToken,
+                expiry    = credentials.expiresAt,
+                maxBytes  = credentials.maxBytes
             )
             val cfTransport = CloudflareWebSocketTransport(wsUrl, okHttpClient)
             cfTransport.connect()
@@ -358,12 +353,14 @@ class AlterSendSocketTransfer(
                 val relayUrl   = requireNotNull(invite.cfRelayUrl)
                 val expiry     = requireNotNull(invite.cfExpiry)
                 val token      = requireNotNull(invite.cfToken)
+                val maxBytes   = requireNotNull(invite.cfMaxBytes)
                 val wsUrl = CloudflareWebSocketTransport.buildUrl(
                     baseUrl   = relayUrl,
                     sessionId = sessionId,
                     role      = "receiver",
                     token     = token,
-                    expiry    = expiry
+                    expiry    = expiry,
+                    maxBytes  = maxBytes
                 )
                 val transport = CloudflareWebSocketTransport(wsUrl, okHttpClient)
                 transport.connect()

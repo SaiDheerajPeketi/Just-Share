@@ -10,7 +10,20 @@ router.use(deviceAuth);
 router.post('/', async (req, res) => {
   const { deviceId, event, bytes, connectionMode } = req.body;
   
-  if (!deviceId || !event) {
+  if (deviceId !== req.header('X-Device-Id') || typeof event !== 'string') {
+    res.status(200).json({ success: true });
+    return;
+  }
+
+  const allowedEvents = new Set([
+    'relay_session_started',
+    'relay_session_completed',
+    'direct_session_completed',
+    'quota_exhausted',
+    'pack_purchased',
+    'pro_purchased',
+  ]);
+  if (!allowedEvents.has(event)) {
     res.status(200).json({ success: true });
     return;
   }
@@ -23,7 +36,9 @@ router.post('/', async (req, res) => {
       event,
       date: dateStr,
       count: FieldValue.increment(1),
-      totalBytes: bytes ? FieldValue.increment(bytes) : FieldValue.increment(0),
+      totalBytes: Number.isFinite(bytes) && bytes > 0
+        ? FieldValue.increment(Math.min(bytes, 5_368_709_120))
+        : FieldValue.increment(0),
     }, { merge: true });
     
   } catch (error) {

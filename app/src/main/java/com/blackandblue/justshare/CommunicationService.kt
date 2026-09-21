@@ -622,6 +622,7 @@ class CommunicationService : Service() {
         )
         _transferUpdates.value = update
         sendBroadcast(Intent(BROADCAST_SENDING_UPDATE).apply {
+            setPackage(packageName)
             putExtra(EXTRAS_PROGRESS_STATE, progress)
             putExtra(EXTRAS_FILE_NAME, update.fileName)
             putExtra(EXTRAS_FILE_SIZE, fileSize)

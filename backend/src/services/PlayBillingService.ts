@@ -1,13 +1,14 @@
 import { google } from 'googleapis';
-import { Firestore, Timestamp } from '@google-cloud/firestore';
-import { PurchaseRecord } from '../models/PurchaseRecord';
+import { createHash } from 'crypto';
+
+export function hashPurchaseToken(purchaseToken: string): string {
+  return createHash('sha256').update(purchaseToken).digest('hex');
+}
 
 export class PlayBillingService {
-  private firestore: Firestore;
   private packageName: string;
 
   constructor() {
-    this.firestore = new Firestore();
     this.packageName = process.env.ANDROID_PACKAGE_NAME || 'com.blackandblue.justshare';
   }
 
@@ -15,11 +16,10 @@ export class PlayBillingService {
     const auth = new google.auth.GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/androidpublisher']
     });
-    const client = await auth.getClient();
-    return google.androidpublisher({ version: 'v3', auth: client });
+    return google.androidpublisher({ version: 'v3', auth });
   }
 
-  async verifyPurchase(deviceId: string, productId: string, purchaseToken: string): Promise<any> {
+  async verifyPurchase(productId: string, purchaseToken: string): Promise<any> {
     const publisher = await this.getAndroidPublisher();
     
     try {
@@ -32,22 +32,17 @@ export class PlayBillingService {
       const purchase = response.data;
       
       if (purchase.purchaseState === 0) { // 0 = PURCHASED
-        const record: PurchaseRecord = {
-          deviceId,
-          productId,
-          purchaseToken,
-          verifiedAt: Timestamp.now(),
+        return {
+          success: true,
           orderId: purchase.orderId || undefined,
+          purchaseTokenHash: hashPurchaseToken(purchaseToken),
         };
-        
-        await this.firestore.collection('purchaseRecords').doc(purchaseToken).set(record);
-        return { success: true, orderId: purchase.orderId };
       }
       
       return { success: false, reason: 'NOT_PURCHASED' };
-    } catch (error: any) {
-      console.error('Play API verify error:', error);
-      throw error;
+    } catch {
+      console.error('Play purchase verification failed');
+      throw new Error('PLAY_VERIFICATION_FAILED');
     }
   }
 }

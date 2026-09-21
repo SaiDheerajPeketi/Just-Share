@@ -3,8 +3,10 @@ package com.blackandblue.justshare.presentation
 import timber.log.Timber
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
@@ -14,6 +16,7 @@ import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.location.LocationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.blackandblue.justshare.domain.transfer.TransferOrchestration
@@ -299,7 +302,15 @@ class WifiDirectViewModel @Inject constructor(
             }
             return
         }
-        wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
+        if (!hasWifiDirectPermission()) {
+            _uiState.update { it.copy(isDiscovering = false, errorMessage = "Nearby-device permission is required to discover devices.") }
+            return
+        }
+        try {
+            wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
+        } catch (_: SecurityException) {
+            _uiState.update { it.copy(isDiscovering = false, errorMessage = "Nearby-device permission is required to discover devices.") }
+        }
     }
 
     fun onConnectionChanged() {
@@ -743,7 +754,7 @@ class WifiDirectViewModel @Inject constructor(
     fun dismissPermissionDialog() {
         Timber.d("WifiDirectViewModel - dismissPermissionDialog called")
         if (visiblePermissionDialogQueue.isNotEmpty()) {
-            visiblePermissionDialogQueue.removeFirst()
+            visiblePermissionDialogQueue.removeAt(0)
         }
     }
 
@@ -760,6 +771,17 @@ class WifiDirectViewModel @Inject constructor(
             } 
         }
         receiver = null
-        wifiP2pChannel?.close()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            wifiP2pChannel?.close()
+        }
+    }
+
+    private fun hasWifiDirectPermission(): Boolean {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.NEARBY_WIFI_DEVICES
+        } else {
+            Manifest.permission.ACCESS_FINE_LOCATION
+        }
+        return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
     }
 }

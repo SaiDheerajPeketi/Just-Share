@@ -18,14 +18,14 @@ router.get('/:deviceId', async (req, res) => {
   try {
     const quota = await quotaService.getQuota(deviceId);
     res.json(quota);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(503).json({ error: 'Quota temporarily unavailable' });
   }
 });
 
 router.post('/relay-check', async (req, res) => {
   const { deviceId, estimatedBytes } = req.body;
-  if (!deviceId || typeof estimatedBytes !== 'number') {
+  if (deviceId !== req.header('X-Device-Id') || typeof estimatedBytes !== 'number' || estimatedBytes < 0) {
     res.status(400).json({ error: 'Missing deviceId or estimatedBytes' });
     return;
   }
@@ -37,27 +37,8 @@ router.post('/relay-check', async (req, res) => {
     } else {
       res.status(402).json(result);
     }
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/relay-meter', async (req, res) => {
-  const { deviceId, bytesRelayed, sessionId } = req.body;
-  if (!deviceId || typeof bytesRelayed !== 'number' || !sessionId) {
-    res.status(400).json({ error: 'Missing parameters' });
-    return;
-  }
-
-  try {
-    const result = await quotaService.meterRelay(deviceId, bytesRelayed, sessionId);
-    if (result.success) {
-      res.status(200).json(result);
-    } else {
-      res.status(402).json(result);
-    }
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(503).json({ error: 'Quota temporarily unavailable' });
   }
 });
 

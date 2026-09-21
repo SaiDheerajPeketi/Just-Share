@@ -27,7 +27,9 @@ data class AlterSendInvite(
     /** Unix epoch seconds at which the token expires. */
     val cfExpiry: Long? = null,
     /** HMAC-SHA256 token authorising this device to join the session. */
-    val cfToken: String? = null
+    val cfToken: String? = null,
+    /** Server-reserved byte ceiling cryptographically bound to the relay token. */
+    val cfMaxBytes: Long? = null
 ) {
     fun encode(): String = when (mode) {
         AlterSendInviteMode.Direct -> "$DIRECT_PREFIX$host:$port:$topicHex"
@@ -51,6 +53,7 @@ data class AlterSendInvite(
                 put("relayUrl",  requireNotNull(cfRelayUrl)  { "Cloudflare invite requires cfRelayUrl" })
                 put("expiry",    requireNotNull(cfExpiry)    { "Cloudflare invite requires cfExpiry" })
                 put("token",     requireNotNull(cfToken)     { "Cloudflare invite requires cfToken" })
+                put("maxBytes",  requireNotNull(cfMaxBytes)  { "Cloudflare invite requires cfMaxBytes" })
             }
             val b64 = Base64.encodeToString(json.toString().encodeToByteArray(), Base64.NO_WRAP)
             "$CLOUDFLARE_PREFIX$b64"
@@ -90,6 +93,8 @@ data class AlterSendInvite(
                     ?: throw IllegalArgumentException("Cloudflare invite missing expiry")
                 val token    = json.optString("token").takeIf { it.isNotBlank() }
                     ?: throw IllegalArgumentException("Cloudflare invite missing token")
+                val maxBytes = json.optLong("maxBytes").takeIf { it > 0 }
+                    ?: throw IllegalArgumentException("Cloudflare invite missing maxBytes")
 
                 return AlterSendInvite(
                     // host/port are unused for Cloudflare mode but kept non-null for the data class.
@@ -100,7 +105,8 @@ data class AlterSendInvite(
                     cfSessionId   = sessionId,
                     cfRelayUrl    = relayUrl,
                     cfExpiry      = expiry,
-                    cfToken       = token
+                    cfToken       = token,
+                    cfMaxBytes    = maxBytes
                 )
             }
 

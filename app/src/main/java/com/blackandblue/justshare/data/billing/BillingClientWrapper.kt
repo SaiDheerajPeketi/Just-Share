@@ -27,7 +27,7 @@ import kotlin.coroutines.resume
 import kotlin.math.min
 
 /**
- * Wraps the Google Play Billing Library 9.x [BillingClient], managing its lifecycle,
+ * Wraps Google Play Billing Library 8.3 [BillingClient], managing its lifecycle,
  * reconnection, and purchase events.
  *
  * Callers subscribe to [purchaseResults] to receive purchase updates; they must

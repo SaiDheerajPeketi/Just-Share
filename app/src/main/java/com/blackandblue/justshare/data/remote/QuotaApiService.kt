@@ -70,6 +70,37 @@ class QuotaApiService @Inject constructor(
             }
         }
 
+    /** Requests short-lived relay credentials. The signing secret never enters the APK. */
+    suspend fun createRelayCredentials(
+        deviceId: String,
+        sessionId: String,
+        estimatedBytes: Long
+    ): RelayCredentials? =
+        withContext(Dispatchers.IO) {
+            try {
+                val body = JSONObject().apply {
+                    put("deviceId", deviceId)
+                    put("sessionId", sessionId)
+                    put("estimatedBytes", estimatedBytes.coerceAtLeast(0L))
+                }.toString()
+                val (code, json) = postForJson(
+                    "$baseUrl/relay/session-credentials",
+                    deviceId,
+                    body
+                )
+                if (code != HttpURLConnection.HTTP_OK || json == null) return@withContext null
+                RelayCredentials(
+                    senderToken = json.getString("senderToken"),
+                    receiverToken = json.getString("receiverToken"),
+                    expiresAt = json.getLong("expiresAt"),
+                    maxBytes = json.getLong("maxBytes")
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "createRelayCredentials failed", e)
+                null
+            }
+        }
+
     // ── Telemetry ───────────────────────────────────────────────────────────
 
     /**
@@ -178,3 +209,10 @@ data class TelemetryEvent(
         const val PRO_PURCHASED = "pro_purchased"
     }
 }
+
+data class RelayCredentials(
+    val senderToken: String,
+    val receiverToken: String,
+    val expiresAt: Long,
+    val maxBytes: Long
+)

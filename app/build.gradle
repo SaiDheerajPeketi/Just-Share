@@ -1,24 +1,47 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
     id 'kotlin-kapt'
     id 'com.google.dagger.hilt.android'
     id 'kotlin-parcelize'
+}
+
+def firebaseConfigFile = file("google-services.json")
+def firebaseConfigured = firebaseConfigFile.isFile()
+if (firebaseConfigured) {
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
 }
 
 def quotaApiBaseUrl = providers.gradleProperty("QUOTA_API_BASE_URL")
     .orElse(providers.environmentVariable("QUOTA_API_BASE_URL"))
     .orElse("")
     .get()
+def revenueCatApiKey = providers.gradleProperty("JUSTSHARE_REVENUECAT_API_KEY")
+    .orElse(providers.environmentVariable("JUSTSHARE_REVENUECAT_API_KEY"))
+    .orElse("")
+    .get()
+    .trim()
+def releaseKeystorePath = System.getenv("JUSTSHARE_KEYSTORE_PATH")
+def releaseStorePassword = System.getenv("JUSTSHARE_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("JUSTSHARE_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("JUSTSHARE_KEY_PASSWORD")
+def hasReleaseSigning = [
+    releaseKeystorePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+].every { it != null && !it.isBlank() }
 
 android {
     namespace 'com.blackandblue.justshare'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.blackandblue.justshare"
         minSdk 24
-        targetSdk 34
+        targetSdk 36
         versionCode 1
         versionName "1.0"
 
@@ -30,38 +53,32 @@ android {
         buildConfigField "int", "ALTERSEND_RELAY_PORT", alterSendRelayPort
         buildConfigField "String", "ALTERSEND_PUBLIC_RELAY_NODES", "\"${alterSendPublicRelayNodes}\""
         buildConfigField "String", "QUOTA_API_BASE_URL", "\"${quotaApiBaseUrl}\""
+        buildConfigField "String", "REVENUECAT_API_KEY", "\"${revenueCatApiKey}\""
+        buildConfigField "String", "REVENUECAT_ENTITLEMENT_ID", '"pro"'
+        buildConfigField "boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString()
 
         // ── Cloudflare WebSocket Relay ─────────────────────────────────────
-        // CF_RELAY_BASE_URL   : wss://relay.justshare.app  (or ws://localhost:8787 for dev)
-        // CF_RELAY_HMAC_SECRET: 32-byte hex — must match the Wrangler secret
+          // CF_RELAY_BASE_URL   : wss://relay.justshare.blackandblue.co.in  (or ws://localhost:8787 for dev)
         // CF_RELAY_ENABLED    : set to "true" to activate the Cloudflare relay path
         //
         // Add these to local.properties (never commit secrets to git):
-        //   CF_RELAY_BASE_URL=wss://relay.justshare.app
-        //   CF_RELAY_HMAC_SECRET=<your 32-byte hex>
+          //   CF_RELAY_BASE_URL=wss://relay.justshare.blackandblue.co.in
         //   CF_RELAY_ENABLED=true
-        def cfRelayBaseUrl    = (project.findProperty("CF_RELAY_BASE_URL")    ?: "").toString()
-        def cfRelayHmacSecret = (project.findProperty("CF_RELAY_HMAC_SECRET") ?: "").toString()
-        def cfRelayEnabled    = (project.findProperty("CF_RELAY_ENABLED")     ?: "false").toString()
+        def cfRelayBaseUrl = providers.gradleProperty("CF_RELAY_BASE_URL")
+            .orElse(providers.environmentVariable("CF_RELAY_BASE_URL"))
+            .orElse("")
+            .get()
+        def cfRelayEnabled = providers.gradleProperty("CF_RELAY_ENABLED")
+            .orElse(providers.environmentVariable("CF_RELAY_ENABLED"))
+            .orElse("false")
+            .get()
         buildConfigField "String",  "CF_RELAY_BASE_URL",    "\"${cfRelayBaseUrl}\""
-        buildConfigField "String",  "CF_RELAY_HMAC_SECRET", "\"${cfRelayHmacSecret}\""
         buildConfigField "boolean", "CF_RELAY_ENABLED",     cfRelayEnabled
 
         vectorDrawables {
             useSupportLibrary true
         }
     }
-
-    def releaseKeystorePath = System.getenv("JUSTSHARE_KEYSTORE_PATH")
-    def releaseStorePassword = System.getenv("JUSTSHARE_KEYSTORE_PASSWORD")
-    def releaseKeyAlias = System.getenv("JUSTSHARE_KEY_ALIAS")
-    def releaseKeyPassword = System.getenv("JUSTSHARE_KEY_PASSWORD")
-    def hasReleaseSigning = [
-        releaseKeystorePath,
-        releaseStorePassword,
-        releaseKeyAlias,
-        releaseKeyPassword
-    ].every { it != null && !it.isBlank() }
 
     signingConfigs {
         if (hasReleaseSigning) {
@@ -94,10 +111,6 @@ android {
     buildFeatures {
         compose true
         buildConfig true
-    }
-    composeOptions {
-        // Compose compiler for Kotlin 1.9.x
-        kotlinCompilerExtensionVersion '1.5.14'
     }
     packaging {
         resources {
@@ -156,9 +169,14 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
 
-    // Google Play Billing Library 9.x — required for in-app purchases and subscriptions.
-    // Any new app targeting Android must use v8+ by Aug 31 2026; using v9 directly.
-    implementation 'com.android.billingclient:billing:9.0.0'
+    // Billing 8.3 matches RevenueCat's supported observer-mode dependency and meets Play's v8+ requirement.
+    // Any new app targeting Android must use v8+ by Aug 31 2026.
+    implementation 'com.android.billingclient:billing:8.3.0'
+    implementation 'com.revenuecat.purchases:purchases:10.19.1'
+
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
 
     // Testing
     testImplementation 'junit:junit:4.13.2'
@@ -173,6 +191,35 @@ dependencies {
 
     // OkHttp – used by CloudflareWebSocketTransport for the relay WebSocket connection
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}
+
+def validateUploadConfiguration = tasks.register("validateUploadConfiguration") {
+    group = "release"
+    description = "Validates protected Just Share upload inputs."
+    doLast {
+        if (!hasReleaseSigning) {
+            throw new GradleException("All JUSTSHARE_KEYSTORE_* values are required for upload.")
+        }
+        if (!file(releaseKeystorePath).isFile()) {
+            throw new GradleException("The configured Just Share upload keystore is missing.")
+        }
+        if (!revenueCatApiKey.startsWith("goog_")) {
+            throw new GradleException("JUSTSHARE_REVENUECAT_API_KEY must be the app-specific Google public SDK key.")
+        }
+        if (!firebaseConfigFile.isFile()) {
+            throw new GradleException("Place the protected Just Share google-services.json in app/.")
+        }
+        def firebaseText = firebaseConfigFile.getText("UTF-8")
+        if (!firebaseText.replaceAll('\\s+', '').contains('"package_name":"com.blackandblue.justshare"')) {
+            throw new GradleException("app/google-services.json is not configured for com.blackandblue.justshare.")
+        }
+    }
+}
+
+tasks.register("bundleReleaseForUpload") {
+    group = "release"
+    description = "Builds the signed Just Share bundle after protected-input validation."
+    dependsOn validateUploadConfiguration, "bundleRelease"
 }
 
 tasks.configureEach { task ->

@@ -3,6 +3,7 @@ package com.blackandblue.justshare.data.repository
 import android.util.Log
 import com.blackandblue.justshare.data.UserPreferencesDataStore
 import com.blackandblue.justshare.data.remote.QuotaApiService
+import com.blackandblue.justshare.data.remote.RelayCredentials
 import com.blackandblue.justshare.domain.billing.QuotaState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,8 +68,7 @@ class QuotaRepository @Inject constructor(
      * Returns:
      * - [RelayCheckResult.Allowed] — server gave a green light
      * - [RelayCheckResult.Exhausted] — quota is used up; show the upsell dialog
-     * - [RelayCheckResult.NetworkError] — couldn't reach the server; allow optimistically
-     *   but the relay gateway will enforce independently
+     * - [RelayCheckResult.NetworkError] — couldn't reach the server; block until quota is verified
      */
     suspend fun checkRelayAllowed(estimatedBytes: Long): RelayCheckResult {
         return try {
@@ -86,6 +86,14 @@ class QuotaRepository @Inject constructor(
             Log.e(TAG, "checkRelayAllowed exception", e)
             RelayCheckResult.NetworkError
         }
+    }
+
+    suspend fun createRelayCredentials(sessionId: String, estimatedBytes: Long): RelayCredentials? = try {
+        val deviceId = dataStore.ensureDeviceId()
+        apiService.createRelayCredentials(deviceId, sessionId, estimatedBytes)
+    } catch (e: Exception) {
+        Log.e(TAG, "createRelayCredentials exception", e)
+        null
     }
 }
 

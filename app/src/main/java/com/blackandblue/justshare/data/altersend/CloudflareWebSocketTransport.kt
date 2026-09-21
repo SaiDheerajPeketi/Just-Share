@@ -139,19 +139,21 @@ class CloudflareWebSocketTransport(
         /**
          * Build the full WebSocket URL for a Cloudflare session.
          *
-         * @param baseUrl    Value of [BuildConfig.CF_RELAY_BASE_URL]  e.g. "wss://relay.justshare.app"
+         * @param baseUrl    Value of [BuildConfig.CF_RELAY_BASE_URL]
          * @param sessionId  32-char hex session id
          * @param role       "sender" or "receiver"
-         * @param token      HMAC token from [CloudflareRelayToken.generate]
+         * @param token      Short-lived HMAC token issued by the backend
          * @param expiry     Unix epoch seconds (token lifetime)
+         * @param maxBytes   Server-reserved byte ceiling bound into the token
          */
         fun buildUrl(
             baseUrl:   String,
             sessionId: String,
             role:      String,
             token:     String,
-            expiry:    Long
+            expiry:    Long,
+            maxBytes:  Long
         ): String = "${baseUrl.trimEnd('/')}/v1/session/$sessionId" +
-                    "?role=$role&token=$token&expiry=$expiry"
+                    "?role=$role&token=$token&expiry=$expiry&limit=$maxBytes"
     }
 }

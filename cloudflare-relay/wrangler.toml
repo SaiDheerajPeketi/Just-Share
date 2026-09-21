@@ -4,15 +4,12 @@
 #
 # HOW TO CONFIGURE
 # ─────────────────
-# 1. Replace YOUR_CLOUDFLARE_ACCOUNT_ID below with your actual Account ID.
-#    Find it at: https://dash.cloudflare.com → right-hand sidebar.
-#
-# 2. Set the required secrets via Wrangler CLI (run once, values stored in CF):
+# 1. Set the required secrets via Wrangler CLI (run once, values stored in CF):
 #      npx wrangler secret put CF_RELAY_HMAC_SECRET
 #        → paste a long random hex string (e.g. `openssl rand -hex 32`)
-#          This must match BuildConfig.CF_RELAY_HMAC_SECRET in the Android app.
+#          This must match the protected backend token-service secret.
 #
-# 3. Map the custom domain (after your domain is proxied through Cloudflare):
+# 2. Map the custom domain (after your domain is proxied through Cloudflare):
 #    Uncomment the [env.production.routes] section below and set your zone.
 #
 # ──────────────────────────────────────────────────────────────────────────────
@@ -22,8 +19,6 @@ main            = "src/index.ts"
 compatibility_date = "2024-09-23"
 
 # ── Workers account ───────────────────────────────────────────────────────────
-account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"   # ← replace this
-
 # ── Durable Object binding ────────────────────────────────────────────────────
 [[durable_objects.bindings]]
 name       = "RELAY_SESSION"
@@ -46,10 +41,10 @@ CF_RELAY_SESSION_TTL_SECONDS = "3600"
 [env.production]
 name = "justshare-relay-worker-production"
 
-# Uncomment and fill in once your domain (e.g. relay.justshare.app) is
+# Uncomment and fill in once the Black and Blue domain is proxied through Cloudflare:
 # proxied through Cloudflare and you've added the custom domain in the
 # Workers → Custom Domains dashboard:
 #
 # [[env.production.routes]]
-# pattern = "relay.justshare.app/v1/*"
-# zone_name = "justshare.app"
+# pattern = "relay.justshare.blackandblue.co.in/v1/*"
+# zone_name = "blackandblue.co.in"

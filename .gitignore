@@ -16,3 +16,6 @@
 local.properties
 keystore.properties
 *.keystore
+app/google-services.json
+node_modules/
+backend/dist/
