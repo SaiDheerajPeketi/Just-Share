@@ -20,21 +20,28 @@ object JustShareTelemetry {
         }
     }
 
-    fun log(name: String, parameters: Map<String, String> = emptyMap()) {
+    fun log(name: String) {
         val safeName = sanitize(name) ?: return
-        val bundle = Bundle().apply {
-            parameters.entries.take(10).forEach { (key, value) ->
-                putString(sanitize(key) ?: return@forEach, sanitize(value) ?: "other")
-            }
-        }
-        analytics?.logEvent(safeName, bundle)
+        analytics?.logEvent(safeName, Bundle.EMPTY)
     }
 
     fun recordNonFatal(code: String, throwable: Throwable) {
+        val failure = sanitizedFailure(code, throwable)
         crashlytics?.apply {
-            setCustomKey("failure_code", sanitize(code) ?: "unknown")
-            recordException(throwable)
+            setCustomKey("failure_code", failure.code)
+            setCustomKey("failure_type", failure.type)
+            recordException(failure.exception)
         }
+    }
+
+    internal fun sanitizedFailure(code: String, throwable: Throwable): SanitizedFailure {
+        val safeCode = sanitize(code) ?: "unknown"
+        val safeType = sanitize(throwable::class.simpleName ?: "throwable") ?: "throwable"
+        return SanitizedFailure(
+            code = safeCode,
+            type = safeType,
+            exception = TelemetryFailureException("$safeCode:$safeType"),
+        )
     }
 
     internal fun sanitize(value: String): String? {
@@ -44,4 +51,12 @@ object JustShareTelemetry {
             .take(40)
         return normalized.takeIf(String::isNotEmpty)
     }
+
+    internal data class SanitizedFailure(
+        val code: String,
+        val type: String,
+        val exception: Throwable,
+    )
+
+    private class TelemetryFailureException(message: String) : RuntimeException(message)
 }

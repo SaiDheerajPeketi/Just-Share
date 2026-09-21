@@ -15,4 +15,17 @@ class JustShareTelemetryTest {
     fun `sanitizer rejects empty labels`() {
         assertNull(JustShareTelemetry.sanitize(" -- "))
     }
+
+    @Test
+    fun `reported failures exclude file details`() {
+        val failure = JustShareTelemetry.sanitizedFailure(
+            code = "relay_failed",
+            throwable = IllegalStateException("Photo.jpg from peer-123"),
+        )
+
+        assertEquals("relay_failed", failure.code)
+        assertEquals("illegalstateexception", failure.type)
+        assertEquals("relay_failed:illegalstateexception", failure.exception.message)
+        assertNull(failure.exception.cause)
+    }
 }
