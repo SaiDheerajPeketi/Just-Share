@@ -36,6 +36,13 @@ RevenueCat runs in observer mode because the backend verifies purchases and owns
 HMAC secret stays on the backend and Cloudflare Worker; the app receives only five-minute session
 credentials.
 
+## Optional student support
+
+Offer one repeatable consumable `student_developer_tip` at a launch reference price of **$1.99 / ₹99**,
+with Google Play supplying the localized price elsewhere. Map it to RevenueCat offering `support`
+and custom package `tip`, with **no entitlement or quota benefit**. The existing backend verifies
+and records the token before the client consumes it, so the tip can be purchased again safely.
+
 ## Closed-test measurements
 
 Measure local and Remote transfer completion, relay fallback rate, quota exhaustion, product load,
