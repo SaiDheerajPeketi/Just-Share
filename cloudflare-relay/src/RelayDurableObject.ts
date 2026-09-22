@@ -45,7 +45,7 @@ export class RelayDurableObject extends DurableObject<Env> {
     senderAttached:   false,
     receiverAttached: false,
     bytesRelayed:     0,
-    quotaBytes:       Number(this.env.CF_RELAY_SESSION_QUOTA_BYTES ?? 5_368_709_120),
+    quotaBytes:       0,
     createdAt:        Date.now(),
   };
 
@@ -75,15 +75,28 @@ export class RelayDurableObject extends DurableObject<Env> {
     const url    = new URL(request.url);
     const role   = url.searchParams.get("role");
     const requestedQuota = Number(url.searchParams.get("limit"));
+    const configuredQuota = Number(this.env.CF_RELAY_SESSION_QUOTA_BYTES);
+    const ttlSeconds = Number(this.env.CF_RELAY_SESSION_TTL_SECONDS);
 
     if (
       (role !== ROLE_SENDER && role !== ROLE_RECEIVER) ||
       !Number.isSafeInteger(requestedQuota) ||
       requestedQuota <= 0
     ) {
-      return new Response("Invalid role", { status: 400 });
+      return new Response("Invalid role or quota", { status: 400 });
     }
-    this.meta.quotaBytes = Math.min(this.meta.quotaBytes, requestedQuota);
+    if (
+      !Number.isSafeInteger(configuredQuota) ||
+      configuredQuota <= 0 ||
+      !Number.isSafeInteger(ttlSeconds) ||
+      ttlSeconds <= 0
+    ) {
+      return new Response("Relay configuration unavailable", { status: 503 });
+    }
+    const existingQuota = Number.isSafeInteger(this.meta.quotaBytes) && this.meta.quotaBytes > 0
+      ? this.meta.quotaBytes
+      : configuredQuota;
+    this.meta.quotaBytes = Math.min(existingQuota, configuredQuota, requestedQuota);
 
     // Reject duplicate roles (e.g. two senders racing)
     if (role === ROLE_SENDER   && this.meta.senderAttached)   {
@@ -106,7 +119,7 @@ export class RelayDurableObject extends DurableObject<Env> {
     if (role === ROLE_RECEIVER) this.meta.receiverAttached = true;
 
     // Set an alarm to expire this session if it is abandoned.
-    const ttlMs = Number(this.env.CF_RELAY_SESSION_TTL_SECONDS ?? 3600) * 1000;
+    const ttlMs = ttlSeconds * 1000;
     await this.ctx.storage.put("meta", this.meta);
     await this.ctx.storage.setAlarm(Date.now() + ttlMs);
 

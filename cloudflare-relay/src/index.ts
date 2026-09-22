@@ -96,6 +96,9 @@ export default {
     const limitBytes = Number(limit);
     const configuredLimit = Number(env.CF_RELAY_SESSION_QUOTA_BYTES);
     const nowSeconds = Date.now() / 1000;
+    if (!Number.isSafeInteger(configuredLimit) || configuredLimit <= 0) {
+      return jsonResponse({ error: "Relay configuration unavailable" }, 503);
+    }
     if (
       isNaN(expiryTs) ||
       nowSeconds > expiryTs ||
