@@ -7,6 +7,24 @@ plugins {
     id 'kotlin-parcelize'
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.isFile()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+def signingPropertiesPath = System.getenv("JUSTSHARE_SIGNING_PROPERTIES_FILE") ?:
+    localProperties.getProperty("JUSTSHARE_SIGNING_PROPERTIES_FILE")
+def signingProperties = new Properties()
+if (signingPropertiesPath) {
+    def signingPropertiesFile = rootProject.file(signingPropertiesPath)
+    if (signingPropertiesFile.isFile()) {
+        signingPropertiesFile.withInputStream { signingProperties.load(it) }
+    }
+}
+def signingValue = { String environmentName, String propertyName ->
+    def environmentValue = System.getenv(environmentName)
+    environmentValue?.trim() ? environmentValue : signingProperties.getProperty(propertyName)
+}
 def firebaseConfigFile = file("google-services.json")
 def firebaseConfigured = firebaseConfigFile.isFile()
 if (firebaseConfigured) {
@@ -16,17 +34,15 @@ if (firebaseConfigured) {
 
 def quotaApiBaseUrl = providers.gradleProperty("QUOTA_API_BASE_URL")
     .orElse(providers.environmentVariable("QUOTA_API_BASE_URL"))
-    .orElse("")
-    .get()
+    .getOrElse(localProperties.getProperty("QUOTA_API_BASE_URL", ""))
 def revenueCatApiKey = providers.gradleProperty("JUSTSHARE_REVENUECAT_API_KEY")
     .orElse(providers.environmentVariable("JUSTSHARE_REVENUECAT_API_KEY"))
-    .orElse("")
-    .get()
+    .getOrElse(localProperties.getProperty("JUSTSHARE_REVENUECAT_API_KEY", ""))
     .trim()
-def releaseKeystorePath = System.getenv("JUSTSHARE_KEYSTORE_PATH")
-def releaseStorePassword = System.getenv("JUSTSHARE_KEYSTORE_PASSWORD")
-def releaseKeyAlias = System.getenv("JUSTSHARE_KEY_ALIAS")
-def releaseKeyPassword = System.getenv("JUSTSHARE_KEY_PASSWORD")
+def releaseKeystorePath = signingValue("JUSTSHARE_KEYSTORE_PATH", "storeFile")
+def releaseStorePassword = signingValue("JUSTSHARE_KEYSTORE_PASSWORD", "storePassword")
+def releaseKeyAlias = signingValue("JUSTSHARE_KEY_ALIAS", "keyAlias")
+def releaseKeyPassword = signingValue("JUSTSHARE_KEY_PASSWORD", "keyPassword")
 def hasReleaseSigning = [
     releaseKeystorePath,
     releaseStorePassword,
@@ -66,12 +82,10 @@ android {
         //   CF_RELAY_ENABLED=true
         def cfRelayBaseUrl = providers.gradleProperty("CF_RELAY_BASE_URL")
             .orElse(providers.environmentVariable("CF_RELAY_BASE_URL"))
-            .orElse("")
-            .get()
+            .getOrElse(localProperties.getProperty("CF_RELAY_BASE_URL", ""))
         def cfRelayEnabled = providers.gradleProperty("CF_RELAY_ENABLED")
             .orElse(providers.environmentVariable("CF_RELAY_ENABLED"))
-            .orElse("false")
-            .get()
+            .getOrElse(localProperties.getProperty("CF_RELAY_ENABLED", "false"))
         buildConfigField "String",  "CF_RELAY_BASE_URL",    "\"${cfRelayBaseUrl}\""
         buildConfigField "boolean", "CF_RELAY_ENABLED",     cfRelayEnabled
 
