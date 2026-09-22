@@ -867,7 +867,7 @@ function SettingsScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
 
         <div className="text-center py-4 space-y-1">
           <p className="text-xs" style={{ color: MUTED_FG }}>Just Share v2.4.1</p>
-          <p className="text-xs" style={{ color: MUTED_FG }}>© 2026 Just Share Inc.</p>
+          <p className="text-xs" style={{ color: MUTED_FG }}>© 2026 Black and Blue</p>
         </div>
       </div>
 
