@@ -43,7 +43,7 @@ The `main` branch has been successfully migrated. Feature branches are lagging b
 ## 6. Master ToDo List for Agents
 The following ToDos represent residual tasks identified across all branches:
 - [ ] **TODO-A**: Implement missing `onClick` handlers in `MainActivity` across `UI`, `Extended`, `Settings`, and `WifiDirect` branches.
-- [ ] **TODO-B**: Define `<include>` and `<exclude>` rules in `data_extraction_rules.xml` (flagged in multiple feature branches).
+- [x] **TODO-B**: Exclude all app-owned files, databases, preferences, and external app data from cloud backup and device transfer.
 - [ ] **TODO-C**: Sync `UI` and `WifiDirect` feature branch enhancements (if any orphan commits exist) into the newly refactored MVVM structure on `main`.
 - [ ] **TODO-D**: Implement a connection keep-alive or ping mechanism for Wi-Fi Direct to detect silent socket drops.
 - [ ] **TODO-E**: Add file transfer resume capability for interrupted streams.
