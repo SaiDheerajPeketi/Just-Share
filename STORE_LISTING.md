@@ -1,8 +1,8 @@
 # Just Share Google Play listing
 
-**Locale:** English (United States)  
-**App name (30 characters max):** Just Share: File Transfer  
-**Category:** Tools  
+**Locale:** English (United States)\
+**App name (30 characters max):** Just Share: File Transfer\
+**Category:** Tools\
 **Privacy policy:** https://justshare.blackandblue.co.in
 
 ## Short description

@@ -1,6 +1,6 @@
 # Just Share Play audience decision
 
-**Candidate age groups:** 13–15, 16–17, and 18+  
+**Candidate age groups:** 13–15, 16–17, and 18+\
 **Not selected:** 5 and under, 6–8, and 9–12
 
 Just Share can safely serve teenagers and adults when used to transfer lawful files. It has no ads,

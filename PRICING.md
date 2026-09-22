@@ -1,6 +1,6 @@
 # Just Share launch pricing
 
-**Decision date:** 21 September 2026  
+**Decision date:** 21 September 2026\
 **Status:** approved hypothesis for closed testing
 
 ## Strategy
