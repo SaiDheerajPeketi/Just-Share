@@ -179,6 +179,17 @@ jobs:
             echo 'Release AAB contains no verified signed entries.' >&2
             exit 1
           fi
+      - name: Record upload bundle checksum
+        run: sha256sum "$AAB_PATH" > "$AAB_PATH.sha256"
+      - name: Preserve signed upload bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: justshare-signed-aab-${{ github.run_id }}
+          path: |
+            ${{ env.AAB_PATH }}
+            ${{ env.AAB_PATH }}.sha256
+          if-no-files-found: error
+          retention-days: 90
       - name: Upload to the selected Play testing track
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
