@@ -33,6 +33,14 @@ signed artifact, verify its signer and hashes, install the matching release APK 
 prove that `MainActivity` stays alive. Only then add the new artifact details to the candidate record
 and continue with the capture plan below.
 
+A debug build from branch commit `ecbb2b2` was separately installed on a dedicated Pixel-class
+Android 15 (API 35) emulator. It launched successfully, remained alive, completed the app's
+in-context nearby-device and notification explanation followed by the Android prompts, and exposed
+the **Donate to Student Developer** card in Settings. The complete card rendered at 1080 x 2400
+with no text overlap or clipping and correctly showed **Donation unavailable right now** before
+Play/RevenueCat product provisioning. This validates the UI path only; it does not prove that the
+minified release crash is fixed.
+
 ## Permission-to-feature matrix
 
 | Surface | User-visible purpose | Required evidence |
