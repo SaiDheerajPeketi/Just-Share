@@ -50,5 +50,5 @@ Network speed and availability depend on both devices, the connection and file s
 - Target audience: ages 13–15, 16–17 and 18+
 - Ads: no
 - Monetization: one-time `pro_unlock` plus consumable `data_pack_10gb`
-- Public positioning must distinguish free nearby transfer from paid remote relay
+- Public positioning must distinguish unlimited free nearby transfer from quota-based remote relay, including the free monthly allowance and optional paid upgrades
 - Do not claim that remote transfer uses zero mobile data, that relay data is never processed, or that every network/device combination is supported
