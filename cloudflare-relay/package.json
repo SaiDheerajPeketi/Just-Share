@@ -4,6 +4,7 @@
   "description": "Just Share Cloudflare WebSocket relay using Workers + Durable Objects",
   "main": "src/index.ts",
   "scripts": {
+    "check": "tsc --noEmit",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail"

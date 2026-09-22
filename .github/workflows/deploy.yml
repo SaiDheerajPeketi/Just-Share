@@ -55,6 +55,26 @@ jobs:
       - name: Unit tests, lint, and unsigned release verification
         run: ./gradlew test lint :app:assembleRelease --stacktrace
 
+  cloud-quality:
+    needs: release-policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Build keyless Cloud Run backend
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+      - name: Type-check Cloudflare relay worker
+        working-directory: cloudflare-relay
+        run: |
+          npm ci
+          npm run check
+
   device:
     needs: release-policy
     runs-on: ubuntu-latest
@@ -77,7 +97,7 @@ jobs:
           script: ./gradlew connectedCheck --stacktrace
 
   deploy-testing:
-    needs: [quality, device]
+    needs: [quality, cloud-quality, device]
     if: >-
       github.ref == 'refs/heads/main' &&
       github.event_name == 'workflow_dispatch' &&
