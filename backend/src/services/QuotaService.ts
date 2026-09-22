@@ -9,6 +9,7 @@ interface VerifiedPurchaseInput {
   orderId?: string;
   proProductId: string;
   dataPackProductId: string;
+  supportTipProductId: string;
   dataPackGb: number;
 }
 
@@ -190,6 +191,8 @@ export class QuotaService {
         quota.monthlyAllowanceGb = this.proTierGb;
       } else if (input.productId === input.dataPackProductId) {
         quota.packBalanceGb += input.dataPackGb;
+      } else if (input.productId === input.supportTipProductId) {
+        // A tip is intentionally entitlement-free; verification only records the purchase.
       } else {
         throw new Error('UNKNOWN_PRODUCT');
       }

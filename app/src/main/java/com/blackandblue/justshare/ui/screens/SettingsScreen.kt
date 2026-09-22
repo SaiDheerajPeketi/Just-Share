@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,13 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.blackandblue.justshare.presentation.billing.BillingViewModel
+import com.blackandblue.justshare.presentation.billing.PurchaseState
 import com.blackandblue.justshare.ui.theme.JediShareTheme
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     onNavigateToNavRoute: (String) -> Unit,
-    transferViewModel: com.blackandblue.justshare.presentation.TransferViewModel
+    transferViewModel: com.blackandblue.justshare.presentation.TransferViewModel,
+    billingViewModel: BillingViewModel = hiltViewModel(),
 ) {
     val colors = JediShareTheme.colors
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -44,6 +50,10 @@ fun SettingsScreen(
     
 
     val savedTransferMethod by dataStore.defaultTransferMethod.collectAsStateWithLifecycle(initialValue = "wifi")
+    val tipProduct by billingViewModel.supportTipProductDetails.collectAsStateWithLifecycle()
+    val purchaseState by billingViewModel.purchaseState.collectAsStateWithLifecycle()
+    val activity = context as? android.app.Activity
+    val tipPrice = tipProduct?.oneTimePurchaseOfferDetails?.formattedPrice
 
     Column(
         modifier = Modifier
@@ -61,7 +71,10 @@ fun SettingsScreen(
         }
 
         Column(
-            modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 16.dp)
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
             // Appearance Section
             Column(
@@ -150,6 +163,61 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(text = "Wi-Fi Direct", style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium), color = colors.black, modifier = Modifier.weight(1f))
                     CustomRadioButton(selected = savedTransferMethod == "wifi", color = colors.red)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.cardBg, RoundedCornerShape(16.dp))
+                    .padding(vertical = 16.dp),
+            ) {
+                Text(
+                    text = "SUPPORT",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.mutedFg,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = activity != null && tipPrice != null && purchaseState !is PurchaseState.Loading) {
+                            activity?.let(billingViewModel::purchaseSupportTip)
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        text = "Donate to Student Developer",
+                        style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium),
+                        color = colors.black,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = when {
+                            purchaseState is PurchaseState.Loading -> "Opening secure Google Play checkout…"
+                            tipPrice != null -> "Send a one-time $tipPrice tip; no features are unlocked"
+                            else -> "Donation unavailable right now"
+                        },
+                        style = MaterialTheme.typography.body2,
+                        color = colors.mutedFg,
+                    )
+                    when (val state = purchaseState) {
+                        PurchaseState.Success -> Text(
+                            "Thank you for supporting this student developer!",
+                            style = MaterialTheme.typography.caption,
+                            color = colors.red,
+                        )
+                        is PurchaseState.Error -> Text(
+                            "The tip wasn't completed. ${state.message}",
+                            style = MaterialTheme.typography.caption,
+                            color = colors.red,
+                        )
+                        else -> Unit
+                    }
                 }
             }
         }

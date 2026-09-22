@@ -231,6 +231,7 @@ data class TelemetryEvent(
         const val QUOTA_EXHAUSTED = "quota_exhausted"
         const val PACK_PURCHASED = "pack_purchased"
         const val PRO_PURCHASED = "pro_purchased"
+        const val SUPPORT_TIP_PURCHASED = "support_tip_purchased"
     }
 }
 

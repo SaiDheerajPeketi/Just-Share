@@ -52,6 +52,7 @@ class PurchaseRepository @Inject constructor(
         private const val MAX_RETRIES = 5
         private const val PRO_PRODUCT_ID = "pro_unlock"
         private const val DATA_PACK_PRODUCT_ID = "data_pack_10gb"
+        private const val SUPPORT_TIP_PRODUCT_ID = "student_developer_tip"
     }
 
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -146,7 +147,7 @@ class PurchaseRepository @Inject constructor(
                     Log.w(TAG, "Acknowledge failed: ${result.debugMessage}")
                 }
             }
-        } else if (productId == DATA_PACK_PRODUCT_ID) {
+        } else if (productId == DATA_PACK_PRODUCT_ID || productId == SUPPORT_TIP_PRODUCT_ID) {
             // Consume so the user can purchase another data pack in the future
             val params = ConsumeParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken)
@@ -167,6 +168,7 @@ class PurchaseRepository @Inject constructor(
             val eventName = when (productId) {
                 PRO_PRODUCT_ID -> TelemetryEvent.PRO_PURCHASED
                 DATA_PACK_PRODUCT_ID -> TelemetryEvent.PACK_PURCHASED
+                SUPPORT_TIP_PRODUCT_ID -> TelemetryEvent.SUPPORT_TIP_PURCHASED
                 else -> return@launch
             }
             apiService.reportTelemetry(TelemetryEvent(deviceId = deviceId, name = eventName))

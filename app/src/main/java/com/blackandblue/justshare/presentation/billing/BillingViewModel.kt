@@ -39,6 +39,7 @@ class BillingViewModel @Inject constructor(
     companion object {
         const val PRO_PRODUCT_ID = "pro_unlock"
         const val DATA_PACK_PRODUCT_ID = "data_pack_10gb"
+        const val SUPPORT_TIP_PRODUCT_ID = "student_developer_tip"
     }
 
     // ── Quota ────────────────────────────────────────────────────────────────
@@ -53,6 +54,10 @@ class BillingViewModel @Inject constructor(
 
     private val _dataPackProductDetails = MutableStateFlow<ProductDetails?>(null)
     val dataPackProductDetails: StateFlow<ProductDetails?> = _dataPackProductDetails.asStateFlow()
+
+    private val _supportTipProductDetails = MutableStateFlow<ProductDetails?>(null)
+    val supportTipProductDetails: StateFlow<ProductDetails?> =
+        _supportTipProductDetails.asStateFlow()
 
     // ── Purchase State ───────────────────────────────────────────────────────
 
@@ -79,6 +84,12 @@ class BillingViewModel @Inject constructor(
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
+    fun purchaseSupportTip(activity: Activity) {
+        val details = _supportTipProductDetails.value ?: return
+        _purchaseState.value = PurchaseState.Loading
+        billingClientWrapper.launchPurchaseFlow(activity, details)
+    }
+
     fun resetPurchaseState() {
         _purchaseState.value = PurchaseState.Idle
     }
@@ -89,10 +100,12 @@ class BillingViewModel @Inject constructor(
         viewModelScope.launch {
             repeat(5) { attempt ->
                 val products = billingClientWrapper.queryProducts(
-                    listOf(PRO_PRODUCT_ID, DATA_PACK_PRODUCT_ID)
+                    listOf(PRO_PRODUCT_ID, DATA_PACK_PRODUCT_ID, SUPPORT_TIP_PRODUCT_ID)
                 )
                 _proProductDetails.value = products.firstOrNull { it.productId == PRO_PRODUCT_ID }
                 _dataPackProductDetails.value = products.firstOrNull { it.productId == DATA_PACK_PRODUCT_ID }
+                _supportTipProductDetails.value =
+                    products.firstOrNull { it.productId == SUPPORT_TIP_PRODUCT_ID }
                 if (products.isNotEmpty()) return@launch
                 if (attempt < 4) delay(1_000)
             }

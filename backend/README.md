@@ -38,3 +38,4 @@ the APK, QR codes, logs, or source control. Android obtains five-minute session 
 backend after the sender's selected bytes are atomically reserved. The reserved byte ceiling is
 included in the signed credential and enforced by the Worker.
 - `DATA_PACK_PRODUCT_ID` (default "data_pack_10gb")
+- `SUPPORT_TIP_PRODUCT_ID` (default "student_developer_tip"; repeatable tip with no entitlement)
