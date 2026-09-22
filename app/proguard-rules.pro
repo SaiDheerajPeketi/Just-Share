@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Hilt's generated LazyClassKey maps require each ViewModel to retain a distinct runtime class.
+# R8 otherwise horizontally merges the structurally similar media ViewModels, rewriting multiple
+# map keys to the same class name and crashing the minified release at startup.
+-keep class com.blackandblue.justshare.presentation.** extends androidx.lifecycle.ViewModel { *; }
