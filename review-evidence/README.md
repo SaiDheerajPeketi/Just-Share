@@ -20,26 +20,27 @@ Keep the following beside the final videos without exposing secret or user-speci
 - device model, Android version and capture date
 - tester confirmation that the installed build came from Google Play
 
+List connected devices first, choose one exact serial, and pass that serial to every install,
+launch, log, screenshot and recording command. Before accepting evidence, confirm the foreground
+component is `com.blackandblue.justshare/.MainActivity`; reject any capture if another app or an
+implicitly selected device took focus.
+
 ## Current artifact status — 22 September 2026
 
-There is no approved Just Share review candidate yet. The signed AAB from source commit `3ab7d5f`
-with SHA-256 `cde1e03f1442a36de0badb3c7f63f630a03364ce6705ce62ca565e3b8353d6a6` is **rejected and must
+The approved replacement candidate comes from source commit `a877cc7`. Its signed AAB has SHA-256
+`70db8fe32bfe096ff83680a2c8ad0f2b96ede502a359812356008fdcc3f0afc3`; its matching signed APK has
+SHA-256 `164d668e45d4359f7ac41063d8ba516e9a73869d74196603b2164a52abb683ef`.
+
+The exact signed APK was installed on an isolated Pixel-class Android 15 (API 35) emulator. It
+cold-launched in 193 ms, remained alive and focused on `com.blackandblue.justshare/.MainActivity`,
+and produced no `AndroidRuntime` failure. The first-run explanation and onboarding rendered at
+1080 x 2400 with no text overlap or clipping. This local install validates the release artifact but
+is not Play review evidence; final recordings must use the unchanged AAB installed through Play.
+
+The earlier signed AAB from source commit `3ab7d5f`, SHA-256
+`cde1e03f1442a36de0badb3c7f63f630a03364ce6705ce62ca565e3b8353d6a6`, remains **rejected and must
 never be uploaded**. Its matching minified release APK crashed immediately on Android 15 because R8
 horizontally merged structurally similar Hilt ViewModels, causing duplicate lazy class keys.
-
-Commit `ecb8c2f` preserves the distinct ViewModel runtime classes. Release compilation and release
-unit tests pass after that fix. Before recording or uploading anything, build a fresh optimized,
-signed artifact, verify its signer and hashes, install the matching release APK on Android 15, and
-prove that `MainActivity` stays alive. Only then add the new artifact details to the candidate record
-and continue with the capture plan below.
-
-A debug build from branch commit `ecbb2b2` was separately installed on a dedicated Pixel-class
-Android 15 (API 35) emulator. It launched successfully, remained alive, completed the app's
-in-context nearby-device and notification explanation followed by the Android prompts, and exposed
-the **Donate to Student Developer** card in Settings. The complete card rendered at 1080 x 2400
-with no text overlap or clipping and correctly showed **Donation unavailable right now** before
-Play/RevenueCat product provisioning. This validates the UI path only; it does not prove that the
-minified release crash is fixed.
 
 ## Permission-to-feature matrix
 
