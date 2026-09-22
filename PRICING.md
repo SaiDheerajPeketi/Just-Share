@@ -7,7 +7,7 @@
 
 Local Wi-Fi Direct and Bluetooth transfer is permanently free, private, and unlimited. Baseline
 encryption and confirmation are never paywalled. Monetization applies to the hosted AlterSend Remote
-relay, which creates an ongoing infrastructure cost, and to a one-time Pro convenience unlock.
+relay, which creates an ongoing infrastructure cost, and to a one-time Pro capacity upgrade.
 
 ## Catalog
 
