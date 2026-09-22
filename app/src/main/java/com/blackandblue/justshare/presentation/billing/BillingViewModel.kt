@@ -80,21 +80,21 @@ class BillingViewModel @Inject constructor(
     fun purchasePro(activity: Activity) {
         val details = _proProductDetails.value ?: return
         pendingProductId = PRO_PRODUCT_ID
-        _purchaseState.value = PurchaseState.Loading
+        _purchaseState.value = PurchaseState.Loading(PRO_PRODUCT_ID)
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
     fun purchaseDataPack(activity: Activity) {
         val details = _dataPackProductDetails.value ?: return
         pendingProductId = DATA_PACK_PRODUCT_ID
-        _purchaseState.value = PurchaseState.Loading
+        _purchaseState.value = PurchaseState.Loading(DATA_PACK_PRODUCT_ID)
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
     fun purchaseSupportTip(activity: Activity) {
         val details = _supportTipProductDetails.value ?: return
         pendingProductId = SUPPORT_TIP_PRODUCT_ID
-        _purchaseState.value = PurchaseState.Loading
+        _purchaseState.value = PurchaseState.Loading(SUPPORT_TIP_PRODUCT_ID)
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
@@ -128,15 +128,16 @@ class BillingViewModel @Inject constructor(
                     is PurchaseResult.Success -> {
                         val expected = pendingProductId
                         if (expected == null || expected !in result.purchase.products) return@onEach
-                        PurchaseState.Verifying
+                        PurchaseState.Verifying(expected)
                     }
                     is PurchaseResult.Cancelled -> {
                         pendingProductId = null
                         PurchaseState.Idle
                     }
                     is PurchaseResult.Error -> {
+                        val expected = pendingProductId
                         pendingProductId = null
-                        PurchaseState.Error(result.message)
+                        PurchaseState.Error(expected, result.message)
                     }
                 }
                 _purchaseState.value = nextState
@@ -149,8 +150,11 @@ class BillingViewModel @Inject constructor(
             .onEach { result ->
                 if (result.productIdOrNull() != pendingProductId) return@onEach
                 _purchaseState.value = when (result) {
-                    is PurchaseVerificationResult.Verified -> PurchaseState.Success
-                    is PurchaseVerificationResult.Error -> PurchaseState.Error(result.message)
+                    is PurchaseVerificationResult.Verified -> PurchaseState.Success(result.productId)
+                    is PurchaseVerificationResult.Error -> PurchaseState.Error(
+                        result.productId,
+                        result.message,
+                    )
                 }
                 pendingProductId = null
             }
@@ -160,10 +164,10 @@ class BillingViewModel @Inject constructor(
 
 sealed class PurchaseState {
     object Idle : PurchaseState()
-    object Loading : PurchaseState()
-    object Verifying : PurchaseState()
-    object Success : PurchaseState()
-    data class Error(val message: String) : PurchaseState()
+    data class Loading(val productId: String) : PurchaseState()
+    data class Verifying(val productId: String) : PurchaseState()
+    data class Success(val productId: String) : PurchaseState()
+    data class Error(val productId: String?, val message: String) : PurchaseState()
 }
 
 private fun PurchaseVerificationResult.productIdOrNull(): String = when (this) {

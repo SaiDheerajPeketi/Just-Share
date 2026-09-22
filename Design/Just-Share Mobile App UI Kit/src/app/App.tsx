@@ -8,7 +8,7 @@ import {
   MessageCircle, Smartphone, Monitor, Headphones, Volume2,
   Crown, Gift, Repeat, Infinity, Eye, EyeOff, ArrowRight,
   Radio, ScanLine, UserCheck, Ban, Bell, Info, ChevronDown,
-  ToggleLeft, ToggleRight, Play
+  ToggleLeft, ToggleRight
 } from "lucide-react";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ type Screen =
   | "discover-bt" | "discover-wifi" | "transfer-progress"
   | "history" | "settings" | "secure-send" | "qr-scan"
   | "incoming-confirm" | "trusted-devices" | "pro-upgrade"
-  | "interstitial-ad" | "receive-mode";
+  | "receive-mode";
 
 // ─── Shared Primitives ────────────────────────────────────────────────────────
 
@@ -74,31 +74,6 @@ function ProBadge({ onClick }: { onClick?: () => void }) {
       <Crown size={10} />
       PRO
     </span>
-  );
-}
-
-function AdBanner() {
-  return (
-    <div className="mx-4 mb-2 rounded-2xl border-2 border-dashed flex items-center justify-center h-14"
-      style={{ borderColor: BORDER, backgroundColor: "#F0F0F0" }}>
-      <span className="text-xs font-medium" style={{ color: MUTED_FG }}>📢 Ad Banner</span>
-    </div>
-  );
-}
-
-function RewardedAdPrompt({ onClose, featureName }: { onClose: () => void; featureName: string }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div className="w-full rounded-t-3xl p-6 space-y-4" style={{ backgroundColor: CARD_BG }}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg" style={{ color: BLACK }}>Unlock {featureName}</h3>
-          <button onClick={onClose}><X size={20} style={{ color: MUTED_FG }} /></button>
-        </div>
-        <p className="text-sm" style={{ color: MUTED_FG }}>Try this premium feature once by watching a short ad, or go Pro to unlock it forever.</p>
-        <PillButton label="▶  Watch an Ad to Try Once" variant="outline" size="md" onClick={onClose} />
-        <PillButton label="Unlock Pro — No Ads" variant="primary" size="md" />
-      </div>
-    </div>
   );
 }
 
@@ -362,7 +337,6 @@ function HomeScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
       </div>
 
       <div className="px-4 pt-2">
-        <AdBanner />
       </div>
       <BottomNav active="home" onNavigate={onNavigate} />
     </div>
@@ -715,7 +689,7 @@ function TransferProgressScreen({ onBack, onNavigate }: { onBack: () => void; on
             <Send size={14} color={WHITE} />
           </button>
         </div>
-        <button onClick={() => onNavigate("interstitial-ad")}
+        <button onClick={() => onNavigate("history")}
           className="w-full py-3 rounded-full border-2 font-semibold text-sm transition-colors"
           style={{ borderColor: DARK_RED, color: DARK_RED }}>
           Disconnect
@@ -780,7 +754,6 @@ function HistoryScreen({ onBack, onNavigate }: { onBack: () => void; onNavigate:
       </div>
 
       <div className="px-4 pt-1">
-        <AdBanner />
       </div>
       <BottomNav active="history" onNavigate={onNavigate} />
     </div>
@@ -1176,12 +1149,9 @@ function TrustedDevicesScreen({ onBack, onNavigate }: { onBack: () => void; onNa
 // ─── Screen 14: Pro Upgrade ───────────────────────────────────────────────────
 function ProUpgradeScreen({ onBack }: { onBack: () => void }) {
   const features = [
-    { icon: <Shield size={20} />, label: "Secure Direct Send", desc: "End-to-end encrypted transfers" },
-    { icon: <Users size={20} />, label: "Group Send", desc: "Broadcast to multiple devices at once" },
-    { icon: <X size={20} />, label: "No Ads", desc: "Completely ad-free experience" },
-    { icon: <Repeat size={20} />, label: "Resume Transfers", desc: "Pick up where interrupted transfers left off" },
-    { icon: <UserCheck size={20} />, label: "Trusted Devices", desc: "Instant auto-accept from trusted peers" },
-    { icon: <Infinity size={20} />, label: "Unlimited History", desc: "Store your full transfer log" },
+    { icon: <Shield size={20} />, label: "Higher Remote allowance", desc: "More monthly encrypted relay capacity" },
+    { icon: <Infinity size={20} />, label: "Local stays unlimited", desc: "Bluetooth and Wi-Fi Direct remain free" },
+    { icon: <Check size={20} />, label: "One-time unlock", desc: "No recurring subscription" },
   ];
 
   return (
@@ -1233,55 +1203,9 @@ function ProUpgradeScreen({ onBack }: { onBack: () => void }) {
           style={{ background: `linear-gradient(135deg, ${GOLD}, #B8860B)`, color: WHITE }}>
           🔓  Unlock Pro
         </button>
-        <button onClick={onBack} className="w-full py-2 text-sm" style={{ color: "#555" }}>
-          Restore Purchase
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Interstitial Ad ──────────────────────────────────────────────────────────
-function InterstitialAdScreen({ onClose }: { onClose: () => void }) {
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-
-  return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#0D0D0D" }}>
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="px-2 py-1 rounded text-xs" style={{ backgroundColor: "#333", color: "#999" }}>AD</div>
-        <button onClick={onClose} disabled={countdown > 0}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
-          style={{ backgroundColor: countdown > 0 ? "#222" : "#333", color: countdown > 0 ? "#666" : WHITE }}>
-          {countdown > 0 ? `${countdown}s` : <><X size={14} className="mr-1" />Close</>}
-        </button>
-      </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center px-8 gap-8">
-        <div className="w-full aspect-video rounded-3xl flex items-center justify-center"
-          style={{ backgroundColor: "#1A1A1A", border: "2px dashed #333" }}>
-          <div className="text-center gap-2 flex flex-col items-center">
-            <Play size={40} style={{ color: "#444" }} />
-            <p className="text-sm" style={{ color: "#555" }}>Interstitial Ad Placeholder</p>
-            <p className="text-xs" style={{ color: "#444" }}>Full-screen ad shown after completed transfer</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-6 pb-10 space-y-4 text-center">
-        <button className="w-full py-4 rounded-full font-bold text-base transition-transform active:scale-95"
-          style={{ background: `linear-gradient(135deg, ${GOLD}, #B8860B)`, color: WHITE }}>
-          <Crown size={18} className="inline mr-2" />
-          Remove Ads — Go Pro
-        </button>
-        <button onClick={onClose} className="text-sm" style={{ color: "#555" }}>
-          Continue to app
-        </button>
+        <p className="w-full py-2 text-center text-sm" style={{ color: "#777" }}>
+          Purchases restore automatically through Google Play
+        </p>
       </div>
     </div>
   );
@@ -1487,19 +1411,17 @@ const SCREEN_LABELS: Record<Screen, string> = {
   "incoming-confirm": "12. Incoming",
   "trusted-devices": "13. Trusted Devices",
   "pro-upgrade": "14. Pro Upgrade",
-  "interstitial-ad": "Ad Interstitial",
 };
 
 const ALL_SCREENS: Screen[] = [
   "splash", "permissions", "home", "receive-mode", "select-files",
   "discover-bt", "discover-wifi", "transfer-progress",
   "history", "settings", "secure-send", "qr-scan",
-  "incoming-confirm", "trusted-devices", "pro-upgrade", "interstitial-ad"
+  "incoming-confirm", "trusted-devices", "pro-upgrade"
 ];
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>("splash");
-  const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
 
   const navigate = (s: Screen) => {
@@ -1524,7 +1446,6 @@ export default function App() {
       case "incoming-confirm": return <IncomingConfirmScreen onClose={() => navigate("home")} />;
       case "trusted-devices": return <TrustedDevicesScreen onBack={() => navigate("settings")} onNavigate={navigate} />;
       case "pro-upgrade": return <ProUpgradeScreen onBack={() => navigate("home")} />;
-      case "interstitial-ad": return <InterstitialAdScreen onClose={() => navigate("history")} />;
     }
   };
 
@@ -1537,7 +1458,7 @@ export default function App() {
         <div className="text-sm font-bold" style={{ color: WHITE }}>
           <span style={{ color: RED }}>Just Share</span> UI Kit
         </div>
-        <p className="text-xs" style={{ color: "#666" }}>14 screens + ad & monetization components</p>
+        <p className="text-xs" style={{ color: "#666" }}>14 screens + Google Play billing components</p>
         <div className="space-y-1 max-h-[600px] overflow-y-auto pr-1">
           {ALL_SCREENS.map(s => (
             <button key={s} onClick={() => navigate(s)}
@@ -1559,8 +1480,8 @@ export default function App() {
         {/* Status bar */}
         <div className="flex items-center justify-between px-5 py-2 text-xs font-semibold rounded-t-[2.5rem]"
           style={{
-            backgroundColor: activeScreen === "splash" || activeScreen === "pro-upgrade" || activeScreen === "qr-scan" || activeScreen === "interstitial-ad" ? "#0D0D0D" : CARD_BG,
-            color: activeScreen === "splash" || activeScreen === "pro-upgrade" || activeScreen === "qr-scan" || activeScreen === "interstitial-ad" ? WHITE : BLACK
+            backgroundColor: activeScreen === "splash" || activeScreen === "pro-upgrade" || activeScreen === "qr-scan" ? "#0D0D0D" : CARD_BG,
+            color: activeScreen === "splash" || activeScreen === "pro-upgrade" || activeScreen === "qr-scan" ? WHITE : BLACK
           }}>
           <span>9:41</span>
           <div className="flex items-center gap-1">
@@ -1575,13 +1496,12 @@ export default function App() {
         <div className="overflow-y-auto relative"
           style={{ height: 720, borderLeft: `1px solid ${BORDER}`, borderRight: `1px solid ${BORDER}` }}>
           {renderScreen()}
-          {showRewardedAd && <RewardedAdPrompt onClose={() => setShowRewardedAd(false)} featureName="Secure Direct Send" />}
         </div>
 
         {/* Home indicator */}
         <div className="flex justify-center py-2 rounded-b-[2.5rem]"
           style={{
-            backgroundColor: activeScreen === "splash" || activeScreen === "pro-upgrade" || activeScreen === "qr-scan" || activeScreen === "interstitial-ad" ? "#0D0D0D" : CARD_BG,
+            backgroundColor: activeScreen === "splash" || activeScreen === "pro-upgrade" || activeScreen === "qr-scan" ? "#0D0D0D" : CARD_BG,
           }}>
           <div className="w-24 h-1 rounded-full" style={{ backgroundColor: activeScreen === "splash" ? "#333" : BORDER }} />
         </div>

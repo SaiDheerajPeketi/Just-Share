@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.blackandblue.justshare.domain.billing.Plan
 import com.blackandblue.justshare.presentation.billing.BillingViewModel
 import com.blackandblue.justshare.presentation.billing.PurchaseState
 import com.blackandblue.justshare.ui.theme.JediShareTheme
@@ -50,10 +51,16 @@ fun SettingsScreen(
     
 
     val savedTransferMethod by dataStore.defaultTransferMethod.collectAsStateWithLifecycle(initialValue = "wifi")
+    val proProduct by billingViewModel.proProductDetails.collectAsStateWithLifecycle()
     val tipProduct by billingViewModel.supportTipProductDetails.collectAsStateWithLifecycle()
+    val quotaState by billingViewModel.quotaState.collectAsStateWithLifecycle()
     val purchaseState by billingViewModel.purchaseState.collectAsStateWithLifecycle()
     val activity = context as? android.app.Activity
+    val proPrice = proProduct?.oneTimePurchaseOfferDetails?.formattedPrice
     val tipPrice = tipProduct?.oneTimePurchaseOfferDetails?.formattedPrice
+    val purchaseBusy = purchaseState is PurchaseState.Loading ||
+        purchaseState is PurchaseState.Verifying
+    val activeProductId = purchaseState.productIdOrNull()
 
     Column(
         modifier = Modifier
@@ -175,6 +182,90 @@ fun SettingsScreen(
                     .padding(vertical = 16.dp),
             ) {
                 Text(
+                    text = "REMOTE PLAN",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.mutedFg,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            enabled = quotaState.plan != Plan.PRO && activity != null &&
+                                proPrice != null && !purchaseBusy,
+                        ) {
+                            activity?.let(billingViewModel::purchasePro)
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        text = if (quotaState.plan == Plan.PRO) {
+                            "Just Share Pro active"
+                        } else {
+                            "Upgrade to Just Share Pro"
+                        },
+                        style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium),
+                        color = colors.black,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = when {
+                            quotaState.plan == Plan.PRO ->
+                                "Your higher monthly Remote allowance is active"
+                            activeProductId == BillingViewModel.PRO_PRODUCT_ID &&
+                                purchaseState is PurchaseState.Loading ->
+                                "Opening secure Google Play checkout…"
+                            activeProductId == BillingViewModel.PRO_PRODUCT_ID &&
+                                purchaseState is PurchaseState.Verifying ->
+                                "Verifying your Pro purchase securely…"
+                            proPrice != null ->
+                                "One-time $proPrice purchase for a higher monthly Remote allowance"
+                            else -> "Pro purchase unavailable right now"
+                        },
+                        style = MaterialTheme.typography.body2,
+                        color = colors.mutedFg,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Local Bluetooth and Wi-Fi Direct transfers stay free and unlimited. Purchases restore automatically through Google Play.",
+                        style = MaterialTheme.typography.caption,
+                        color = colors.mutedFg,
+                    )
+                    when (val state = purchaseState) {
+                        is PurchaseState.Success -> if (
+                            state.productId == BillingViewModel.PRO_PRODUCT_ID
+                        ) {
+                            Text(
+                                "Pro activated. Refreshing your Remote allowance…",
+                                style = MaterialTheme.typography.caption,
+                                color = colors.red,
+                            )
+                        }
+                        is PurchaseState.Error -> if (
+                            state.productId == BillingViewModel.PRO_PRODUCT_ID
+                        ) {
+                            Text(
+                                "The Pro purchase wasn't completed. ${state.message}",
+                                style = MaterialTheme.typography.caption,
+                                color = colors.red,
+                            )
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.cardBg, RoundedCornerShape(16.dp))
+                    .padding(vertical = 16.dp),
+            ) {
+                Text(
                     text = "SUPPORT",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -187,8 +278,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .clickable(
                             enabled = activity != null && tipPrice != null &&
-                                purchaseState !is PurchaseState.Loading &&
-                                purchaseState !is PurchaseState.Verifying,
+                                !purchaseBusy,
                         ) {
                             activity?.let(billingViewModel::purchaseSupportTip)
                         }
@@ -202,8 +292,12 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = when {
-                            purchaseState is PurchaseState.Loading -> "Opening secure Google Play checkout…"
-                            purchaseState is PurchaseState.Verifying -> "Verifying your tip securely…"
+                            activeProductId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID &&
+                                purchaseState is PurchaseState.Loading ->
+                                "Opening secure Google Play checkout…"
+                            activeProductId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID &&
+                                purchaseState is PurchaseState.Verifying ->
+                                "Verifying your tip securely…"
                             tipPrice != null -> "Send a one-time $tipPrice tip; no features are unlocked"
                             else -> "Donation unavailable right now"
                         },
@@ -211,22 +305,38 @@ fun SettingsScreen(
                         color = colors.mutedFg,
                     )
                     when (val state = purchaseState) {
-                        PurchaseState.Success -> Text(
-                            "Thank you for supporting this student developer!",
-                            style = MaterialTheme.typography.caption,
-                            color = colors.red,
-                        )
-                        is PurchaseState.Error -> Text(
-                            "The tip wasn't completed. ${state.message}",
-                            style = MaterialTheme.typography.caption,
-                            color = colors.red,
-                        )
+                        is PurchaseState.Success -> if (
+                            state.productId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID
+                        ) {
+                            Text(
+                                "Thank you for supporting this student developer!",
+                                style = MaterialTheme.typography.caption,
+                                color = colors.red,
+                            )
+                        }
+                        is PurchaseState.Error -> if (
+                            state.productId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID
+                        ) {
+                            Text(
+                                "The tip wasn't completed. ${state.message}",
+                                style = MaterialTheme.typography.caption,
+                                color = colors.red,
+                            )
+                        }
                         else -> Unit
                     }
                 }
             }
         }
     }
+}
+
+private fun PurchaseState.productIdOrNull(): String? = when (this) {
+    PurchaseState.Idle -> null
+    is PurchaseState.Loading -> productId
+    is PurchaseState.Verifying -> productId
+    is PurchaseState.Success -> productId
+    is PurchaseState.Error -> productId
 }
 
 @Composable
