@@ -52,6 +52,13 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
+      - name: Validate Play release notes
+        run: |
+          notes=distribution/whatsnew/whatsnew-en-US
+          test -s "$notes"
+          characters="$(wc -m < "$notes" | tr -d '[:space:]')"
+          (( characters <= 500 )) || { echo "Play release notes exceed 500 characters." >&2; exit 1; }
+
       - name: Unit tests, lint, and unsigned release verification
         run: ./gradlew test lint :app:assembleRelease --stacktrace
 
