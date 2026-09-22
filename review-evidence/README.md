@@ -20,6 +20,19 @@ Keep the following beside the final videos without exposing secret or user-speci
 - device model, Android version and capture date
 - tester confirmation that the installed build came from Google Play
 
+## Current artifact status — 22 September 2026
+
+There is no approved Just Share review candidate yet. The signed AAB from source commit `3ab7d5f`
+with SHA-256 `cde1e03f1442a36de0badb3c7f63f630a03364ce6705ce62ca565e3b8353d6a6` is **rejected and must
+never be uploaded**. Its matching minified release APK crashed immediately on Android 15 because R8
+horizontally merged structurally similar Hilt ViewModels, causing duplicate lazy class keys.
+
+Commit `ecb8c2f` preserves the distinct ViewModel runtime classes. Release compilation and release
+unit tests pass after that fix. Before recording or uploading anything, build a fresh optimized,
+signed artifact, verify its signer and hashes, install the matching release APK on Android 15, and
+prove that `MainActivity` stays alive. Only then add the new artifact details to the candidate record
+and continue with the capture plan below.
+
 ## Permission-to-feature matrix
 
 | Surface | User-visible purpose | Required evidence |
