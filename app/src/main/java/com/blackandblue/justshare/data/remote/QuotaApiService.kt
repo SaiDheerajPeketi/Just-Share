@@ -53,7 +53,7 @@ class QuotaApiService @Inject constructor(
     /**
      * Ask the server whether a relay session is permitted before starting a transfer.
      * Returns true if allowed, false if quota is exhausted.
-     * Null means a network error occurred — treat as allowed for UX but log.
+     * Null means a network error occurred — the repository blocks relay startup until verified.
      */
     suspend fun checkRelayAllowed(deviceId: String, estimatedBytes: Long): Boolean? =
         withContext(Dispatchers.IO) {

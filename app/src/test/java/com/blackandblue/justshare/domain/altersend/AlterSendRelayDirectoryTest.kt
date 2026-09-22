@@ -17,7 +17,7 @@ class AlterSendRelayDirectoryTest {
     fun endpointsPreferPublicNodesBeforeConfiguredRelay() {
         val endpoints = AlterSendRelayDirectory.endpoints(
             publicRelayNodes = "public-one.example:41404; public-two.example:41405",
-            configuredHost = "relay.edgelab.co.in",
+            configuredHost = "relay.example.test",
             configuredPort = 41404
         )
 
@@ -25,7 +25,7 @@ class AlterSendRelayDirectoryTest {
             listOf(
                 AlterSendRelayEndpoint("public-one.example", 41404),
                 AlterSendRelayEndpoint("public-two.example", 41405),
-                AlterSendRelayEndpoint("relay.edgelab.co.in", 41404)
+                AlterSendRelayEndpoint("relay.example.test", 41404)
             ),
             endpoints
         )
@@ -34,8 +34,8 @@ class AlterSendRelayDirectoryTest {
     @Test
     fun endpointsDeduplicateAndCanPreferAndroidHostRelay() {
         val endpoints = AlterSendRelayDirectory.endpoints(
-            publicRelayNodes = "relay.edgelab.co.in:41404,relay.edgelab.co.in:41404",
-            configuredHost = "relay.edgelab.co.in",
+            publicRelayNodes = "relay.example.test:41404,relay.example.test:41404",
+            configuredHost = "relay.example.test",
             configuredPort = 41404,
             includeAndroidHostRelay = true
         )
@@ -43,7 +43,7 @@ class AlterSendRelayDirectoryTest {
         assertEquals(
             listOf(
                 AlterSendRelayEndpoint("10.0.2.2", 41404),
-                AlterSendRelayEndpoint("relay.edgelab.co.in", 41404)
+                AlterSendRelayEndpoint("relay.example.test", 41404)
             ),
             endpoints
         )
