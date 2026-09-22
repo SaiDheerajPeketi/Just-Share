@@ -1,10 +1,83 @@
-# Play review evidence
+# Google Play permission and foreground-service evidence
 
-`draft-debug/` contains non-submittable screenshots used to verify the disclosure and Android
-permission sequence during local development. They are not evidence for Google Play review.
+This directory is a runbook, not completed review evidence. `draft-debug/` contains development
+screenshots only. The old audio and photo/video permission images describe superseded builds; the
+current candidate uses Android's document picker and declares no broad media-library permission.
+Never submit those images as evidence.
 
-Final evidence must be recorded from the exact signed App Bundle candidate installed through a
-licensed Play track. The recording must show the in-app disclosure before each system prompt, the
-user action that starts a transfer, the foreground-service notification, the active transfer, and
-the completed or stopped state. Keep the package name, version code, candidate hash and capture
-date beside the final video without displaying credentials, device identifiers or private files.
+Record final evidence only from the exact signed App Bundle installed through a licensed Play
+internal track. Use synthetic files and keep credentials, device identifiers, account addresses,
+purchase tokens, connection codes and notifications from other apps out of frame.
+
+## Candidate record
+
+Keep the following beside the final videos without exposing secret or user-specific values:
+
+- package: `com.blackandblue.justshare`
+- version name and version code
+- signed AAB SHA-256
+- Play internal-release name and install date
+- device model, Android version and capture date
+- tester confirmation that the installed build came from Google Play
+
+## Permission-to-feature matrix
+
+| Surface | User-visible purpose | Required evidence |
+| --- | --- | --- |
+| Bluetooth scan, connect and advertise on Android 12+ | Discover and connect to a nearby device for a user-started Bluetooth transfer | Show Just Share's first-run explanation before the Android prompt, grant or deny it, then enter Bluetooth discovery from the normal transfer flow |
+| Nearby Wi-Fi devices on Android 13+ | Discover and connect to a peer for a user-started Wi-Fi Direct transfer | Show the same explanation, Android's nearby-device prompt, peer discovery and the transfer flow |
+| Fine/coarse location through Android 12 only | Android's legacy prerequisite for Bluetooth or Wi-Fi Direct discovery; Just Share does not use coordinates | Record only when Play asks for legacy-device evidence; show the discovery feature and explain that the permission is capped at API 32 |
+| Notifications on Android 13+ | Show user-visible transfer progress while the app is backgrounded | Show the explanation, Android prompt, ongoing notification and transfer terminal state; denial must not block the app |
+| Camera | Scan a Remote Transfer QR code | From **Remote Transfer**, tap **Scan QR**, show the Android prompt, scan a synthetic code and continue; manual code entry must remain available after denial |
+| System document picker | Choose only files the user explicitly sends | Show the picker and selected synthetic file; no photo, video, audio or broad-storage prompt should appear on current Android versions |
+
+## Foreground-service declaration copy
+
+### Local transfer — `dataSync`
+
+**Functionality:** A user selects a file, chooses Bluetooth or Wi-Fi Direct, selects a nearby
+recipient and explicitly starts the transfer. Just Share keeps that transfer alive in a
+`dataSync` foreground service and shows an ongoing progress notification while the app is
+backgrounded.
+
+**Impact of deferral:** The requested peer-to-peer transfer would not begin when the user presses
+send. **Impact of interruption:** The active transfer would stop before the recipient receives the
+complete file and the user would need to retry.
+
+### Remote Transfer — `dataSync`
+
+**Functionality:** A user opens **Remote Transfer**, selects a file or joins with a code/QR, and
+explicitly starts an end-to-end encrypted transfer. A separate `dataSync` foreground service keeps
+the user-visible upload/download active while the app is backgrounded. The relay receives opaque
+ciphertext, not the file key or plaintext contents.
+
+**Impact of deferral:** The requested remote transfer would not start. **Impact of interruption:**
+The encrypted session would end before completion and the user would need to reconnect or retry.
+
+## Final capture plan
+
+Record separate continuous clips because local and Remote Transfer are materially different
+features even though both use the `dataSync` service type:
+
+1. **Permission and denial path (Android 13+):** start from a fresh Play install, show the complete
+   first-run explanation, request nearby-device access and notifications, then repeat with denial
+   to show Just Share remains usable and displays an actionable error rather than looping or
+   crashing.
+2. **Bluetooth local transfer:** choose a small synthetic file with the system picker, discover and
+   select a second Play-installed device, start the transfer, show the ongoing notification,
+   background the app, return to visible progress, and show completion or the user's stop action.
+3. **Wi-Fi Direct local transfer:** repeat with Wi-Fi Direct on two Play-installed devices, showing
+   the user action that starts discovery, the peer selection, notification, active transfer and
+   terminal state.
+4. **Remote Transfer and camera:** show manual code entry as the no-camera fallback, then tap
+   **Scan QR**, show the in-context camera prompt, scan a synthetic code, start a small encrypted
+   transfer, show the remote-transfer notification while backgrounded, and end on completion or a
+   user-requested stop.
+5. **Current permission boundary:** show that selecting a document uses Android's picker and does
+   not request broad photo, video or audio access. If Play does not request this clip, retain it as
+   internal declaration evidence rather than uploading unrelated footage.
+
+Keep disclosure and Android system text readable at normal playback speed. Upload final videos as
+unlisted review-only links and store their URLs in the protected release record, not source
+control. Re-record after any change to the signed artifact, permission copy, service types,
+transfer trigger, notification behavior or denial path.

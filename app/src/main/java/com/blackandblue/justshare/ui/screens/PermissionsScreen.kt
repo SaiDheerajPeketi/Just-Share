@@ -126,7 +126,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Just Share needs these to discover devices and transfer your files securely — all locally, never to the cloud.",
+                text = "Nearby-device access powers local transfers, and notifications can show progress. Remote Transfer uses an encrypted relay only when you choose it; file contents stay end-to-end encrypted.",
                 color = colors.mutedFg,
                 style = MaterialTheme.typography.body2,
                 textAlign = TextAlign.Center
