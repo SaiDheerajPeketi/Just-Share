@@ -37,15 +37,22 @@ implicitly selected device took focus.
 
 ## Current artifact status — 22 September 2026
 
-The approved replacement candidate comes from source commit `a877cc7`. Its signed AAB has SHA-256
-`70db8fe32bfe096ff83680a2c8ad0f2b96ede502a359812356008fdcc3f0afc3`; its matching signed APK has
-SHA-256 `164d668e45d4359f7ac41063d8ba516e9a73869d74196603b2164a52abb683ef`.
+The approved replacement candidate comes from source commit `4b95f2e`. Its signed AAB has SHA-256
+`e4eb7db0dec2358b8ee5b8f8cd61d16a4c64ed64a132217d83eac1d5c8441e81`; its matching signed APK has
+SHA-256 `e0cbec10ac589b741d8322e0d7b651ba616471603da1f718cee6da904adc7e1e`.
 
-The exact signed APK was installed on an isolated Pixel-class Android 15 (API 35) emulator. It
-cold-launched in 193 ms, remained alive and focused on `com.blackandblue.justshare/.MainActivity`,
-and produced no `AndroidRuntime` failure. The first-run explanation and onboarding rendered at
-1080 x 2400 with no text overlap or clipping. This local install validates the release artifact but
-is not Play review evidence; final recordings must use the unchanged AAB installed through Play.
+The exact signed APK was clean-installed on explicitly selected emulator `emulator-5554`, a
+Pixel-class Android 15 (API 35) device. It cold-launched in 2,792 ms, remained alive and focused on
+`com.blackandblue.justshare/.MainActivity`, and produced no `AndroidRuntime` failure. The first-run
+explanation and onboarding rendered at 1080 x 2400 with no text overlap or clipping. This local
+install validates the release artifact but is not Play review evidence; final recordings must use
+the unchanged AAB installed through Play.
+
+The earlier otherwise-valid candidate from source commit `a877cc7`, AAB SHA-256
+`70db8fe32bfe096ff83680a2c8ad0f2b96ede502a359812356008fdcc3f0afc3`, is superseded and must not be
+uploaded. It still contained a hardcoded US fallback price on the unavailable data-pack button;
+the current candidate displays an explicit unavailable state until Google Play supplies the
+localized price.
 
 The earlier signed AAB from source commit `3ab7d5f`, SHA-256
 `cde1e03f1442a36de0badb3c7f63f630a03364ce6705ce62ca565e3b8353d6a6`, remains **rejected and must
