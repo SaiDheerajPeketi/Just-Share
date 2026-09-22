@@ -107,6 +107,7 @@ jobs:
           disable-animations: true
           script: |
             ./gradlew connectedCheck :app:assembleRelease --stacktrace
+            adb uninstall com.blackandblue.justshare || true
             adb install -r app/build/outputs/apk/release/app-release.apk
             adb shell am force-stop com.blackandblue.justshare
             adb shell am start -W -n com.blackandblue.justshare/.MainActivity
