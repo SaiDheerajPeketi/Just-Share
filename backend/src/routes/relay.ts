@@ -31,7 +31,7 @@ router.post('/session-credentials', async (req, res) => {
     !deviceId ||
     deviceId !== headerDeviceId ||
     !/^[A-Fa-f0-9]{32}$/.test(sessionId ?? '') ||
-    typeof estimatedBytes !== 'number' ||
+    !Number.isSafeInteger(estimatedBytes) ||
     estimatedBytes < 0
   ) {
     res.status(400).json({ error: 'Invalid relay credential request' });

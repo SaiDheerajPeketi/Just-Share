@@ -84,6 +84,9 @@ export class QuotaService {
   }
 
   async checkRelay(deviceId: string, estimatedBytes: number): Promise<{ allowed: boolean, reason?: string, remainingGb?: number }> {
+    if (!Number.isSafeInteger(estimatedBytes) || estimatedBytes < 0) {
+      return { allowed: false, reason: 'INVALID_SIZE' };
+    }
     const normalizedBytes = estimatedBytes > 0 ? estimatedBytes : this.maxRelaySessionBytes;
     if (normalizedBytes > this.maxRelaySessionBytes) {
       return { allowed: false, reason: 'SESSION_TOO_LARGE' };
@@ -102,6 +105,9 @@ export class QuotaService {
     estimatedBytes: number,
     sessionId: string
   ): Promise<{ allowed: boolean, reason?: string, reservedBytes?: number }> {
+    if (!Number.isSafeInteger(estimatedBytes) || estimatedBytes < 0) {
+      return { allowed: false, reason: 'INVALID_SIZE' };
+    }
     const docRef = this.firestore.collection('deviceQuotas').doc(deviceId);
     const sessionRef = this.firestore.collection('relaySessions').doc(sessionId);
     const reservedBytes = estimatedBytes > 0 ? estimatedBytes : this.maxRelaySessionBytes;

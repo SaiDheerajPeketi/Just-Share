@@ -26,7 +26,11 @@ router.get('/:deviceId', async (req, res) => {
 
 router.post('/relay-check', async (req, res) => {
   const { deviceId, estimatedBytes } = req.body;
-  if (deviceId !== req.header('X-Device-Id') || typeof estimatedBytes !== 'number' || estimatedBytes < 0) {
+  if (
+    deviceId !== req.header('X-Device-Id') ||
+    !Number.isSafeInteger(estimatedBytes) ||
+    estimatedBytes < 0
+  ) {
     res.status(400).json({ error: 'Missing deviceId or estimatedBytes' });
     return;
   }
