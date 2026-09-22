@@ -861,7 +861,7 @@ function SettingsScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
 
         <Section title="Premium">
           <Row icon={<Crown size={18} />} label="Upgrade to Pro" right={
-            <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ backgroundColor: GOLD, color: WHITE }}>$2.99/mo</span>
+            <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ backgroundColor: GOLD, color: WHITE }}>View Pro</span>
           } onClick={() => onNavigate("pro-upgrade")} />
         </Section>
 
