@@ -27,7 +27,21 @@ env:
   CF_RELAY_ENABLED: "true"
 
 jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate dispatch policy
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DEPLOY_TARGET: ${{ inputs.deploy_target }}
+          SOURCE_REF: ${{ github.ref }}
+        run: |
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' && "$DEPLOY_TARGET" != 'verify-only' ]]; then
+            [[ "$SOURCE_REF" == 'refs/heads/main' ]] || { echo 'Play testing deployments must run from main.' >&2; exit 1; }
+          fi
+
   quality:
+    needs: release-policy
     runs-on: ubuntu-latest
     env:
       JUSTSHARE_REVENUECAT_API_KEY: goog_validation_only
@@ -42,6 +56,7 @@ jobs:
         run: ./gradlew test lint :app:assembleRelease --stacktrace
 
   device:
+    needs: release-policy
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -64,6 +79,7 @@ jobs:
   deploy-testing:
     needs: [quality, device]
     if: >-
+      github.ref == 'refs/heads/main' &&
       github.event_name == 'workflow_dispatch' &&
       (inputs.deploy_target == 'internal' || inputs.deploy_target == 'closed-alpha')
     runs-on: ubuntu-latest
