@@ -120,7 +120,7 @@ fun QuotaExhaustedDialog(
             // Primary CTA
             Button(
                 onClick = {
-                    if (purchaseState !is PurchaseState.Loading) {
+                    if (purchaseState !is PurchaseState.Loading && purchaseState !is PurchaseState.Verifying) {
                         billingViewModel.purchaseDataPack(activity)
                     }
                 },
@@ -133,13 +133,19 @@ fun QuotaExhaustedDialog(
                     contentColor = Color.White,
                     disabledBackgroundColor = BrandRedLight
                 ),
-                enabled = purchaseState !is PurchaseState.Loading && dataPackDetails != null
+                enabled = purchaseState !is PurchaseState.Loading &&
+                    purchaseState !is PurchaseState.Verifying && dataPackDetails != null
             ) {
-                if (purchaseState is PurchaseState.Loading) {
+                if (purchaseState is PurchaseState.Loading || purchaseState is PurchaseState.Verifying) {
                     CircularProgressIndicator(
                         color = Color.White,
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (purchaseState is PurchaseState.Verifying) "Verifying purchase…" else "Opening Google Play…",
+                        fontWeight = FontWeight.SemiBold,
                     )
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {

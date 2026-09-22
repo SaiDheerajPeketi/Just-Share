@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.android.billingclient.api.ProductDetails
 import com.blackandblue.justshare.data.billing.BillingClientWrapper
 import com.blackandblue.justshare.data.billing.PurchaseResult
+import com.blackandblue.justshare.data.billing.PurchaseRepository
+import com.blackandblue.justshare.data.billing.PurchaseVerificationResult
 import com.blackandblue.justshare.data.repository.QuotaRepository
 import com.blackandblue.justshare.domain.billing.QuotaState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +35,8 @@ import javax.inject.Inject
 @HiltViewModel
 class BillingViewModel @Inject constructor(
     private val billingClientWrapper: BillingClientWrapper,
-    private val quotaRepository: QuotaRepository
+    private val quotaRepository: QuotaRepository,
+    private val purchaseRepository: PurchaseRepository,
 ) : ViewModel() {
 
     companion object {
@@ -63,10 +66,12 @@ class BillingViewModel @Inject constructor(
 
     private val _purchaseState = MutableStateFlow<PurchaseState>(PurchaseState.Idle)
     val purchaseState: StateFlow<PurchaseState> = _purchaseState.asStateFlow()
+    private var pendingProductId: String? = null
 
     init {
         loadProducts()
         observePurchaseResults()
+        observeVerificationResults()
         quotaRepository.refresh()
     }
 
@@ -74,23 +79,27 @@ class BillingViewModel @Inject constructor(
 
     fun purchasePro(activity: Activity) {
         val details = _proProductDetails.value ?: return
+        pendingProductId = PRO_PRODUCT_ID
         _purchaseState.value = PurchaseState.Loading
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
     fun purchaseDataPack(activity: Activity) {
         val details = _dataPackProductDetails.value ?: return
+        pendingProductId = DATA_PACK_PRODUCT_ID
         _purchaseState.value = PurchaseState.Loading
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
     fun purchaseSupportTip(activity: Activity) {
         val details = _supportTipProductDetails.value ?: return
+        pendingProductId = SUPPORT_TIP_PRODUCT_ID
         _purchaseState.value = PurchaseState.Loading
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
     fun resetPurchaseState() {
+        pendingProductId = null
         _purchaseState.value = PurchaseState.Idle
     }
 
@@ -115,11 +124,35 @@ class BillingViewModel @Inject constructor(
     private fun observePurchaseResults() {
         billingClientWrapper.purchaseResults
             .onEach { result ->
-                _purchaseState.value = when (result) {
-                    is PurchaseResult.Success -> PurchaseState.Success
-                    is PurchaseResult.Cancelled -> PurchaseState.Idle
-                    is PurchaseResult.Error -> PurchaseState.Error(result.message)
+                val nextState = when (result) {
+                    is PurchaseResult.Success -> {
+                        val expected = pendingProductId
+                        if (expected == null || expected !in result.purchase.products) return@onEach
+                        PurchaseState.Verifying
+                    }
+                    is PurchaseResult.Cancelled -> {
+                        pendingProductId = null
+                        PurchaseState.Idle
+                    }
+                    is PurchaseResult.Error -> {
+                        pendingProductId = null
+                        PurchaseState.Error(result.message)
+                    }
                 }
+                _purchaseState.value = nextState
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeVerificationResults() {
+        purchaseRepository.verificationResults
+            .onEach { result ->
+                if (result.productIdOrNull() != pendingProductId) return@onEach
+                _purchaseState.value = when (result) {
+                    is PurchaseVerificationResult.Verified -> PurchaseState.Success
+                    is PurchaseVerificationResult.Error -> PurchaseState.Error(result.message)
+                }
+                pendingProductId = null
             }
             .launchIn(viewModelScope)
     }
@@ -128,6 +161,12 @@ class BillingViewModel @Inject constructor(
 sealed class PurchaseState {
     object Idle : PurchaseState()
     object Loading : PurchaseState()
+    object Verifying : PurchaseState()
     object Success : PurchaseState()
     data class Error(val message: String) : PurchaseState()
+}
+
+private fun PurchaseVerificationResult.productIdOrNull(): String = when (this) {
+    is PurchaseVerificationResult.Verified -> productId
+    is PurchaseVerificationResult.Error -> productId
 }

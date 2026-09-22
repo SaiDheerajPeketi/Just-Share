@@ -15,6 +15,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -56,6 +59,9 @@ class PurchaseRepository @Inject constructor(
     }
 
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val _verificationResults = MutableSharedFlow<PurchaseVerificationResult>(extraBufferCapacity = 8)
+    val verificationResults: SharedFlow<PurchaseVerificationResult> =
+        _verificationResults.asSharedFlow()
 
     /** Start observing purchase results. Call once from the DI graph initializer or Application. */
     fun startObserving() {
@@ -101,14 +107,23 @@ class PurchaseRepository @Inject constructor(
                         Purchases.sharedInstance.syncPurchases()
                     }
                     // Server confirmed — now safe to finalize on the client
-                    finalizeOnClient(purchase, productId)
+                    check(finalizeOnClient(purchase, productId)) {
+                        "Google Play could not finalize the verified purchase"
+                    }
                     quotaRepository.refresh()
                     reportPurchaseTelemetry(deviceId, productId)
+                    _verificationResults.emit(PurchaseVerificationResult.Verified(productId))
                     Log.d(TAG, "Purchase verified and finalized: $productId")
                     return
                 } else if (code == 400) {
                     // Bad token — don't retry, token is invalid
                     Log.e(TAG, "Purchase verification rejected by server (400): $productId")
+                    _verificationResults.emit(
+                        PurchaseVerificationResult.Error(
+                            productId,
+                            "Google Play purchase verification was rejected.",
+                        ),
+                    )
                     return
                 }
                 // 5xx or network error — retry below
@@ -123,15 +138,21 @@ class PurchaseRepository @Inject constructor(
             }
         }
         Log.e(TAG, "Purchase verification exhausted retries for $productId — will retry on next app open via pending-purchase recovery")
+        _verificationResults.emit(
+            PurchaseVerificationResult.Error(
+                productId,
+                "Purchase verification is delayed. Google Play will retry safely.",
+            ),
+        )
     }
 
     /**
      * Acknowledge (non-consumable Pro) or Consume (consumable Data Pack) the purchase.
      * Called only after server-side verification succeeds.
      */
-    private suspend fun finalizeOnClient(purchase: Purchase, productId: String) {
+    private suspend fun finalizeOnClient(purchase: Purchase, productId: String): Boolean {
         val billingClient = billingClientWrapper.billingClient
-        if (!billingClient.isReady) return
+        if (!billingClient.isReady) return false
 
         if (productId == PRO_PRODUCT_ID) {
             if (!purchase.isAcknowledged) {
@@ -145,6 +166,7 @@ class PurchaseRepository @Inject constructor(
                 }
                 if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                     Log.w(TAG, "Acknowledge failed: ${result.debugMessage}")
+                    return false
                 }
             }
         } else if (productId == DATA_PACK_PRODUCT_ID || productId == SUPPORT_TIP_PRODUCT_ID) {
@@ -159,8 +181,10 @@ class PurchaseRepository @Inject constructor(
             }
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                 Log.w(TAG, "Consume failed: ${result.debugMessage}")
+                return false
             }
         }
+        return true
     }
 
     private fun reportPurchaseTelemetry(deviceId: String, productId: String) {
@@ -174,4 +198,9 @@ class PurchaseRepository @Inject constructor(
             apiService.reportTelemetry(TelemetryEvent(deviceId = deviceId, name = eventName))
         }
     }
+}
+
+sealed class PurchaseVerificationResult {
+    data class Verified(val productId: String) : PurchaseVerificationResult()
+    data class Error(val productId: String, val message: String) : PurchaseVerificationResult()
 }

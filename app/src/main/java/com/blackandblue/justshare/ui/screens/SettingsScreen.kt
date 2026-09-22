@@ -185,7 +185,11 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = activity != null && tipPrice != null && purchaseState !is PurchaseState.Loading) {
+                        .clickable(
+                            enabled = activity != null && tipPrice != null &&
+                                purchaseState !is PurchaseState.Loading &&
+                                purchaseState !is PurchaseState.Verifying,
+                        ) {
                             activity?.let(billingViewModel::purchaseSupportTip)
                         }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -199,6 +203,7 @@ fun SettingsScreen(
                     Text(
                         text = when {
                             purchaseState is PurchaseState.Loading -> "Opening secure Google Play checkout…"
+                            purchaseState is PurchaseState.Verifying -> "Verifying your tip securely…"
                             tipPrice != null -> "Send a one-time $tipPrice tip; no features are unlocked"
                             else -> "Donation unavailable right now"
                         },
