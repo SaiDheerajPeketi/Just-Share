@@ -1,0 +1,56 @@
+JUST SHARE REVIEW TRANSFER FIXTURE
+
+This file is synthetic and contains no personal, confidential, copyrighted, or account data.
+It exists only to demonstrate user-initiated file selection and transfer during Google Play review.
+
+SECTION 01 - BLUE HARBOR
+At sunrise, a small paper boat follows a painted blue channel across a model harbor. The route is
+fictional, the names are invented, and the measurements are examples created for this test file.
+
+SECTION 02 - QUIET SIGNALS
+Three lamps blink in a simple order: blue, white, blue. A nearby card records the sequence so that
+the receiving device can confirm the complete fixture arrived without relying on private content.
+
+SECTION 03 - WORKSHOP NOTES
+The first shelf holds wooden circles. The second shelf holds paper squares. The third shelf is left
+empty. These objects describe no real place, person, organization, transaction, or device.
+
+SECTION 04 - GARDEN MAP
+A fictional path turns left at a stone arch, passes two blue markers, and ends beside a small pond.
+No address, coordinate, telephone number, email address, account name, or identifier appears here.
+
+SECTION 05 - CHECKLIST
+- Select this file through Android's system document picker.
+- Choose the intended transfer method in Just Share.
+- Confirm the receiving test device before starting the transfer.
+- Show the user-visible progress notification while the transfer is active.
+- Show completion, cancellation, or a clear recoverable error.
+
+SECTION 06 - COLOR SAMPLES
+Cobalt blue is paired with warm white. Deep navy is paired with pale gray. These descriptions are
+only neutral filler used to make the review fixture easy to identify on both test devices.
+
+SECTION 07 - COUNTING PATTERN
+One circle, two squares, three triangles, four stars, five lines, six dots, and seven small waves.
+The pattern has no hidden meaning and encodes no credential, token, purchase, or connection code.
+
+SECTION 08 - ROUTE CARD
+Start at the blue marker. Follow the wide path. Pause at the model bridge. Continue to the final
+marker. This route is imaginary and is not associated with a real-world location.
+
+SECTION 09 - RECEIPT CHECK
+The received file should begin with the title JUST SHARE REVIEW TRANSFER FIXTURE and should end with
+the words END OF SYNTHETIC FIXTURE. Reviewers may compare those markers to confirm completeness.
+
+SECTION 10 - SAFE CONTENT NOTICE
+All prose in this file was written for application review. It includes no customer document,
+third-party work, payment data, health data, precise location, contact detail, or device identifier.
+
+SECTION 11 - TRANSFER PURPOSE
+Just Share transfers only the file the user deliberately selects. This fixture lets the reviewer
+exercise that flow without exposing data from the developer, a tester, or another application.
+
+SECTION 12 - FINAL MARKER
+The final marker confirms that the complete synthetic text reached the receiving test device.
+
+END OF SYNTHETIC FIXTURE

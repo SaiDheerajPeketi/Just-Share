@@ -20,6 +20,16 @@ Keep the following beside the final videos without exposing secret or user-speci
 - device model, Android version and capture date
 - tester confirmation that the installed build came from Google Play
 
+Use `review-evidence/fixtures/just-share-review-payload.txt` as the selected document. It is a
+2,935-byte synthetic text file with SHA-256
+`8fd703d5fa48bfa9b2ef554a4d5d2ec16fb2e6ffe506dbea98f754bdbcb11f0a`. Verify the checksum before
+recording, and confirm the received copy starts and ends with the fixture's visible markers. Never
+replace it with a tester's personal file.
+
+Generate every Remote Transfer session code and QR code live inside the Play-installed app during
+the capture. Never commit, reuse, or publish a real connection code, QR payload, relay credential,
+or purchase token. The manual-code and camera flows must join the same disposable test session.
+
 List connected devices first, choose one exact serial, and pass that serial to every install,
 launch, log, screenshot and recording command. Before accepting evidence, confirm the foreground
 component is `com.blackandblue.justshare/.MainActivity`; reject any capture if another app or an
