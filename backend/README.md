@@ -21,7 +21,6 @@ Backend service for Just-Share AlterSend Remote feature.
 - `PRO_TIER_GB` (default 5)
 - `DATA_PACK_GB` (default 10)
 - `MAX_RELAY_SESSION_BYTES` (default 5 GiB; must match the Worker session quota)
-- `PUBSUB_SUBSCRIPTION_NAME` (Pub/Sub subscription name for RTDN)
 - `PUBSUB_PUSH_AUDIENCE` (the exact HTTPS push endpoint audience)
 - `PUBSUB_PUSH_SERVICE_ACCOUNT` (the least-privilege push identity allowed to call RTDN)
 - `PRO_PRODUCT_ID` (default "pro_unlock")
