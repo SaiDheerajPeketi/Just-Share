@@ -180,3 +180,4 @@ jobs:
           releaseFiles: ${{ env.AAB_PATH }}
           tracks: ${{ inputs.deploy_target == 'closed-alpha' && 'alpha' || 'internal' }}
           status: completed
+          whatsNewDirectory: distribution/whatsnew
