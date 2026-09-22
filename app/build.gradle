@@ -39,6 +39,10 @@ def revenueCatApiKey = providers.gradleProperty("JUSTSHARE_REVENUECAT_API_KEY")
     .orElse(providers.environmentVariable("JUSTSHARE_REVENUECAT_API_KEY"))
     .getOrElse(localProperties.getProperty("JUSTSHARE_REVENUECAT_API_KEY", ""))
     .trim()
+def uploadCrashlyticsMapping = providers.gradleProperty("JUSTSHARE_UPLOAD_CRASHLYTICS_MAPPING")
+    .orElse(providers.environmentVariable("JUSTSHARE_UPLOAD_CRASHLYTICS_MAPPING"))
+    .map { it.equalsIgnoreCase("true") }
+    .getOrElse(false)
 def releaseKeystorePath = signingValue("JUSTSHARE_KEYSTORE_PATH", "storeFile")
 def releaseStorePassword = signingValue("JUSTSHARE_KEYSTORE_PASSWORD", "storePassword")
 def releaseKeyAlias = signingValue("JUSTSHARE_KEY_ALIAS", "keyAlias")
@@ -110,6 +114,11 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (firebaseConfigured) {
+                firebaseCrashlytics {
+                    mappingFileUploadEnabled uploadCrashlyticsMapping
+                }
+            }
             if (hasReleaseSigning) {
                 signingConfig signingConfigs.release
             }
