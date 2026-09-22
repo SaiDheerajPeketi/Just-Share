@@ -1,7 +1,7 @@
 # Just Share launch pricing
 
 **Decision date:** 21 September 2026\
-**Status:** approved hypothesis for closed testing
+**Status:** implemented in candidate `428c1d3`; Play catalog and closed-test validation pending
 
 ## Strategy
 

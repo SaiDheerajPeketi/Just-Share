@@ -26,7 +26,7 @@ FAST NEARBY SHARING
 
 REMOTE WHEN YOU NEED IT
 
-Nearby transfer remains free. The optional Pro unlock enables protected remote relay sessions when the devices are not on the same local connection. Optional data packs add remote relay quota. Remote relay traffic is time-limited and quota-controlled; selected files pass through the relay for delivery and are not offered as cloud storage.
+Nearby transfer remains free and unlimited. Remote Transfer includes a backend-configured monthly allowance for free users. The optional one-time Pro unlock raises that monthly allowance, while optional data packs add non-expiring relay quota. Remote relay traffic is time-limited and quota-controlled; selected files pass through the relay for delivery and are not offered as cloud storage.
 
 PRIVACY AND CONTROL
 

@@ -37,16 +37,23 @@ implicitly selected device took focus.
 
 ## Current artifact status — 22 September 2026
 
-The approved replacement candidate comes from source commit `4b95f2e`. Its signed AAB has SHA-256
-`e4eb7db0dec2358b8ee5b8f8cd61d16a4c64ed64a132217d83eac1d5c8441e81`; its matching signed APK has
-SHA-256 `e0cbec10ac589b741d8322e0d7b651ba616471603da1f718cee6da904adc7e1e`.
+The approved replacement candidate comes from source commit `428c1d3`. Its signed AAB has SHA-256
+`ef810466798f656830ca1d4c74f1fc2ae7b576882329cdfe5584b3c2cc31d76a`; its matching signed APK has
+SHA-256 `1f5376195d97cfa424f900c09ed53bf8f2ed15f106e03a1e54f8c79953b0144f`.
 
 The exact signed APK was clean-installed on explicitly selected emulator `emulator-5554`, a
-Pixel-class Android 15 (API 35) device. It cold-launched in 2,792 ms, remained alive and focused on
-`com.blackandblue.justshare/.MainActivity`, and produced no `AndroidRuntime` failure. The first-run
-explanation and onboarding rendered at 1080 x 2400 with no text overlap or clipping. This local
-install validates the release artifact but is not Play review evidence; final recordings must use
-the unchanged AAB installed through Play.
+Pixel-class Android 15 (API 35) device. It cold-launched in 255 ms, remained alive and focused on
+`com.blackandblue.justshare/.MainActivity`, and produced no `AndroidRuntime` failure. Its first-run
+explanation and the full
+Settings screen rendered at 1080 x 2400 with no text overlap or clipping. Settings exposes the
+one-time Pro purchase and repeatable support tip with clear unavailable states until a Play-installed
+build supplies localized prices. This local install validates the release artifact but is not Play
+review evidence; final recordings must use the unchanged AAB installed through Play.
+
+The candidate from source commit `4b95f2e`, AAB SHA-256
+`e4eb7db0dec2358b8ee5b8f8cd61d16a4c64ed64a132217d83eac1d5c8441e81`, is superseded and must not be
+uploaded. It corrected localized data-pack fallback copy but did not yet expose the existing
+one-time Pro product through a reachable production screen.
 
 The earlier otherwise-valid candidate from source commit `a877cc7`, AAB SHA-256
 `70db8fe32bfe096ff83680a2c8ad0f2b96ede502a359812356008fdcc3f0afc3`, is superseded and must not be
