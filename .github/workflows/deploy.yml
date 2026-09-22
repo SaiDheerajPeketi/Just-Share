@@ -166,7 +166,12 @@ jobs:
       - name: Verify release signature
         run: |
           test -f "$AAB_PATH"
-          jarsigner -verify -verbose:summary "$AAB_PATH"
+          signature_report="$(jarsigner -verify -verbose:summary "$AAB_PATH")"
+          printf '%s\n' "$signature_report"
+          if ! grep -Eq '^[[:space:]]*s[^=]*[[:space:]][[:digit:]]+[[:space:]]' <<< "$signature_report"; then
+            echo 'Release AAB contains no verified signed entries.' >&2
+            exit 1
+          fi
       - name: Upload to the selected Play testing track
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
