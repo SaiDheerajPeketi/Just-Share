@@ -64,10 +64,11 @@ fun QuotaExhaustedDialog(
     val purchaseState by billingViewModel.purchaseState.collectAsState()
     val dataPackDetails by billingViewModel.dataPackProductDetails.collectAsState()
 
-    val priceString = dataPackDetails
+    val purchaseLabel = dataPackDetails
         ?.oneTimePurchaseOfferDetails
         ?.formattedPrice
-        ?: "$2.99"
+        ?.let { formattedPrice -> "Buy 10 GB Data Pack — $formattedPrice" }
+        ?: "Data pack unavailable"
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -156,7 +157,7 @@ fun QuotaExhaustedDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Buy 10 GB Data Pack — $priceString",
+                            text = purchaseLabel,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 15.sp
                         )

@@ -1226,8 +1226,8 @@ function ProUpgradeScreen({ onBack }: { onBack: () => void }) {
 
       <div className="px-6 py-6 space-y-3">
         <div className="text-center">
-          <p className="text-4xl font-black" style={{ color: WHITE }}>$2.99<span className="text-lg font-normal" style={{ color: "#777" }}>/month</span></p>
-          <p className="text-xs mt-1" style={{ color: "#555" }}>or $19.99/year — save 44%</p>
+          <p className="text-2xl font-black" style={{ color: WHITE }}>One-time purchase</p>
+          <p className="text-xs mt-1" style={{ color: "#777" }}>Localized price shown by Google Play</p>
         </div>
         <button className="w-full py-4 rounded-full font-black text-base shadow-2xl transition-transform active:scale-95"
           style={{ background: `linear-gradient(135deg, ${GOLD}, #B8860B)`, color: WHITE }}>
