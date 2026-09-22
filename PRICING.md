@@ -1,7 +1,7 @@
 # Just Share launch pricing
 
 **Decision date:** 21 September 2026\
-**Status:** implemented in candidate `428c1d3`; Play catalog and closed-test validation pending
+**Status:** implemented in candidate `9ecd269`; Play catalog and closed-test validation pending
 
 ## Strategy
 

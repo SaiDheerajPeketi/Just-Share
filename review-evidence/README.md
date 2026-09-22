@@ -37,18 +37,26 @@ implicitly selected device took focus.
 
 ## Current artifact status — 22 September 2026
 
-The approved replacement candidate comes from source commit `428c1d3`. Its signed AAB has SHA-256
-`ef810466798f656830ca1d4c74f1fc2ae7b576882329cdfe5584b3c2cc31d76a`; its matching signed APK has
-SHA-256 `1f5376195d97cfa424f900c09ed53bf8f2ed15f106e03a1e54f8c79953b0144f`.
+The approved replacement candidate comes from source commit `9ecd269`. Its signed AAB has SHA-256
+`52177da486d77c9e88821c0127cbae72ce3285983b0e7c790c94ed73f9c875d3`; its matching signed APK has
+SHA-256 `a821ee9b6b5e3ff138bac14d2f590695090756e8b01eb3fcbe6f0829a6593457`.
 
 The exact signed APK was clean-installed on explicitly selected emulator `emulator-5554`, a
-Pixel-class Android 15 (API 35) device. It cold-launched in 255 ms, remained alive and focused on
+Pixel-class Android 15 (API 35) device. It cold-launched in 284 ms, remained alive and focused on
 `com.blackandblue.justshare/.MainActivity`, and produced no `AndroidRuntime` failure. Its first-run
-explanation and the full
-Settings screen rendered at 1080 x 2400 with no text overlap or clipping. Settings exposes the
-one-time Pro purchase and repeatable support tip with clear unavailable states until a Play-installed
-build supplies localized prices. This local install validates the release artifact but is not Play
-review evidence; final recordings must use the unchanged AAB installed through Play.
+explanation and permission page rendered at 1080 x 2400 with no text overlap or clipping. The
+Settings implementation keeps Appearance, Transfer Defaults, Remote Plan and Support as sequential
+cards inside one vertical scroll container, so the Pro and tip copy cannot overlap the mockup or one
+another at that viewport. Settings exposes the one-time Pro purchase and repeatable support tip with
+clear unavailable states until a Play-installed build supplies localized prices. This local install
+validates the release artifact but is not Play review evidence; final recordings must use the
+unchanged AAB installed through Play.
+
+The candidate from source commit `428c1d3`, AAB SHA-256
+`ef810466798f656830ca1d4c74f1fc2ae7b576882329cdfe5584b3c2cc31d76a`, is superseded and must not be
+uploaded. Although its purchase surfaces were production-reachable, its compiled APK still embedded
+an unused legacy `relay.edgelab.co.in` default. The replacement candidate removes that default and
+release validation permits only the Black and Blue API and WebSocket endpoints.
 
 The candidate from source commit `4b95f2e`, AAB SHA-256
 `e4eb7db0dec2358b8ee5b8f8cd61d16a4c64ed64a132217d83eac1d5c8441e81`, is superseded and must not be
