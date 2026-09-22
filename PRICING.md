@@ -23,9 +23,9 @@ relay, which creates an ongoing infrastructure cost, and to a one-time Pro conve
 - No ads, weekly plan, recurring subscription, or trial at launch
 
 Free includes local transfer and the backend-configured monthly Remote allowance. Pro grants the
-backend-configured higher Remote allowance and paid convenience features actually present in the
-candidate. Heavy use is funded by data packs. Do not advertise planned group-send, resume, trusted
-device, or history benefits until the exact release candidate visibly implements them.
+backend-configured higher Remote allowance. Heavy use is funded by data packs. Do not advertise
+planned group-send, resume, trusted-device, or history benefits until the exact release candidate
+visibly implements them.
 
 Remote quota is reserved from the sender using the selected file size when a relay session is
 created. If Android cannot determine that size, the maximum five-gigabyte session amount is
