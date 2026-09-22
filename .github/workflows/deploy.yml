@@ -79,6 +79,12 @@ jobs:
     needs: release-policy
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      JUSTSHARE_REVENUECAT_API_KEY: goog_validation_only
+      JUSTSHARE_KEYSTORE_PATH: ${{ github.workspace }}/ci-release.jks
+      JUSTSHARE_KEYSTORE_PASSWORD: android
+      JUSTSHARE_KEY_ALIAS: ci-release
+      JUSTSHARE_KEY_PASSWORD: android
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.7.1
@@ -86,7 +92,12 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
-      - name: Connected checks on API 35
+      - name: Create ephemeral CI release certificate
+        run: >-
+          keytool -genkeypair -keystore ci-release.jks -storepass android -keypass android
+          -alias ci-release -keyalg RSA -keysize 2048 -validity 1
+          -dname "CN=Just Share CI,O=Black and Blue,C=IN" -noprompt
+      - name: Connected checks and minified release launch on API 35
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 35
@@ -94,7 +105,13 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: ./gradlew connectedCheck --stacktrace
+          script: |
+            ./gradlew connectedCheck :app:assembleRelease --stacktrace
+            adb install -r app/build/outputs/apk/release/app-release.apk
+            adb shell am force-stop com.blackandblue.justshare
+            adb shell am start -W -n com.blackandblue.justshare/.MainActivity
+            sleep 5
+            test -n "$(adb shell pidof com.blackandblue.justshare)"
 
   deploy-testing:
     needs: [quality, cloud-quality, device]
@@ -105,7 +122,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: testing
     env:
-      JUSTSHARE_KEYSTORE_PATH: upload-keystore.jks
+      JUSTSHARE_KEYSTORE_PATH: ${{ github.workspace }}/upload-keystore.jks
       JUSTSHARE_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       JUSTSHARE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       JUSTSHARE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
