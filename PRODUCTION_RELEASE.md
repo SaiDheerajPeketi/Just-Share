@@ -6,7 +6,7 @@ Google Play Publishing overview shows closed-testing Alpha release `1.0.5 (9)` a
 
 ## Backend readiness — September 26, 2026
 
-The `bb-justshare-android` Cloud Run project currently lists **no services**. Chrome cannot resolve either `api.justshare.blackandblue.co.in` or `relay.justshare.blackandblue.co.in`. The quota API and remote relay are therefore not verified as deployed; do not set `JUSTSHARE_BACKEND_VERIFIED=true` or claim that remote transfer and purchase-backed quota flows work in the closed-test release. The release is already in Play review; this check did not modify or withdraw it.
+The `bb-justshare-android` project has **no Cloud Run services, Firestore database, or linked billing account**; its service-account list contains only the Firebase Admin SDK service agent. Cloudflare has no Just Share relay Worker or `api.justshare`/`relay.justshare` DNS records, and Chrome cannot resolve either hostname. The local version-9 release bundle contains both configured hostnames, and its generated release BuildConfig enables the Cloudflare relay path. The quota API and remote relay are therefore not verified as deployed; do not set `JUSTSHARE_BACKEND_VERIFIED=true` or claim that remote transfer and purchase-backed quota flows work in the closed-test release. The release is already in Play review; this check did not modify or withdraw it.
 
 ## Candidate architecture
 
