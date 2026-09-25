@@ -1,5 +1,9 @@
 # Just Share closed-test release contract
 
+## Play review status — September 26, 2026
+
+Google Play Publishing overview shows closed-testing Alpha release `1.0.5 (9)` and a default-listing phone-screenshot change under **Changes in review**. This is a submitted review, not approval or tester availability. Recheck the release overview after Play completes review; this status alone does not prove the relay or quota backend is live.
+
 ## Candidate architecture
 
 - Package: `com.blackandblue.justshare`
