@@ -296,6 +296,11 @@ class CommunicationService : Service() {
                     Log.d(TAG, "Remote closed Wi-Fi Direct stream")
                     break
                 } catch (e: IOException) {
+                    if (e is java.net.SocketTimeoutException && serviceState.get() == IS_SENDING) {
+                        // The peer is receiving our file, not sending metadata back.
+                        // Keep the socket open while the send worker makes progress.
+                        continue
+                    }
                     if (e is java.net.SocketException && e.message?.contains("Socket closed") == true) {
                         Log.d(TAG, "Socket closed locally, stopping reading loop")
                     } else {

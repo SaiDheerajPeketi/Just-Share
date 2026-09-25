@@ -640,6 +640,11 @@ class WifiDirectViewModel @Inject constructor(
                 if (!isSenderRole || state.isConnected || state.connectionStatus == "connecting" || !state.isDiscovering) {
                     continue
                 }
+                // A new discovery cycle briefly empties the framework peer list. Keep a
+                // visible peer selectable; PEERS_CHANGED will remove it if it leaves.
+                if (state.peers.isNotEmpty()) {
+                    continue
+                }
                 if (!isLocationModeEnabled()) {
                     _uiState.update {
                         it.copy(
