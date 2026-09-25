@@ -128,6 +128,7 @@ fun BackBar(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.Transparent)
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

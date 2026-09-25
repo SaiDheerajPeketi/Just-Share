@@ -48,15 +48,38 @@
         "inverted": true
       },
       {
-        "id": "justshare-remote",
+        "id": "justshare-select-files",
         "layout": "device-bottom",
         "label": {
-          "en": "WHEN YOU'RE APART"
+          "en": "PICK WHAT MOVES"
         },
         "headline": {
-          "en": "Protected remote\ntransfer."
+          "en": "Send the files\nyou choose."
         },
-        "screenshot": "/screenshots/android/phone/en/justshare-remote.png"
+        "screenshot": "/screenshots/android/phone/en/justshare-select-pdf-v9.png"
+      },
+      {
+        "id": "justshare-discovery",
+        "layout": "device-top",
+        "label": {
+          "en": "FIND NEARBY"
+        },
+        "headline": {
+          "en": "See the other\nphone nearby."
+        },
+        "screenshot": "/screenshots/android/phone/en/justshare-discovery-v9.png",
+        "inverted": true
+      },
+      {
+        "id": "justshare-receive",
+        "layout": "device-bottom",
+        "label": {
+          "en": "READY TO RECEIVE"
+        },
+        "headline": {
+          "en": "Make your phone\nvisible to share."
+        },
+        "screenshot": "/screenshots/android/phone/en/justshare-receive-v9.png"
       },
       {
         "id": "justshare-settings",
@@ -69,6 +92,17 @@
         },
         "screenshot": "/screenshots/android/phone/en/justshare-settings-fixed.png",
         "inverted": true
+      },
+      {
+        "id": "justshare-remote",
+        "layout": "device-bottom",
+        "label": {
+          "en": "WHEN YOU'RE APART"
+        },
+        "headline": {
+          "en": "Protected remote\ntransfer."
+        },
+        "screenshot": "/screenshots/android/phone/en/justshare-remote-v9.png"
       }
     ],
     "ipad": [],
