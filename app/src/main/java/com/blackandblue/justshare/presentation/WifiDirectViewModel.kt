@@ -78,7 +78,7 @@ class WifiDirectViewModel @Inject constructor(
     private var discoveryRefreshJob: Job? = null
 
     companion object {
-        private const val CONNECT_TIMEOUT_MS = 8_000L
+        private const val CONNECT_TIMEOUT_MS = 30_000L
         private const val DISCOVERY_REFRESH_MS = 10_000L
     }
 
