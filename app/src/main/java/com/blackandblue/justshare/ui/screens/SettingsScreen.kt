@@ -51,6 +51,9 @@ fun SettingsScreen(
     
 
     val savedTransferMethod by dataStore.defaultTransferMethod.collectAsStateWithLifecycle(initialValue = "wifi")
+    val verifiedSupportProducts by dataStore.verifiedSupportProducts.collectAsStateWithLifecycle(
+        initialValue = emptySet(),
+    )
     val proProduct by billingViewModel.proProductDetails.collectAsStateWithLifecycle()
     val supportProducts by billingViewModel.supportProductDetails.collectAsStateWithLifecycle()
     val quotaState by billingViewModel.quotaState.collectAsStateWithLifecycle()
@@ -308,13 +311,6 @@ fun SettingsScreen(
                             color = colors.mutedFg,
                         )
                         when (val state = purchaseState) {
-                            is PurchaseState.Success -> if (state.productId == productId) {
-                                Text(
-                                    "Thank you for supporting this student developer!",
-                                    style = MaterialTheme.typography.caption,
-                                    color = colors.red,
-                                )
-                            }
                             is PurchaseState.Error -> if (state.productId == productId) {
                                 Text(
                                     "The purchase wasn't completed. ${state.message}",
@@ -323,6 +319,13 @@ fun SettingsScreen(
                                 )
                             }
                             else -> Unit
+                        }
+                        if (productId in verifiedSupportProducts) {
+                            Text(
+                                "Thank you for supporting this student developer!",
+                                style = MaterialTheme.typography.caption,
+                                color = colors.red,
+                            )
                         }
                     }
                 }

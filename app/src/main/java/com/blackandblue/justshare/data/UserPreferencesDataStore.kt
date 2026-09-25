@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -37,6 +38,7 @@ class UserPreferencesDataStore @Inject constructor(
             booleanPreferencesKey("always_require_encryption_verification")
         /** Persistent anonymous device identity used for relay quota metering. Never changes after first write. */
         val KEY_DEVICE_ID = stringPreferencesKey("device_id")
+        private val KEY_VERIFIED_SUPPORT_PRODUCTS = stringSetPreferencesKey("verified_support_products")
     }
 
     val isFirstLaunch: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -57,6 +59,18 @@ class UserPreferencesDataStore @Inject constructor(
 
     val alwaysRequireEncryptionVerification: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_ALWAYS_REQUIRE_ENCRYPTION_VERIFICATION] ?: false
+    }
+
+    /** Product IDs only; purchase tokens are never kept on the device for this acknowledgement. */
+    val verifiedSupportProducts: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[KEY_VERIFIED_SUPPORT_PRODUCTS] ?: emptySet()
+    }
+
+    suspend fun markSupportPurchaseVerified(productId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_VERIFIED_SUPPORT_PRODUCTS] =
+                (prefs[KEY_VERIFIED_SUPPORT_PRODUCTS] ?: emptySet()) + productId
+        }
     }
 
     /**

@@ -108,6 +108,11 @@ class PurchaseRepository @Inject constructor(
                 )
 
                 if (code in 200..299) {
+                    if (productId in SUPPORT_PRODUCT_IDS && productId != "student_developer_tip") {
+                        // Save the promised acknowledgement before consumption; a process death
+                        // after consumption would otherwise lose the only UI success event.
+                        dataStore.markSupportPurchaseVerified(productId)
+                    }
                     if (Purchases.isConfigured) {
                         Purchases.sharedInstance.syncPurchases()
                     }
