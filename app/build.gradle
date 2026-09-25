@@ -35,6 +35,10 @@ if (firebaseConfigured) {
 def quotaApiBaseUrl = providers.gradleProperty("QUOTA_API_BASE_URL")
     .orElse(providers.environmentVariable("QUOTA_API_BASE_URL"))
     .getOrElse(localProperties.getProperty("QUOTA_API_BASE_URL", ""))
+def backendVerified = providers.gradleProperty("JUSTSHARE_BACKEND_VERIFIED")
+    .orElse(providers.environmentVariable("JUSTSHARE_BACKEND_VERIFIED"))
+    .getOrElse("false")
+    .equalsIgnoreCase("true")
 def alterSendRelayHost = providers.gradleProperty("ALTERSEND_RELAY_HOST")
     .orElse(providers.environmentVariable("ALTERSEND_RELAY_HOST"))
     .getOrElse(localProperties.getProperty("ALTERSEND_RELAY_HOST", ""))
@@ -233,6 +237,11 @@ def validateUploadConfiguration = tasks.register("validateUploadConfiguration") 
     group = "release"
     description = "Validates protected Just Share upload inputs."
     doLast {
+        if (!backendVerified) {
+            throw new GradleException(
+                "Set JUSTSHARE_BACKEND_VERIFIED=true only after the live quota API and relay pass candidate checks."
+            )
+        }
         if (!hasReleaseSigning) {
             throw new GradleException("All JUSTSHARE_KEYSTORE_* values are required for upload.")
         }

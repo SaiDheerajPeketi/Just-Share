@@ -34,6 +34,12 @@ Pull requests and `main` builds compile this backend and type-check the relay wo
 Android testing-track deployment can run. This validation uses no cloud credentials and performs no
 deployment.
 
+The Android `bundleReleaseForUpload` task deliberately fails unless
+`JUSTSHARE_BACKEND_VERIFIED=true` is supplied from protected release configuration.
+Set it only after the deployed quota API, authenticated relay, and candidate
+purchase-verification path have been checked. A correctly spelled API URL is
+not deployment evidence.
+
 The relay HMAC secret is server-only. Never place it in Android build properties, CI build arguments,
 the APK, QR codes, logs, or source control. Android obtains five-minute session credentials from the
 backend after the sender's selected bytes are atomically reserved. The reserved byte ceiling is
