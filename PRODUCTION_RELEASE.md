@@ -4,6 +4,10 @@
 
 Google Play Publishing overview shows closed-testing Alpha release `1.0.5 (9)` and a default-listing phone-screenshot change under **Changes in review**. This is a submitted review, not approval or tester availability. Recheck the release overview after Play completes review; this status alone does not prove the relay or quota backend is live.
 
+## Backend readiness — September 26, 2026
+
+The `bb-justshare-android` Cloud Run project currently lists **no services**. Chrome cannot resolve either `api.justshare.blackandblue.co.in` or `relay.justshare.blackandblue.co.in`. The quota API and remote relay are therefore not verified as deployed; do not set `JUSTSHARE_BACKEND_VERIFIED=true` or claim that remote transfer and purchase-backed quota flows work in the closed-test release. The release is already in Play review; this check did not modify or withdraw it.
+
 ## Candidate architecture
 
 - Package: `com.blackandblue.justshare`
