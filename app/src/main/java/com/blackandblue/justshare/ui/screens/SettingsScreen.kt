@@ -57,6 +57,9 @@ fun SettingsScreen(
     val purchaseState by billingViewModel.purchaseState.collectAsStateWithLifecycle()
     val activity = context as? android.app.Activity
     val proPrice = proProduct?.oneTimePurchaseOfferDetails?.formattedPrice
+    val supportCatalogReady = BillingViewModel.SUPPORT_PRODUCT_IDS.keys.all { productId ->
+        supportProducts[productId]?.oneTimePurchaseOfferDetails != null
+    }
     val purchaseBusy = purchaseState is PurchaseState.Loading ||
         purchaseState is PurchaseState.Verifying
     val activeProductId = purchaseState.productIdOrNull()
@@ -279,7 +282,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable(
-                                enabled = activity != null && price != null && !purchaseBusy,
+                                enabled = activity != null && supportCatalogReady && !purchaseBusy,
                             ) {
                                 activity?.let { billingViewModel.purchaseSupport(it, productId) }
                             }
@@ -297,7 +300,8 @@ fun SettingsScreen(
                                     "Opening secure Google Play checkout…"
                                 activeProductId == productId && purchaseState is PurchaseState.Verifying ->
                                     "Verifying your purchase securely…"
-                                price != null -> "One-time $price support purchase; no Pro features unlocked"
+                                supportCatalogReady && price != null ->
+                                    "One-time $price support purchase; no Pro features unlocked"
                                 else -> "Support purchase unavailable right now"
                             },
                             style = MaterialTheme.typography.body2,

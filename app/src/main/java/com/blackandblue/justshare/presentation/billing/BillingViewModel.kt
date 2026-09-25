@@ -97,6 +97,10 @@ class BillingViewModel @Inject constructor(
 
     fun purchaseSupport(activity: Activity, productId: String) {
         if (productId !in SUPPORT_PRODUCT_IDS) return
+        if (SUPPORT_PRODUCT_IDS.keys.any { id ->
+                _supportProductDetails.value[id]?.oneTimePurchaseOfferDetails == null
+            }
+        ) return
         val details = _supportProductDetails.value[productId] ?: return
         pendingProductId = productId
         _purchaseState.value = PurchaseState.Loading(productId)
