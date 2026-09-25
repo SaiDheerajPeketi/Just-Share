@@ -75,7 +75,7 @@ jobs:
         working-directory: backend
         run: |
           npm ci
-          npm run build
+          npm test
       - name: Type-check Cloudflare relay worker
         working-directory: cloudflare-relay
         run: |

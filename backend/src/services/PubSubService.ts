@@ -1,32 +1,36 @@
 import { QuotaService } from './QuotaService';
 import { hashPurchaseToken } from './PlayBillingService';
 
-export class PubSubService {
-  private quotaService: QuotaService;
+type RevocationStore = Pick<QuotaService, 'revokeVerifiedPurchase'>;
 
-  constructor() {
-    this.quotaService = new QuotaService();
+export class PubSubService {
+  private quotaService: RevocationStore;
+
+  constructor(quotaService: RevocationStore = new QuotaService()) {
+    this.quotaService = quotaService;
   }
 
   async handleMessage(data: string): Promise<void> {
     const payload = JSON.parse(data);
-    
-    if (payload.oneTimeProductNotification) {
-      const notification = payload.oneTimeProductNotification;
-      const purchaseToken = notification.purchaseToken;
-      const proProductId = process.env.PRO_PRODUCT_ID || 'pro_unlock';
-      const dataPackProductId = process.env.DATA_PACK_PRODUCT_ID || 'data_pack_10gb';
-      const dataPackGb = Number(process.env.DATA_PACK_GB) || 10;
-
-      // 1: ONE_TIME_PRODUCT_PURCHASED, 2: ONE_TIME_PRODUCT_CANCELED (refund)
-      if (notification.notificationType === 2 && typeof purchaseToken === 'string') {
-        await this.quotaService.revokeVerifiedPurchase(
-          hashPurchaseToken(purchaseToken),
-          proProductId,
-          dataPackProductId,
-          dataPackGb
-        );
-      }
+    if (payload?.packageName !== (process.env.ANDROID_PACKAGE_NAME || 'com.blackandblue.justshare')) {
+      return;
     }
+
+    // ONE_TIME_PRODUCT_CANCELED is a canceled pending purchase, not a refund.
+    // A completed one-time purchase is revoked only by a full void notification.
+    const notification = payload.voidedPurchaseNotification;
+    if (
+      notification?.productType !== 2 ||
+      notification.refundType !== 1 ||
+      typeof notification.purchaseToken !== 'string' ||
+      !notification.purchaseToken
+    ) return;
+
+    await this.quotaService.revokeVerifiedPurchase(
+      hashPurchaseToken(notification.purchaseToken),
+      process.env.PRO_PRODUCT_ID || 'pro_unlock',
+      process.env.DATA_PACK_PRODUCT_ID || 'data_pack_10gb',
+      Number(process.env.DATA_PACK_GB) || 10
+    );
   }
 }
