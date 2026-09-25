@@ -1,20 +1,16 @@
 package com.blackandblue.justshare.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -22,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.blackandblue.justshare.R
 import com.blackandblue.justshare.ui.components.PillButton
 import com.blackandblue.justshare.ui.components.PillButtonSize
 import com.blackandblue.justshare.ui.theme.JediShareTheme
@@ -49,20 +46,6 @@ fun OnboardingScreen(onContinue: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(colors.red, RoundedCornerShape(16.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FlashOn,
-                    contentDescription = null,
-                    tint = colors.white,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(32.dp))
             Text(
                 text = buildAnnotatedString {
                     append("Welcome to\n")
@@ -75,20 +58,11 @@ fun OnboardingScreen(onContinue: () -> Unit) {
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(48.dp))
-            // Placeholder for Lottie
-            Box(
-                modifier = Modifier
-                    .size(160.dp)
-                    .background(colors.red.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = null,
-                    tint = colors.red,
-                    modifier = Modifier.size(52.dp)
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.app_logo_full),
+                contentDescription = "Just Share logo",
+                modifier = Modifier.size(160.dp)
+            )
             Spacer(modifier = Modifier.height(48.dp))
             Text(
                 text = "Transfer files instantly — no internet needed",
