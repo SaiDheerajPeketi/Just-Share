@@ -42,7 +42,11 @@ class BillingViewModel @Inject constructor(
     companion object {
         const val PRO_PRODUCT_ID = "pro_unlock"
         const val DATA_PACK_PRODUCT_ID = "data_pack_10gb"
-        const val SUPPORT_TIP_PRODUCT_ID = "student_developer_tip"
+        val SUPPORT_PRODUCT_IDS = linkedMapOf(
+            "support_developer_1" to "Small",
+            "support_developer_10" to "Plus",
+            "support_developer_100" to "Generous",
+        )
     }
 
     // ── Quota ────────────────────────────────────────────────────────────────
@@ -58,9 +62,9 @@ class BillingViewModel @Inject constructor(
     private val _dataPackProductDetails = MutableStateFlow<ProductDetails?>(null)
     val dataPackProductDetails: StateFlow<ProductDetails?> = _dataPackProductDetails.asStateFlow()
 
-    private val _supportTipProductDetails = MutableStateFlow<ProductDetails?>(null)
-    val supportTipProductDetails: StateFlow<ProductDetails?> =
-        _supportTipProductDetails.asStateFlow()
+    private val _supportProductDetails = MutableStateFlow<Map<String, ProductDetails>>(emptyMap())
+    val supportProductDetails: StateFlow<Map<String, ProductDetails>> =
+        _supportProductDetails.asStateFlow()
 
     // ── Purchase State ───────────────────────────────────────────────────────
 
@@ -91,10 +95,11 @@ class BillingViewModel @Inject constructor(
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
-    fun purchaseSupportTip(activity: Activity) {
-        val details = _supportTipProductDetails.value ?: return
-        pendingProductId = SUPPORT_TIP_PRODUCT_ID
-        _purchaseState.value = PurchaseState.Loading(SUPPORT_TIP_PRODUCT_ID)
+    fun purchaseSupport(activity: Activity, productId: String) {
+        if (productId !in SUPPORT_PRODUCT_IDS) return
+        val details = _supportProductDetails.value[productId] ?: return
+        pendingProductId = productId
+        _purchaseState.value = PurchaseState.Loading(productId)
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
@@ -107,15 +112,18 @@ class BillingViewModel @Inject constructor(
 
     private fun loadProducts() {
         viewModelScope.launch {
+            val requestedProductIds =
+                listOf(PRO_PRODUCT_ID, DATA_PACK_PRODUCT_ID) + SUPPORT_PRODUCT_IDS.keys
             repeat(5) { attempt ->
-                val products = billingClientWrapper.queryProducts(
-                    listOf(PRO_PRODUCT_ID, DATA_PACK_PRODUCT_ID, SUPPORT_TIP_PRODUCT_ID)
-                )
+                val products = billingClientWrapper.queryProducts(requestedProductIds)
                 _proProductDetails.value = products.firstOrNull { it.productId == PRO_PRODUCT_ID }
                 _dataPackProductDetails.value = products.firstOrNull { it.productId == DATA_PACK_PRODUCT_ID }
-                _supportTipProductDetails.value =
-                    products.firstOrNull { it.productId == SUPPORT_TIP_PRODUCT_ID }
-                if (products.isNotEmpty()) return@launch
+                _supportProductDetails.value = products
+                    .filter { it.productId in SUPPORT_PRODUCT_IDS }
+                    .associateBy { it.productId }
+                if (requestedProductIds.all { id -> products.any { it.productId == id } }) {
+                    return@launch
+                }
                 if (attempt < 4) delay(1_000)
             }
         }

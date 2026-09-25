@@ -52,12 +52,11 @@ fun SettingsScreen(
 
     val savedTransferMethod by dataStore.defaultTransferMethod.collectAsStateWithLifecycle(initialValue = "wifi")
     val proProduct by billingViewModel.proProductDetails.collectAsStateWithLifecycle()
-    val tipProduct by billingViewModel.supportTipProductDetails.collectAsStateWithLifecycle()
+    val supportProducts by billingViewModel.supportProductDetails.collectAsStateWithLifecycle()
     val quotaState by billingViewModel.quotaState.collectAsStateWithLifecycle()
     val purchaseState by billingViewModel.purchaseState.collectAsStateWithLifecycle()
     val activity = context as? android.app.Activity
     val proPrice = proProduct?.oneTimePurchaseOfferDetails?.formattedPrice
-    val tipPrice = tipProduct?.oneTimePurchaseOfferDetails?.formattedPrice
     val purchaseBusy = purchaseState is PurchaseState.Loading ||
         purchaseState is PurchaseState.Verifying
     val activeProductId = purchaseState.productIdOrNull()
@@ -273,57 +272,54 @@ fun SettingsScreen(
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                 )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            enabled = activity != null && tipPrice != null &&
-                                !purchaseBusy,
-                        ) {
-                            activity?.let(billingViewModel::purchaseSupportTip)
+                BillingViewModel.SUPPORT_PRODUCT_IDS.forEach { (productId, label) ->
+                    val price = supportProducts[productId]
+                        ?.oneTimePurchaseOfferDetails?.formattedPrice
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                enabled = activity != null && price != null && !purchaseBusy,
+                            ) {
+                                activity?.let { billingViewModel.purchaseSupport(it, productId) }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = "Support a Student Developer — $label",
+                            style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium),
+                            color = colors.black,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = when {
+                                activeProductId == productId && purchaseState is PurchaseState.Loading ->
+                                    "Opening secure Google Play checkout…"
+                                activeProductId == productId && purchaseState is PurchaseState.Verifying ->
+                                    "Verifying your purchase securely…"
+                                price != null -> "One-time $price support purchase; no Pro features unlocked"
+                                else -> "Support purchase unavailable right now"
+                            },
+                            style = MaterialTheme.typography.body2,
+                            color = colors.mutedFg,
+                        )
+                        when (val state = purchaseState) {
+                            is PurchaseState.Success -> if (state.productId == productId) {
+                                Text(
+                                    "Thank you for supporting this student developer!",
+                                    style = MaterialTheme.typography.caption,
+                                    color = colors.red,
+                                )
+                            }
+                            is PurchaseState.Error -> if (state.productId == productId) {
+                                Text(
+                                    "The purchase wasn't completed. ${state.message}",
+                                    style = MaterialTheme.typography.caption,
+                                    color = colors.red,
+                                )
+                            }
+                            else -> Unit
                         }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        text = "Donate to Student Developer",
-                        style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium),
-                        color = colors.black,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = when {
-                            activeProductId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID &&
-                                purchaseState is PurchaseState.Loading ->
-                                "Opening secure Google Play checkout…"
-                            activeProductId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID &&
-                                purchaseState is PurchaseState.Verifying ->
-                                "Verifying your tip securely…"
-                            tipPrice != null -> "Send a one-time $tipPrice tip; no features are unlocked"
-                            else -> "Donation unavailable right now"
-                        },
-                        style = MaterialTheme.typography.body2,
-                        color = colors.mutedFg,
-                    )
-                    when (val state = purchaseState) {
-                        is PurchaseState.Success -> if (
-                            state.productId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID
-                        ) {
-                            Text(
-                                "Thank you for supporting this student developer!",
-                                style = MaterialTheme.typography.caption,
-                                color = colors.red,
-                            )
-                        }
-                        is PurchaseState.Error -> if (
-                            state.productId == BillingViewModel.SUPPORT_TIP_PRODUCT_ID
-                        ) {
-                            Text(
-                                "The tip wasn't completed. ${state.message}",
-                                style = MaterialTheme.typography.caption,
-                                color = colors.red,
-                            )
-                        }
-                        else -> Unit
                     }
                 }
             }

@@ -9,7 +9,7 @@ interface VerifiedPurchaseInput {
   orderId?: string;
   proProductId: string;
   dataPackProductId: string;
-  supportTipProductId: string;
+  supportTipProductIds: ReadonlyArray<string>;
   dataPackGb: number;
 }
 
@@ -197,8 +197,8 @@ export class QuotaService {
         quota.monthlyAllowanceGb = this.proTierGb;
       } else if (input.productId === input.dataPackProductId) {
         quota.packBalanceGb += input.dataPackGb;
-      } else if (input.productId === input.supportTipProductId) {
-        // A tip is intentionally entitlement-free; verification only records the purchase.
+      } else if (input.supportTipProductIds.includes(input.productId)) {
+        // Support purchases are entitlement-free; verification only records the purchase.
       } else {
         throw new Error('UNKNOWN_PRODUCT');
       }

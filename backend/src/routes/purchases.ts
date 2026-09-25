@@ -25,12 +25,17 @@ router.post('/verify', async (req, res) => {
 
   const proProductId = process.env.PRO_PRODUCT_ID || 'pro_unlock';
   const dataPackProductId = process.env.DATA_PACK_PRODUCT_ID || 'data_pack_10gb';
-  const supportTipProductId = process.env.SUPPORT_TIP_PRODUCT_ID || 'student_developer_tip';
+  const supportTipProductIds = [
+    process.env.SUPPORT_TIP_PRODUCT_ID || 'student_developer_tip',
+    'support_developer_1',
+    'support_developer_10',
+    'support_developer_100',
+  ];
   const dataPackGb = Number(process.env.DATA_PACK_GB) || 10;
   if (
     productId !== proProductId &&
     productId !== dataPackProductId &&
-    productId !== supportTipProductId
+    !supportTipProductIds.includes(productId)
   ) {
     res.status(400).json({ error: 'Unknown product' });
     return;
@@ -47,7 +52,7 @@ router.post('/verify', async (req, res) => {
         orderId: result.orderId,
         proProductId,
         dataPackProductId,
-        supportTipProductId,
+        supportTipProductIds,
         dataPackGb,
       });
 

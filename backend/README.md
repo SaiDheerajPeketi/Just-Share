@@ -25,7 +25,7 @@ Backend service for Just-Share AlterSend Remote feature.
 - `PUBSUB_PUSH_SERVICE_ACCOUNT` (the least-privilege push identity allowed to call RTDN)
 - `PRO_PRODUCT_ID` (default "pro_unlock")
 - `DATA_PACK_PRODUCT_ID` (default "data_pack_10gb")
-- `SUPPORT_TIP_PRODUCT_ID` (default "student_developer_tip"; repeatable tip with no entitlement)
+- `SUPPORT_TIP_PRODUCT_ID` (legacy "student_developer_tip"; retained for purchase recovery). The three new entitlement-free consumables are `support_developer_1`, `support_developer_10`, and `support_developer_100`.
 - `CF_RELAY_HMAC_SECRET` (64 hex characters; set to the same protected secret as the Cloudflare Worker)
 
 All mobile API routes require a valid `X-Firebase-AppCheck` token issued for `FIREBASE_APP_ID` plus the pseudonymous `X-Device-Id` quota key. Configure the Firebase App Check Play Integrity provider before exposing the service. The RTDN route uses its separate authenticated Pub/Sub push identity.

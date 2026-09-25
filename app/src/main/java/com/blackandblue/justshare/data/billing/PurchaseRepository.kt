@@ -55,7 +55,12 @@ class PurchaseRepository @Inject constructor(
         private const val MAX_RETRIES = 5
         private const val PRO_PRODUCT_ID = "pro_unlock"
         private const val DATA_PACK_PRODUCT_ID = "data_pack_10gb"
-        private const val SUPPORT_TIP_PRODUCT_ID = "student_developer_tip"
+        private val SUPPORT_PRODUCT_IDS = setOf(
+            "student_developer_tip", // Legacy purchases remain consumable.
+            "support_developer_1",
+            "support_developer_10",
+            "support_developer_100",
+        )
     }
 
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -169,8 +174,8 @@ class PurchaseRepository @Inject constructor(
                     return false
                 }
             }
-        } else if (productId == DATA_PACK_PRODUCT_ID || productId == SUPPORT_TIP_PRODUCT_ID) {
-            // Consume so the user can purchase another data pack in the future
+        } else if (productId == DATA_PACK_PRODUCT_ID || productId in SUPPORT_PRODUCT_IDS) {
+            // Consume repeatable data packs and support purchases after verification.
             val params = ConsumeParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken)
                 .build()
@@ -192,7 +197,7 @@ class PurchaseRepository @Inject constructor(
             val eventName = when (productId) {
                 PRO_PRODUCT_ID -> TelemetryEvent.PRO_PURCHASED
                 DATA_PACK_PRODUCT_ID -> TelemetryEvent.PACK_PURCHASED
-                SUPPORT_TIP_PRODUCT_ID -> TelemetryEvent.SUPPORT_TIP_PURCHASED
+                in SUPPORT_PRODUCT_IDS -> TelemetryEvent.SUPPORT_TIP_PURCHASED
                 else -> return@launch
             }
             apiService.reportTelemetry(TelemetryEvent(deviceId = deviceId, name = eventName))
