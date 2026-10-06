@@ -118,4 +118,56 @@ class TransferRetryStateTest {
         assertTrue(vm.state.value.isTransferComplete)
         assertEquals(100f, vm.state.value.progressPercent, 0f)
     }
+
+    @Test
+    fun permissionInterruptionInvalidatesOldUpdatesAndRetainsExactSelectionForRetry() = withViewModel { vm, uri ->
+        var old = 0L
+        instrumentation.runOnMainSync {
+            old = CommunicationService.beginTransferUpdateSession()
+            vm.markTransferStarted()
+        }
+        update(old, 35)
+        waitUntil { vm.state.value.progressPercent == 35f }
+        val selected = vm.state.value.fileInfos
+        val method = vm.state.value.method
+        instrumentation.runOnMainSync { vm.markPermissionInterrupted() }
+        update(old, 100)
+        assertTrue(vm.state.value.permissionInterrupted)
+        assertFalse(vm.state.value.hasTransferStarted)
+        assertFalse(vm.state.value.isTransferComplete)
+        assertEquals(-1f, vm.state.value.progressPercent, 0f)
+        assertEquals(listOf(uri), vm.state.value.urisToShare)
+        assertEquals(selected, vm.state.value.fileInfos)
+        assertEquals(method, vm.state.value.method)
+        var replacement = 0L
+        instrumentation.runOnMainSync {
+            vm.clearTransferProgress()
+            replacement = CommunicationService.beginTransferUpdateSession()
+            vm.markTransferStarted()
+        }
+        update(old, 100)
+        update(replacement, 45)
+        waitUntil { vm.state.value.progressPercent == 45f }
+        assertFalse(vm.state.value.permissionInterrupted)
+        assertTrue(vm.state.value.hasTransferStarted)
+        assertEquals(listOf(uri), vm.state.value.urisToShare)
+        assertEquals(selected, vm.state.value.fileInfos)
+    }
+
+    @Test
+    fun permissionLossAfterFastIncomingCompletionDoesNotReplaceTheFinishedResult() = withViewModel { vm, _ ->
+        var current = 0L
+        instrumentation.runOnMainSync { current = CommunicationService.beginTransferUpdateSession() }
+        update(current, 100)
+        waitUntil { vm.state.value.isTransferComplete }
+        instrumentation.runOnMainSync {
+            vm.markTransferStarted()
+            vm.markPermissionInterrupted()
+        }
+        update(current, 35)
+        assertFalse(vm.state.value.permissionInterrupted)
+        assertTrue(vm.state.value.isTransferComplete)
+        assertEquals(100f, vm.state.value.progressPercent, 0f)
+    }
+
 }

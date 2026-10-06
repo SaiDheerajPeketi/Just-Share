@@ -147,6 +147,10 @@ fun DiscoverDevicesScreen(
 
     LaunchedEffect(Unit) {
         if (transferMethod == "wifi") {
+            if (!hasLocalTransferPermissions(context, LocalTransferMethod.WIFI)) {
+                wifiViewModel.onPermissionRevoked()
+                return@LaunchedEffect
+            }
             wifiViewModel.setTransferRole(isSender)
             val manager = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
             if (manager != null) {

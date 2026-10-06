@@ -1,0 +1,66 @@
+{
+  "iteration": "Just-Share permission recovery P1 repair",
+  "base_rejected_commit": "20b34ed60776f12594217661639c5da349396516",
+  "historical_rejected_evidence_preserved": {
+    "docs/permission-recovery-source-pins-20261006.json": "c456ae3d02a0f8fb422883583cd68142dd7c98e273b32d2f22a184df930d5a5d",
+    "docs/permission-recovery-source-handoff-20261006.md": "9a90c784d6eb1a6a86e86ff3aca88cdbf510e1f17354e0f78b6b042e005d536c"
+  },
+  "source_files": {
+    "app/src/main/java/com/blackandblue/justshare/LocalTransferPermissions.kt": "4b23ae1aad33b5eb74d08bd5651af524aaf40dff30697366cf9276d609085757",
+    "app/src/main/java/com/blackandblue/justshare/data/chat/AndroidBluetoothController.kt": "4faead2458aaf6e5ad8803a1f2482735c5ca04e4caa2410f0ee9ad95fddd3638",
+    "app/src/main/java/com/blackandblue/justshare/navigation/NavGraph.kt": "986fda7f449059f0894070573f42b7f692e2bf382ed0cc9999d0bb91d3c139cc",
+    "app/src/main/java/com/blackandblue/justshare/presentation/BluetoothViewModel.kt": "0b0b8ca9bfd378d31e1cb362ace87b09b9dbf47a08207493e1ff6c077e83925f",
+    "app/src/main/java/com/blackandblue/justshare/presentation/WifiDirectViewModel.kt": "5529e19fecf63cd7c1286b6103502c1809a55fea06eba786ba40bda6722b96d6",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/DiscoverDevicesScreen.kt": "c3d7fca3900417b90449ea579fffbbc3e7d55c2edee3442e69a3252bbbeeae70",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/PermissionsScreen.kt": "01b2e1990eaf2ed4b5ba69f2c642f8f5da73412958338bb56a968a10f066b787",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/TransferProgressScreen.kt": "96e432106cc1b55530ee8186bcb929c2cce523b684671306f9814ca7a81cd6b2",
+    "app/src/androidTest/java/com/blackandblue/justshare/ui/screens/PermissionsScreenTest.kt": "79164d4e8939f92e859f15c90128d2150477c5b107f6ce5e00e2d1bd809b7c4c",
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/PermissionRecoveryNavigationTest.kt": "b510b712899c6be250f4ab3e7a8caad9ad73929c425550621b2e5c476252a5e4",
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/WifiPermissionRecoveryTest.kt": "9ff16ad59663a4e945c50c94496b3d9cf9c34313ecea0359398b3e8ab13ac69c",
+    "app/src/test/java/com/blackandblue/justshare/LocalTransferPermissionsTest.kt": "34a285acbc4c9e7de469dbea8e1cf91cfe8841ee0ccadbec4eeb712ad3e7dbd8",
+    "app/src/main/java/com/blackandblue/justshare/presentation/TransferViewModel.kt": "1b837be198e4411e9ff638a85d40bacc434a34c6b106e1caf2e124a2d0349913",
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/TransferRetryStateTest.kt": "1c68ea0a48b4a59c20bfd4a2e024623de58bf6aa45679211611d0cc0089f7247",
+    "app/src/androidTest/java/com/blackandblue/justshare/data/chat/BluetoothDiscoveryPermissionTest.kt": "5539c01e236fbc52fc053e3c5696682ec6a59373aec0bd4eb236167abd4413c7",
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/LocalTransportOwnershipTest.kt": "bee66fb84c1db16ab45dcf9c697c8a13241706b86eeed54d61ff313d9a7e45f7"
+  },
+  "source_check": "PASS lexical delimiter sanity and targeted production ownership/lease-lifetime/callback/progress wiring assertions; not AST or compilation",
+  "whitespace_check": "PASS rtk git diff --check",
+  "prior_counts": {
+    "selected_20b_suites": 15,
+    "TransferRetryStateTest_existing": 2
+  },
+  "test_declarations": {
+    "app/src/androidTest/java/com/blackandblue/justshare/ui/screens/PermissionsScreenTest.kt": 3,
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/PermissionRecoveryNavigationTest.kt": 5,
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/WifiPermissionRecoveryTest.kt": 3,
+    "app/src/test/java/com/blackandblue/justshare/LocalTransferPermissionsTest.kt": 4,
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/TransferRetryStateTest.kt": 4,
+    "app/src/androidTest/java/com/blackandblue/justshare/data/chat/BluetoothDiscoveryPermissionTest.kt": 3,
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/LocalTransportOwnershipTest.kt": 2
+  },
+  "total_declared_tests": 24,
+  "new_declarations": 7,
+  "executed_tests": 0,
+  "compile_and_native_validation": "UNRUN; parent owns runtime",
+  "primary_review_reference": "https://developer.android.com/reference/android/bluetooth/BluetoothDevice#getName()",
+  "limitations": [
+    "Global Bluetooth VM remains eager with guarded idle setup; no assertion that all VMs are constructed after a permission gate",
+    "Wi-Fi resolver uses the host owner; test supplies an AndroidX factory instead of executing Hilt",
+    "Compose regression uses the production progress permission effect and summary, actual ViewModels and real NavHost; it does not render the hardware wrapper/full progress screen",
+    "Bluetooth test exercises the actual controller metadata callback handler and registration with fake grants/lazy getter probes; no real ACTION_FOUND intent/device metadata getter or radio is exercised",
+    "No Java/Gradle/helper runtime, devices, browsers, providers or pixels executed in this lane",
+    "Production normal-exit/reentry/old-lease and registered-receiver rejection paths are declared in actual navigation/ViewModel fixtures with fake Context boundaries; WifiP2pManager/Channel/radio and job cancellation remain source-inspected and unexecuted",
+    "minSdk24 retained; Channel.close guarded at API27+, older cleanup stops permitted P2P operations and clears app references without claiming newer platform close API"
+  ],
+  "parent_jvm_class": "com.blackandblue.justshare.LocalTransferPermissionsTest",
+  "parent_priority_android_classes": [
+    "com.blackandblue.justshare.presentation.TransferRetryStateTest",
+    "com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest",
+    "com.blackandblue.justshare.navigation.LocalTransportOwnershipTest"
+  ],
+  "parent_prior_android_classes": [
+    "com.blackandblue.justshare.ui.screens.PermissionsScreenTest",
+    "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest",
+    "com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest"
+  ]
+}

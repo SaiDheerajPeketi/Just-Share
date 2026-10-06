@@ -22,6 +22,7 @@ class WifiPermissionRecoveryTest {
         var settingsIntent: Intent? = null
         override fun checkPermission(permission: String, pid: Int, uid: Int): Int =
             if (allowed) PackageManager.PERMISSION_GRANTED else PackageManager.PERMISSION_DENIED
+        override fun checkSelfPermission(permission: String): Int = checkPermission(permission, 0, 0)
         override fun startService(service: Intent): ComponentName? { serviceStarts++; return service.component }
         override fun startForegroundService(service: Intent): ComponentName? { serviceStarts++; return service.component }
         override fun stopService(service: Intent): Boolean { serviceStops++; return true }
@@ -36,15 +37,24 @@ class WifiPermissionRecoveryTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = PermissionContext(instrumentation.targetContext)
         val store = ViewModelStore()
+        var failure: Throwable? = null
         instrumentation.runOnMainSync {
             val vm = WifiDirectViewModel(context)
             store.put("permission-recovery", vm)
-            try { block(vm, context) } finally { store.clear() }
+            try { block(vm, context) } catch (error: Throwable) { failure = error }
+            finally {
+                try { store.clear() } catch (error: Throwable) {
+                    failure?.addSuppressed(error) ?: run { failure = error }
+                }
+            }
         }
+        failure?.let { throw it }
     }
 
     @Test
     fun deniedLateConnectionAndDiscoveryCallbacksCannotStartLocalService() = withViewModel { vm, context ->
+        assertNull(vm.beginLocalSession())
+        vm.registerLocalReceiver()
         vm.onWifiDirectEnabled(true)
         vm.startDiscovery()
         vm.startHosting()
@@ -58,6 +68,7 @@ class WifiPermissionRecoveryTest {
     @Test
     fun revocationStopsExistingServiceAndRejectsQueuedConnectionCallback() = withViewModel { vm, context ->
         context.allowed = true
+        assertNotNull(vm.beginLocalSession())
         vm.connectionInfoListener.onConnectionInfoAvailable(connectedInfo())
         assertEquals(1, context.serviceStarts)
         assertTrue(vm.uiState.value.isConnected)

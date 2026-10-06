@@ -27,6 +27,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,17 +70,9 @@ fun TransferProgressScreen(
     
     val isSender = state.urisToShare.isNotEmpty()
     val method = state.method
-    if (method == "bt" || method == "wifi") {
-        LocalTransferPermissionLossEffect(
-            if (method == "bt") LocalTransferMethod.BLUETOOTH else LocalTransferMethod.WIFI
-        ) {
-            if (method == "bt") btViewModel.onPermissionRevoked()
-            else wifiViewModel.onPermissionRevoked()
-        }
-    }
     var navigatingAway by remember { mutableStateOf(false) }
     
-    val progress = if (method == "bt") {
+    val progress = if (state.permissionInterrupted) -1f else if (method == "bt") {
         if (isSender) {
             if (btProgress.bytesSent < 0L) -1f else btProgress.sentPercent.toFloat()
         } else {
@@ -116,6 +110,10 @@ fun TransferProgressScreen(
 
     val isConnected = if (method == "bt") btState.isConnected else wifiState.isConnected
     val transferFailed = !isDone && (progress < 0f || (!isConnected && !state.hasTransferStarted))
+
+    TransferProgressPermissionRecovery(method, transferViewModel, isDone) {
+        if (method == "bt") btViewModel.onPermissionRevoked() else wifiViewModel.onPermissionRevoked()
+    }
 
     val requestExit = rememberTransferExitRequest(
         isTransferActive = !isDone && !transferFailed,
@@ -242,31 +240,15 @@ fun TransferProgressScreen(
         ) {
         BackBar(title = "Transfer Progress", onBack = requestExit)
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 24.dp, horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            AnimatedTransferProgressIndicator(
-                isTransferring = isConnected || state.hasTransferStarted,
-                isDone = isDone,
-                isFailed = transferFailed,
-                isSender = isSender
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(if (transferFailed) "Transfer Failed" else if (isDone) "Transfer Complete" else "Transferring files…", style = MaterialTheme.typography.caption, color = colors.mutedFg)
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = btConnectedDeviceName ?: state.connectedDeviceName ?: "Unknown Device",
-                    style = MaterialTheme.typography.subtitle1.copy(fontWeight = FontWeight.SemiBold),
-                    color = colors.black
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Box(modifier = Modifier.size(8.dp).background(if (isConnected || state.hasTransferStarted) colors.green else colors.red, CircleShape))
-            }
-        }
+        TransferProgressSummary(
+            isSender = isSender,
+            isConnected = isConnected,
+            hasTransferStarted = state.hasTransferStarted,
+            isDone = isDone,
+            transferFailed = transferFailed,
+            permissionInterrupted = state.permissionInterrupted,
+            deviceName = btConnectedDeviceName ?: state.connectedDeviceName ?: "Unknown Device"
+        )
 
         LazyColumn(
             modifier = Modifier
@@ -354,6 +336,59 @@ fun TransferProgressScreen(
                 Text(if (showHome) "Go Home" else if (transferFailed) "Go Back" else "Stop Transfer", fontWeight = FontWeight.SemiBold)
             }
             }
+        }
+    }
+}
+
+@Composable
+internal fun TransferProgressPermissionRecovery(
+    method: String,
+    transferViewModel: TransferViewModel,
+    isDone: Boolean,
+    onTransportPermissionLost: () -> Unit
+) {
+    if (method == "bt" || method == "wifi") {
+        LocalTransferPermissionLossEffect(
+            if (method == "bt") LocalTransferMethod.BLUETOOTH else LocalTransferMethod.WIFI
+        ) {
+            transferViewModel.markPermissionInterrupted(alreadyComplete = isDone)
+            onTransportPermissionLost()
+        }
+    }
+}
+
+@Composable
+internal fun TransferProgressSummary(
+    isSender: Boolean,
+    isConnected: Boolean,
+    hasTransferStarted: Boolean,
+    isDone: Boolean,
+    transferFailed: Boolean,
+    permissionInterrupted: Boolean,
+    deviceName: String
+) {
+    val colors = JediShareTheme.colors
+    val failed = transferFailed || permissionInterrupted
+    val active = !failed && (isConnected || hasTransferStarted)
+    Column(Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        AnimatedTransferProgressIndicator(isTransferring = active, isDone = isDone,
+            isFailed = failed, isSender = isSender)
+        Spacer(Modifier.height(12.dp))
+        Text(if (permissionInterrupted) "Transfer interrupted" else if (failed) "Transfer Failed"
+            else if (isDone) "Transfer Complete" else "Transferring files…",
+            style = MaterialTheme.typography.caption, color = colors.mutedFg)
+        if (permissionInterrupted) {
+            Text("Nearby sharing access changed. Go back to allow access and try again.",
+                style = MaterialTheme.typography.body2, color = colors.mutedFg)
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(deviceName, style = MaterialTheme.typography.subtitle1.copy(fontWeight = FontWeight.SemiBold),
+                color = colors.black)
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.size(8.dp).background(if (active) colors.green else colors.red, CircleShape)
+                .semantics { contentDescription = if (active) "Transfer active" else "Transfer stopped" })
         }
     }
 }

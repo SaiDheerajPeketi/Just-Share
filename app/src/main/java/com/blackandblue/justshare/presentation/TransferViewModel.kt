@@ -52,7 +52,8 @@ data class UnifiedTransferState(
     val totalFiles: Int = 0,
     val currentFileIndex: Int = 0,
     val isTransferComplete: Boolean = false,
-    val hasTransferStarted: Boolean = false
+    val hasTransferStarted: Boolean = false,
+    val permissionInterrupted: Boolean = false
 )
 
 @HiltViewModel
@@ -114,6 +115,7 @@ class TransferViewModel @Inject constructor(
                 val newTotalFiles = if (update.totalFiles > 0) update.totalFiles else it.totalFiles
                 it.copy(
                     fileInfos = newFileInfos,
+                    permissionInterrupted = false,
                     progressPercent = update.progress.toFloat(),
                     currentFileName = update.fileName,
                     currentFileSizeBytes = update.fileSize,
@@ -130,7 +132,7 @@ class TransferViewModel @Inject constructor(
     }
 
     fun setMethod(method: String, save: Boolean = false) {
-        _state.update { it.copy(method = method, hasTransferStarted = false, isTransferComplete = false) }
+        _state.update { it.copy(method = method, hasTransferStarted = false, isTransferComplete = false, permissionInterrupted = false) }
         if (save) {
             viewModelScope.launch {
                 dataStore.setDefaultTransferMethod(method)
@@ -144,6 +146,7 @@ class TransferViewModel @Inject constructor(
         _state.update {
             it.copy(
                 urisToShare = uris,
+                permissionInterrupted = false,
                 fileInfos = fileInfos,
                 progressPercent = 0f,
                 currentFileName = "",
@@ -162,7 +165,21 @@ class TransferViewModel @Inject constructor(
 
     fun markTransferStarted() {
         // Incoming progress can finish before discovery opens the progress screen.
-        _state.update { it.copy(hasTransferStarted = true) }
+        _state.update { it.copy(hasTransferStarted = true, permissionInterrupted = false,
+            progressPercent = if (it.permissionInterrupted) 0f else it.progressPercent) }
+    }
+
+    /** Invalidates queued old service updates and preserves the selected files,
+     * direction and metadata for recovery. Already-completed transfers stay done. */
+    fun markPermissionInterrupted(alreadyComplete: Boolean = false) {
+        val current = _state.value
+        if (!current.hasTransferStarted && !current.isTransferComplete && !alreadyComplete) return
+        CommunicationService.clearTransferUpdate()
+        if (current.isTransferComplete || alreadyComplete) return
+        _state.update {
+            if (it.isTransferComplete) it else it.copy(hasTransferStarted = false,
+                permissionInterrupted = true, progressPercent = -1f)
+        }
     }
 
     fun clearTransferProgress() {
@@ -170,6 +187,7 @@ class TransferViewModel @Inject constructor(
         _state.update {
             it.copy(
                 hasTransferStarted = false,
+                permissionInterrupted = false,
                 isTransferComplete = false,
                 progressPercent = 0f,
                 currentFileName = "",
@@ -184,6 +202,7 @@ class TransferViewModel @Inject constructor(
         _state.update {
             it.copy(
                 isConnected = false,
+                permissionInterrupted = false,
                 connectedDeviceName = null,
                 urisToShare = emptyList(),
                 fileInfos = emptyList(),

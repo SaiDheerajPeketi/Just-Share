@@ -1,6 +1,10 @@
 package com.blackandblue.justshare.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import android.net.Uri
 import androidx.navigation.NavHostController
@@ -8,6 +12,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.blackandblue.justshare.presentation.WifiDirectViewModel
 import com.blackandblue.justshare.presentation.BluetoothViewModel
 import com.blackandblue.justshare.presentation.TransferViewModel
 import com.blackandblue.justshare.LocalTransferMethod
@@ -42,7 +51,10 @@ fun AppNavGraph(
     initialUris: List<Uri> = emptyList(),
     initialMethod: String? = null
 ) {
-    // Initial state is now populated directly in MainActivity before AppNavGraph is composed.
+    // Capture the host owner before NavHost supplies per-destination owners.
+    // Wi-Fi construction stays inside allowed discovery content, and progress
+    // resolves the same idle/active owner instead of a new per-route instance.
+    val localTransportOwner = checkNotNull(LocalViewModelStoreOwner.current)
 
     NavHost(
         navController = navController,
@@ -133,6 +145,7 @@ fun AppNavGraph(
                     transferMethod = "bt",
                     transferViewModel = transferViewModel,
                     btViewModel = btViewModel,
+                    wifiViewModel = sharedWifiTransferViewModel(localTransportOwner),
                     onBack = { navController.popBackStack() },
                     onNavigateToScreen = { route -> navController.navigate(route) }
                 )
@@ -143,30 +156,43 @@ fun AppNavGraph(
                 method = LocalTransferMethod.WIFI,
                 navController = navController
             ) {
-                com.blackandblue.justshare.ui.screens.DiscoverDevicesScreen(
-                    title = "Wi-Fi Direct Devices",
-                    transferMethod = "wifi",
-                    transferViewModel = transferViewModel,
-                    onBack = { navController.popBackStack() },
-                    onNavigateToScreen = { route -> navController.navigate(route) }
-                )
+                val wifiViewModel = sharedWifiTransferViewModel(localTransportOwner)
+                WifiLocalTransferLifetime(wifiViewModel, navController, transferViewModel) {
+                    com.blackandblue.justshare.ui.screens.DiscoverDevicesScreen(
+                        title = "Wi-Fi Direct Devices",
+                        transferMethod = "wifi",
+                        transferViewModel = transferViewModel,
+                        btViewModel = btViewModel,
+                        wifiViewModel = wifiViewModel,
+                        onBack = { navController.popBackStack() },
+                        onNavigateToScreen = { route -> navController.navigate(route) }
+                    )
+                }
             }
         }
         composable(Screen.TransferProgress.route) {
-            com.blackandblue.justshare.ui.screens.TransferProgressScreen(
-                transferViewModel = transferViewModel,
-                btViewModel = btViewModel,
-                onBack = { navController.popBackStack() },
-                onNavigateToScreen = { route ->
-                    if (route == Screen.Home.route) {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
+            val wifiViewModel = sharedWifiTransferViewModel(localTransportOwner)
+            val transferState by transferViewModel.state.collectAsState()
+            WifiLocalTransferLifetime(
+                wifiViewModel, navController, transferViewModel,
+                enabled = transferState.method == "wifi", allowIdleContent = true
+            ) {
+                com.blackandblue.justshare.ui.screens.TransferProgressScreen(
+                    transferViewModel = transferViewModel,
+                    btViewModel = btViewModel,
+                    wifiViewModel = wifiViewModel,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToScreen = { route ->
+                        if (route == Screen.Home.route) {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(route)
                         }
-                    } else {
-                        navController.navigate(route)
                     }
-                }
-            )
+                )
+            }
         }
         composable(Screen.RemoteTransferProgress.route) {
             com.blackandblue.justshare.ui.screens.RemoteTransferProgressScreen(
@@ -246,4 +272,38 @@ internal fun LocalDiscoveryDestination(
     content: @Composable () -> Unit
 ) {
     LocalTransferPermissionGate(method, { navController.leaveLocalPermissionStep() }, permissionAccess, content)
+}
+
+/** Both destinations resolve one host-scoped transport. A supplied factory is
+ * only a test boundary; production keeps its existing Hilt factory. */
+@Composable
+internal fun sharedWifiTransferViewModel(
+    owner: ViewModelStoreOwner,
+    factory: ViewModelProvider.Factory? = null
+): WifiDirectViewModel = if (factory == null) hiltViewModel(owner)
+    else viewModel(viewModelStoreOwner = owner, factory = factory)
+
+/** Keep the lease for Wi-Fi handoff/retry; release it on a browse/nonlocal exit.
+ * Disposal uses the captured identity, so an old page cannot close a new lease. */
+@Composable
+internal fun WifiLocalTransferLifetime(
+    wifiViewModel: WifiDirectViewModel,
+    navController: NavHostController,
+    transferViewModel: TransferViewModel,
+    enabled: Boolean = true,
+    allowIdleContent: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val session = remember(wifiViewModel, enabled) {
+        if (enabled) wifiViewModel.beginLocalSession() else null
+    }
+    DisposableEffect(wifiViewModel, navController, session) {
+        onDispose {
+            val route = navController.currentDestination?.route
+            val remainsLocal = route == Screen.DiscoverWifi.route ||
+                (route == Screen.TransferProgress.route && transferViewModel.state.value.method == "wifi")
+            if (!remainsLocal && session != null) wifiViewModel.releaseLocalSession(session)
+        }
+    }
+    if (!enabled || session != null || allowIdleContent) content()
 }

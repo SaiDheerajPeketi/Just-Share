@@ -67,7 +67,7 @@ class AndroidBluetoothController(
     private var dataTransferService: BluetoothDataTransferService? = null
     private var currentServerSocket: BluetoothServerSocket? = null
     private var currentClientSocket: BluetoothSocket? = null
-    private var isFoundDeviceReceiverRegistered = false
+    @Volatile private var isFoundDeviceReceiverRegistered = false
 
     private val _isConnected = MutableStateFlow(false)
     override val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
@@ -82,21 +82,33 @@ class AndroidBluetoothController(
     override val errors: SharedFlow<String> = _errors.asSharedFlow()
 
     private val foundDeviceReceiver = FoundDeviceReceiver { device ->
-        _scannedDevices.update { devices ->
-            if (device.name.isNullOrBlank()) return@update devices
-            
-            // Only add devices that are phones, computers, or uncategorized
+        handleFoundDevice {
+            val name = device.name
+            if (name.isNullOrBlank()) return@handleFoundDevice null
+            // Only add phones, computers, or uncategorized devices.
             val majorClass = device.bluetoothClass?.majorDeviceClass
-            if (majorClass != null && 
+            if (majorClass != null &&
                 majorClass != android.bluetooth.BluetoothClass.Device.Major.PHONE &&
                 majorClass != android.bluetooth.BluetoothClass.Device.Major.COMPUTER &&
                 majorClass != android.bluetooth.BluetoothClass.Device.Major.UNCATEGORIZED
-            ) {
-                return@update devices
-            }
-            
-            val newDevice = device.toBluetoothDeviceDomain()
-            if (newDevice in devices) devices else devices + newDevice
+            ) return@handleFoundDevice null
+            BluetoothDeviceDomain(name = name, address = device.address)
+        }
+    }
+
+    /** The metadata read stays behind the live callback/CONNECT boundary. The
+     * lazy read also lets tests exercise a protected-getter revocation race. */
+    internal fun handleFoundDevice(readMetadata: () -> BluetoothDeviceDomain?) {
+        if (!isFoundDeviceReceiverRegistered) return
+        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+            stopDiscovery()
+            return
+        }
+        try {
+            val device = readMetadata() ?: return
+            _scannedDevices.update { devices -> if (device in devices) devices else devices + device }
+        } catch (_: SecurityException) {
+            stopDiscovery()
         }
     }
 
@@ -155,6 +167,7 @@ class AndroidBluetoothController(
 
     override fun stopDiscovery() {
         Timber.d("AndroidBluetoothController - stopDiscovery called")
+        unregisterFoundDeviceReceiver()
         // Cleanup only needs the platform's scan/admin grant; losing a different
         // local-sharing permission must not prevent us from cancelling a scan.
         val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S)
@@ -409,6 +422,7 @@ class AndroidBluetoothController(
 
     override fun closeConnection() {
         Timber.d("AndroidBluetoothController - closeConnection called")
+        stopDiscovery()
         _isConnected.update { false }
         currentClientSocket?.close()
         currentServerSocket?.close()
@@ -418,12 +432,7 @@ class AndroidBluetoothController(
 
     override fun release() {
         Timber.d("AndroidBluetoothController - release called")
-        try {
-            context.unregisterReceiver(foundDeviceReceiver)
-            isFoundDeviceReceiverRegistered = false
-        } catch (e: Exception) {
-            Log.w(TAG, "foundDeviceReceiver already unregistered")
-        }
+        unregisterFoundDeviceReceiver()
         try { context.unregisterReceiver(bluetoothStateReceiver) } catch (e: Exception) { Log.w(TAG, "bluetoothStateReceiver already unregistered") }
         try { context.unregisterReceiver(bondStateReceiver) } catch (e: Exception) { Log.w(TAG, "bondStateReceiver already unregistered") }
         closeConnection()
@@ -431,13 +440,29 @@ class AndroidBluetoothController(
 
     // ── Private Helpers ───────────────────────────────────────────────────────
 
+    private fun unregisterFoundDeviceReceiver() {
+        if (!isFoundDeviceReceiverRegistered) return
+        try {
+            context.unregisterReceiver(foundDeviceReceiver)
+        } catch (_: IllegalArgumentException) {
+            // An already-unregistered receiver is still an inactive callback.
+        } finally {
+            isFoundDeviceReceiverRegistered = false
+        }
+    }
+
     private fun updatePairedDevices() {
         Timber.d("AndroidBluetoothController - updatePairedDevices called")
         if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
-        bluetoothAdapter?.bondedDevices
-            ?.filter { !it.name.isNullOrBlank() }
-            ?.map { it.toBluetoothDeviceDomain() }
-            ?.also { devices -> _pairedDevices.update { devices } }
+        try {
+            bluetoothAdapter?.bondedDevices
+                ?.filter { !it.name.isNullOrBlank() }
+                ?.map { it.toBluetoothDeviceDomain() }
+                ?.also { devices -> _pairedDevices.update { devices } }
+        } catch (_: SecurityException) {
+            // Bond broadcasts can race the same protected metadata revocation.
+            stopDiscovery()
+        }
     }
 
     private fun removeScannedDevice(address: String) {
