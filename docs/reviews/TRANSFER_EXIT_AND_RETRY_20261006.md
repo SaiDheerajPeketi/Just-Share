@@ -65,7 +65,12 @@ the header. Stream publication now follows successful peer-header reading, insid
 the existing generation guard. The wire format is unchanged. Attempt four is a
 separate offline main/Android-test compilation only; it does not repeat the four
 unchanged pure tests. Its exact source pins must match the earlier JVM proof for
-that test/implementation pair. Compilation of the corrected source is pending.
+that test/implementation pair. Attempt four succeeded offline in 28 seconds
+(29.444-second caller), recompiling main and all twelve prepared Android cases.
+No JVM cases were repeated and no Android case executed. Its exact source pins
+stayed unchanged. Independent host inspection verified all three owned identities
+and both groups absent. Native memory pressure remains 2; the maintained emulator
+gate requires 1, so installed interactions/captures remain pending.
 
 ## Limits
 

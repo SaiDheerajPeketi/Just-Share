@@ -1,0 +1,18 @@
+{
+  "epoch": 1791259586.467314,
+  "source": "c144bd06821c57e6559995c2b94ded70eb2ea7f0",
+  "owned_identities": {
+    "18089": "e9f6a6f7a0368b7a38f1dc3af767cdff91028a5bc454de08b2270088fa885312",
+    "18091": "e9f6a6f7a0368b7a38f1dc3af767cdff91028a5bc454de08b2270088fa885312",
+    "18118": "e9f6a6f7a0368b7a38f1dc3af767cdff91028a5bc454de08b2270088fa885312"
+  },
+  "matching_live_identities": {},
+  "owned_groups": [
+    18089,
+    18118
+  ],
+  "live_group_members": [],
+  "release_verified": true,
+  "current_foreign_heavy_pids": [],
+  "memory_pressure": 2
+}
