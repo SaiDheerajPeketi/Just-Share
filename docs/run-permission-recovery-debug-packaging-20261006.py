@@ -16,8 +16,8 @@ import io
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
-PACKET = REPO / "docs/permission-recovery-debug-packaging-20261006-one"
-CLAIM = REPO / "docs/permission-recovery-debug-packaging-20261006-one.claim.json"
+PACKET = REPO / "docs/permission-recovery-debug-packaging-20261006-two"
+CLAIM = REPO / "docs/permission-recovery-debug-packaging-20261006-two.claim.json"
 SELF = "docs/run-permission-recovery-debug-packaging-20261006.py"
 APP_SOURCE = 'd66c25bf172fc821052298f34a6936bbf3b925a3'
 SOURCE_ACCEPTED = True
@@ -518,6 +518,23 @@ ARTIFACTS = [
      "package": "com.blackandblue.justshare.test", "variant": "debugAndroidTest", "packet_name": "test-debug.apk"},
 ]
 MAX_APK_BYTES = 200 * 1024**2
+PRIOR_HEAD = "965e559de11b139a02f6cc0dc52250068e5094b0"
+PRIOR_PACKET_COMMIT = "04ba89b5491b8d9a5deb7b6f2d2be6c8186a16f1"
+PRIOR_PACKET = REPO / "docs/permission-recovery-debug-packaging-20261006-one"
+PRIOR_CLAIM = REPO / "docs/permission-recovery-debug-packaging-20261006-one.claim.json"
+PRIOR_RESULT = PRIOR_PACKET / "result.json"
+PRIOR_LOG = PRIOR_PACKET / "gradle.log"
+PRIOR_RELEASE = PRIOR_PACKET / "independent-release.json"
+PRIOR_PROOF_SHA256 = {
+    "result.json": "49ff83069fb5605e9980aef7365bf51210fb70fd79e888d7947c45868f82a5b9",
+    "gradle.log": "24bfcae5f076a93b5373660301d414750809a0fb35c05eddb49a1cccd6a0ba74",
+    "independent-release.json": "ce55772f03d1feeeeed1900de67a6a30288f29b252ae38f9cb488ddf89795e62",
+    "actor-claim.json": "71f9bc3ea84da2fca001d0bc185aa47836be902858e7a621168f6371c41872af",
+}
+PRIOR_OWNED_IDENTITIES = {51240: "08b53c189b90208b53efb1f4abf14dde0ef360f553fa2b9ed4486136f19cfc18",
+                          51242: "08b53c189b90208b53efb1f4abf14dde0ef360f553fa2b9ed4486136f19cfc18",
+                          51277: "08b53c189b90208b53efb1f4abf14dde0ef360f553fa2b9ed4486136f19cfc18"}
+PRIOR_OWNED_GROUPS = [51240, 51277]
 REVIEWED_PACKAGING_INPUTS = {'/Users/speketi/.android/debug.keystore': {'bytes': 2618,
                                             'mode': 420,
                                             'sha256': '332e7cd157b9ef54bf92ae09513a236e8756e0b9e3da86c9aebe1d6597e2c23b'},
@@ -536,6 +553,21 @@ REVIEWED_PACKAGING_INPUTS = {'/Users/speketi/.android/debug.keystore': {'bytes':
  '/Users/speketi/Projects/Just-Share/app/build/intermediates/packaged_manifests/debugAndroidTest/processDebugAndroidTestManifest/AndroidManifest.xml': {'bytes': 2204,
                                                                                                                                                         'mode': 420,
                                                                                                                                                         'sha256': 'd8ba5bb2383ad15825be04f0b9beab971aa7322b74866f35d45d8d187743f123'},
+ '/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one.claim.json': {'bytes': 34849,
+                                                                                                         'mode': 384,
+                                                                                                         'sha256': '71f9bc3ea84da2fca001d0bc185aa47836be902858e7a621168f6371c41872af'},
+ '/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/actor-claim.json': {'bytes': 34849,
+                                                                                                               'mode': 384,
+                                                                                                               'sha256': '71f9bc3ea84da2fca001d0bc185aa47836be902858e7a621168f6371c41872af'},
+ '/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/gradle.log': {'bytes': 1126,
+                                                                                                         'mode': 384,
+                                                                                                         'sha256': '24bfcae5f076a93b5373660301d414750809a0fb35c05eddb49a1cccd6a0ba74'},
+ '/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/independent-release.json': {'bytes': 542,
+                                                                                                                       'mode': 420,
+                                                                                                                       'sha256': 'ce55772f03d1feeeeed1900de67a6a30288f29b252ae38f9cb488ddf89795e62'},
+ '/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/result.json': {'bytes': 80383,
+                                                                                                          'mode': 384,
+                                                                                                          'sha256': '49ff83069fb5605e9980aef7365bf51210fb70fd79e888d7947c45868f82a5b9'},
  '/Users/speketi/Projects/Just-Share/docs/permission-recovery-host-validation-20261006-one/result.json': {'bytes': 1042884,
                                                                                                           'mode': 384,
                                                                                                           'sha256': '7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79'},
@@ -546,7 +578,8 @@ REVIEWED_PACKAGING_INPUTS = {'/Users/speketi/.android/debug.keystore': {'bytes':
 
 def packaging_inputs():
     paths = [SDK_TOOLS / name for name in ("aapt", "apksigner", "lib/apksigner.jar", "source.properties")]
-    paths += [DEBUG_KEYSTORE, TEST_MANIFEST, HOST_CALLER, HOST_RESULT]
+    paths += [DEBUG_KEYSTORE, TEST_MANIFEST, HOST_CALLER, HOST_RESULT, PRIOR_RESULT, PRIOR_LOG,
+              PRIOR_RELEASE, PRIOR_PACKET / "actor-claim.json", PRIOR_CLAIM]
     result = {}
     for path in paths:
         before = path.lstat()
@@ -576,6 +609,49 @@ def validate_host_proof():
             or proof.get("compile_task_observations") != {
                 ":app:compileDebugKotlin": "EXECUTED", ":app:compileDebugAndroidTestKotlin": "EXECUTED"}):
         raise ValueError("Historical eight-case host/compile proof must match every current source input except the reviewed Home-only successor")
+
+
+def validate_prior_failed_attempt():
+    if (not stat.S_ISDIR(PRIOR_PACKET.lstat().st_mode)
+            or {path.name for path in PRIOR_PACKET.iterdir()} != set(PRIOR_PROOF_SHA256)
+            or any(sha(PRIOR_PACKET / name) != digest for name, digest in PRIOR_PROOF_SHA256.items())
+            or sha(PRIOR_CLAIM) != PRIOR_PROOF_SHA256["actor-claim.json"]):
+        raise ValueError("Immutable failed One packet/claim changed")
+    proof = json.loads(PRIOR_RESULT.read_text())
+    release = json.loads(PRIOR_RELEASE.read_text())
+    claim = json.loads(PRIOR_CLAIM.read_text())
+    if (proof.get("source") != PRIOR_HEAD or proof.get("accepted_app_source") != APP_SOURCE
+            or proof.get("packaging_passed") is not False or proof.get("owned_cleanup") is not True
+            or proof.get("inputs_unchanged") is not True
+            or proof.get("source_pins_before") != proof.get("source_pins_after")
+            or proof.get("source_pins_before", {}).get("source_files") != REVIEWED_SOURCE_SHA256
+            or proof.get("source_pins_before", {}).get("source_trees") != REVIEWED_SOURCE_TREES
+            or proof.get("argv") != ["rtk", "proxy", str(REPO / "gradlew"), *ASSEMBLE_TASKS, "--offline",
+                                     "--no-daemon", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx1536m",
+                                     "-Pkotlin.compiler.execution.strategy=in-process", "--console=plain"]
+            or proof.get("package_task_observations") != {} or proof.get("artifacts") != {}
+            or proof.get("certificate_pair_matches") is not False or not proof.get("failures")
+            or proof.get("raw_log_sha256") != PRIOR_PROOF_SHA256["gradle.log"]
+            or proof.get("owned_identities") != {str(pid): identity for pid, identity in PRIOR_OWNED_IDENTITIES.items()}
+            or claim.get("source") != PRIOR_HEAD or claim.get("accepted_app_source") != APP_SOURCE
+            or claim.get("source_pins_before") != proof.get("source_pins_before")
+            or claim.get("coordinator_grant") is not False
+            or release.get("source") != PRIOR_HEAD or release.get("result_sha256") != PRIOR_PROOF_SHA256["result.json"]
+            or release.get("release_verified") is not True or release.get("owned_identity_count") != 3
+            or release.get("matching_live_identities") != {} or release.get("owned_groups") != PRIOR_OWNED_GROUPS
+            or release.get("live_group_members") != []):
+        raise ValueError("Prior offline failure and independent owned release must remain exact before admission")
+    return {"source": PRIOR_HEAD, "packet_commit": PRIOR_PACKET_COMMIT,
+            "proof_sha256": PRIOR_PROOF_SHA256, "claim_sha256": PRIOR_PROOF_SHA256["actor-claim.json"],
+            "owned_identity_count": 3, "owned_groups": PRIOR_OWNED_GROUPS, "release_verified": True}
+
+
+def require_prior_owned_release(rows, executables):
+    if (any(rows.get(pid, {}).get("identity") == identity
+            or executables.get(pid, {}).get("identity") == identity
+            for pid, identity in PRIOR_OWNED_IDENTITIES.items())
+            or any(row.get("pgid") in PRIOR_OWNED_GROUPS for row in rows.values())):
+        raise ValueError("Prior One owned identity/group remains live; new admission refused without termination")
 
 
 def package_task_observations(raw):
@@ -751,11 +827,13 @@ def main():
         raise ValueError("Exact committed source/build/caller/configured/JDK/helper/signing/SDK inputs changed")
     command("git", "merge-base", "--is-ancestor", APP_SOURCE, args.source)
     command("git", "merge-base", "--is-ancestor", PREPARATION_BASE_HEAD, args.source)
+    command("git", "merge-base", "--is-ancestor", PRIOR_PACKET_COMMIT, args.source)
     check_layout()
     android = declared_android_methods()
     if android != REVIEWED_ANDROID_DECLARATIONS:
         raise ValueError("Accepted 21 Android declarations changed")
     validate_host_proof()
+    prior_failed_attempt = validate_prior_failed_attempt()
     if any(os.environ.get(key) for key in ("ANDROID_USER_HOME", "ANDROID_SDK_HOME", "ANDROID_PREFS_ROOT")):
         raise ValueError("The reviewed default debug signing location must remain configured")
     if PACKET.exists() or PACKET.is_symlink() or CLAIM.exists() or CLAIM.is_symlink():
@@ -771,22 +849,27 @@ def main():
     free = shutil.disk_usage(REPO).free
     if pressure > 2 or free < 12 * 1024**3:
         raise ValueError("Pressure above 2 or disk below 12 GiB; admission refused")
-    if heavy(module.processes(timeout=1), executables=executable_inventory(timeout=1)):
+    rows = module.processes(timeout=1)
+    executables = executable_inventory(timeout=1)
+    require_prior_owned_release(rows, executables)
+    if heavy(rows, executables=executables):
         raise ValueError("Foreign Java/Gradle/emulator/engine work is live; admission refused")
     started_ns = time.time_ns()
     claim = {"actor": "Just-Share one-use configured debug APK-pair packaging caller", "source": args.source,
              "accepted_app_source": APP_SOURCE, "source_pins_before": pins, "pressure": pressure,
              "free_bytes": free, "started_after_epoch_ns": started_ns, "coordinator_grant": False,
              "assemble_tasks": ASSEMBLE_TASKS, "jvm_tests_requested": False, "android_device_cases_executed": 0,
-             "provider_actions": False, "declared_android_methods_unrun": android}
+             "provider_actions": False, "declared_android_methods_unrun": android,
+              "prior_failed_attempt": prior_failed_attempt, "prior_owned_release_at_admission": True}
     write_private(CLAIM, json_bytes(claim))
     PACKET.mkdir(mode=0o700)
     write_private(PACKET / "actor-claim.json", json_bytes(claim))
-    argv = ["rtk", "proxy", str(REPO / "gradlew"), *ASSEMBLE_TASKS, "--offline", "--no-daemon", "--max-workers=1",
+    argv = ["rtk", "proxy", str(REPO / "gradlew"), *ASSEMBLE_TASKS, "--no-daemon", "--max-workers=1",
             "-Dorg.gradle.jvmargs=-Xmx1536m", "-Pkotlin.compiler.execution.strategy=in-process", "--console=plain"]
     env = dict(os.environ, JAVA_HOME=str(JAVA_HOME), PATH=str(JAVA_HOME / "bin") + os.pathsep + os.environ.get("PATH", ""))
     result = {"source": args.source, "accepted_app_source": APP_SOURCE, "source_pins_before": pins,
               "source_pins_after": None, "argv": argv, "coordinator_grant": False, "jvm_tests_requested": False,
+              "prior_failed_attempt": prior_failed_attempt, "prior_owned_release_at_admission": True,
               "android_device_cases_executed": 0, "provider_actions": False, "declared_android_methods_unrun": android,
               "foreign_work_observations": [], "package_task_observations": {}, "artifacts": {}, "failures": [],
               "inputs_unchanged": False, "packaging_passed": False, "certificate_pair_matches": False}
@@ -812,7 +895,7 @@ def main():
                 raise RuntimeError("Pressure above 2; stop only this caller's owned batch")
 
     try:
-        WATCH = module.Watchdog(REPO, PACKET, "JUSTSHARE-DEBUG-PACKAGING-20261006-ONE", seconds=300)
+        WATCH = module.Watchdog(REPO, PACKET, "JUSTSHARE-DEBUG-PACKAGING-20261006-TWO", seconds=300)
         shared_boundary()
         WATCH.run(argv, env, "gradle.log", callback=shared_boundary)
         result["package_task_observations"] = package_task_observations((PACKET / "gradle.log").read_text())

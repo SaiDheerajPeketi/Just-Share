@@ -1,5 +1,5 @@
 {
-  "status": "SOURCE_ACCEPTED_HOME_SUCCESSOR_DEBUG_PACKAGING_PREPARATION_RUNTIME_UNRUN",
+  "status": "SOURCE_ACCEPTED_HOME_NORMAL_RESOLUTION_DEBUG_PACKAGING_TWO_PREPARATION_RUNTIME_UNRUN",
   "preparation_base_head": "d66c25bf172fc821052298f34a6936bbf3b925a3",
   "accepted_app_source": "d66c25bf172fc821052298f34a6936bbf3b925a3",
   "source_trees": {
@@ -241,49 +241,74 @@
     "helper_inputs_sha256": "60452b0711b86e51f836f6a2d9365bf28a04bcce5318d39a54d8ee9c9182fb7a"
   },
   "packaging_input_pins": {
+    "/Users/speketi/.android/debug.keystore": {
+      "bytes": 2618,
+      "mode": 420,
+      "sha256": "332e7cd157b9ef54bf92ae09513a236e8756e0b9e3da86c9aebe1d6597e2c23b"
+    },
     "/Users/speketi/Library/Android/sdk/build-tools/36.0.0/aapt": {
-      "sha256": "170717682f714712c5b6854af73cfe37aeda342ff422384e98d67fc1b490f49b",
       "bytes": 2995488,
-      "mode": 493
+      "mode": 493,
+      "sha256": "170717682f714712c5b6854af73cfe37aeda342ff422384e98d67fc1b490f49b"
     },
     "/Users/speketi/Library/Android/sdk/build-tools/36.0.0/apksigner": {
-      "sha256": "b47549e373b895ce6ca620d0c7887e674d9615ffa837a86ac601dcfd04adb0f0",
       "bytes": 2959,
-      "mode": 493
+      "mode": 493,
+      "sha256": "b47549e373b895ce6ca620d0c7887e674d9615ffa837a86ac601dcfd04adb0f0"
     },
     "/Users/speketi/Library/Android/sdk/build-tools/36.0.0/lib/apksigner.jar": {
-      "sha256": "3716d9311e55d2b0918a2fd9d54ba9e406c5f6abeea700b287f11259bc163dec",
       "bytes": 1100545,
-      "mode": 420
+      "mode": 420,
+      "sha256": "3716d9311e55d2b0918a2fd9d54ba9e406c5f6abeea700b287f11259bc163dec"
     },
     "/Users/speketi/Library/Android/sdk/build-tools/36.0.0/source.properties": {
-      "sha256": "7dee6632e9ad6cb111da2bb99d747211e27927061b1276d040bb1d71fded5ebb",
       "bytes": 62,
-      "mode": 420
-    },
-    "/Users/speketi/.android/debug.keystore": {
-      "sha256": "332e7cd157b9ef54bf92ae09513a236e8756e0b9e3da86c9aebe1d6597e2c23b",
-      "bytes": 2618,
-      "mode": 420
+      "mode": 420,
+      "sha256": "7dee6632e9ad6cb111da2bb99d747211e27927061b1276d040bb1d71fded5ebb"
     },
     "/Users/speketi/Projects/Just-Share/app/build/intermediates/packaged_manifests/debugAndroidTest/processDebugAndroidTestManifest/AndroidManifest.xml": {
-      "sha256": "d8ba5bb2383ad15825be04f0b9beab971aa7322b74866f35d45d8d187743f123",
       "bytes": 2204,
-      "mode": 420
+      "mode": 420,
+      "sha256": "d8ba5bb2383ad15825be04f0b9beab971aa7322b74866f35d45d8d187743f123"
     },
-    "/Users/speketi/Projects/Just-Share/docs/run-permission-recovery-host-validation-20261006.py": {
-      "sha256": "fb362f7af2bae50cd21852f2aec1f5b5c09e7c775b28974543e905fe0c798525",
-      "bytes": 57821,
-      "mode": 420
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one.claim.json": {
+      "bytes": 34849,
+      "mode": 384,
+      "sha256": "71f9bc3ea84da2fca001d0bc185aa47836be902858e7a621168f6371c41872af"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/actor-claim.json": {
+      "bytes": 34849,
+      "mode": 384,
+      "sha256": "71f9bc3ea84da2fca001d0bc185aa47836be902858e7a621168f6371c41872af"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/gradle.log": {
+      "bytes": 1126,
+      "mode": 384,
+      "sha256": "24bfcae5f076a93b5373660301d414750809a0fb35c05eddb49a1cccd6a0ba74"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/independent-release.json": {
+      "bytes": 542,
+      "mode": 420,
+      "sha256": "ce55772f03d1feeeeed1900de67a6a30288f29b252ae38f9cb488ddf89795e62"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-one/result.json": {
+      "bytes": 80383,
+      "mode": 384,
+      "sha256": "49ff83069fb5605e9980aef7365bf51210fb70fd79e888d7947c45868f82a5b9"
     },
     "/Users/speketi/Projects/Just-Share/docs/permission-recovery-host-validation-20261006-one/result.json": {
-      "sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79",
       "bytes": 1042884,
-      "mode": 384
+      "mode": 384,
+      "sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/run-permission-recovery-host-validation-20261006.py": {
+      "bytes": 57821,
+      "mode": 420,
+      "sha256": "fb362f7af2bae50cd21852f2aec1f5b5c09e7c775b28974543e905fe0c798525"
     }
   },
   "caller": "docs/run-permission-recovery-debug-packaging-20261006.py",
-  "caller_sha256": "8b7b4e6b73553a612b138a0ff34f1171b3ab5f68f5660203cbb7454e9eac6f08",
+  "caller_sha256": "41e93bdfd2a4c07408cabe7d31f9686260fcc0046335d07afb48111ff913ab5b",
   "accepted_host_caller_sha256": "fb362f7af2bae50cd21852f2aec1f5b5c09e7c775b28974543e905fe0c798525",
   "accepted_host_result_sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79",
   "accepted_host_validation_head": "4e35e47fee047a6cfafd92079aacdc0c21df9efb",
@@ -374,7 +399,7 @@
   "jvm_test_reexecution": false,
   "lint_requested": false,
   "connected_test_requested": false,
-  "normal_configured_dependency_resolution": false,
+  "normal_configured_dependency_resolution": true,
   "configured_toolchain": {
     "agp": "8.10.1",
     "kotlin": "2.0.21",
@@ -400,8 +425,8 @@
   "actual_main_certificate_sha256": null,
   "actual_test_certificate_sha256": null,
   "runtime_artifact_metadata": "UNRUN",
-  "packet": "docs/permission-recovery-debug-packaging-20261006-one",
-  "claim": "docs/permission-recovery-debug-packaging-20261006-one.claim.json",
+  "packet": "docs/permission-recovery-debug-packaging-20261006-two",
+  "claim": "docs/permission-recovery-debug-packaging-20261006-two.claim.json",
   "coordinator_grant": false,
   "runtime_authorized_by_preparation": false,
   "java_gradle_sdk_helper_watchdog_process_device_provider_browser_remote_execution_during_preparation": false,
@@ -423,7 +448,7 @@
     "main"
   ],
   "shared_boundary_nested_ast_unchanged": true,
-  "function_ast_sha256": "9b18afb45b1142bc31bedb4f2ee06041401995f592cad6682cf622b266fbc81d",
+  "function_ast_sha256": "c37fa64f568e2dc7d65d5054ad21c8108b77ad86e1ed902f7a11e2cf2507d055",
   "self_inspection_1": {
     "exact_source_build_and_host_proof": "PASS",
     "SDK_source_supports_bounded_JVM_flag": "PASS",
@@ -431,7 +456,8 @@
     "compiled_test_manifest_version_absence_pinned": "PASS",
     "retained_host_boundary_control_asts": "PASS",
     "home_successor_only_input_delta_and_21_android_declarations": "PASS",
-    "aapt_instrumentation_contract_correction": "ROOT_VERIFIED_PRIMARY_AOSP_SOURCE"
+    "aapt_instrumentation_contract_correction": "ROOT_VERIFIED_PRIMARY_AOSP_SOURCE",
+    "immutable_failed_one_packet_and_independent_owned_release": "PASS"
   },
   "self_inspection_2": {
     "metadata_freshness_version_target_certificate_zip_guards": "PASS",
@@ -440,7 +466,9 @@
     "actual_APK_certificate_hashes_remain_unclaimed": "PASS",
     "enabled_home_successor_preparation_with_historical_jvm_scope": "PASS",
     "unchanged_packaging_sdk_deadline_ownership_mechanics": "PASS",
-    "corrected_badging_xmltree_contract_and_offline_scope": "PASS"
+    "corrected_badging_xmltree_contract_and_offline_scope": "HISTORICAL_PASS; normal-resolution successor changes only Gradle --offline",
+    "exact_offline_removal_two_paths_six_sdk_same_deadline": "PASS",
+    "preclaim_continued_prior_identity_and_group_absence": "PASS"
   },
   "pure_mocked_checks": {
     "status": "PASS",
@@ -504,7 +532,8 @@
       "XML-tree missing root refuses",
       "XML-tree tabs refuse ambiguous scoping"
     ],
-    "real_runtime": "UNRUN"
+    "real_runtime": "UNRUN",
+    "evidence_scope": "Inherited 57 passing preparation checks preserved; unchanged artifact/SDK functions were not rerun for this minimal successor. New 34 predecessor-release checks are separately recorded."
   },
   "preserved_historical_evidence": [
     "c144bd06821c57e6559995c2b94ded70eb2ea7f0",
@@ -597,7 +626,7 @@
     ],
     "actual_sdk_execution": "UNRUN"
   },
-  "offline_configured_dependency_resolution": true,
+  "offline_configured_dependency_resolution": false,
   "sdk_metadata_command_count": 6,
   "added_successor_functions": [
     "public_instrumentation"
@@ -609,11 +638,12 @@
     "build_wrapper_configured_environment_local_init_jdk_helpers_signing_sdk_host_proof": "MATCH",
     "android_declared_cases21": "UNRUN",
     "current_revision_jvm_rerun": false,
-    "packet_claim": "UNUSED",
+    "packet_claim": "TWO_UNUSED; ONE_FAILED_PACKET_AND_CLAIM_IMMUTABLE",
     "SDK_xmltree_static_binary_token": "PRESENT",
     "shared_boundary_ast": "UNCHANGED",
-    "real_native_runtime": "UNRUN",
-    "root_actor_environment": "ACTUAL_JUST_SHARE_REQUIRE_ESCALATED_PATH_REBOUND_FRESH_SAME_CONTEXT_ROOT_COMPARE_PENDING"
+    "real_native_runtime": "UNRUN_DURING_THIS_PREPARATION",
+    "root_actor_environment": "SAME_ACTUAL_JUST_SHARE_REQUIRE_ESCALATED_F63_PATH_REVIEWED; FRESH_ROOT_GATE_REQUIRED_AFTER_FREEZE",
+    "packaging_inputs13": "MATCH"
   },
   "root_actor_path_rebind": {
     "reviewed_root_path_sha256": "f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3",
@@ -663,7 +693,7 @@
     "only_reviewed_pin_delta": "PATH_HASH_FOR_ACTUAL_ROOT_CONTEXT",
     "function_asts": "UNCHANGED",
     "tasks_deadline_source_and_guard_constants": "UNCHANGED",
-    "proof_scope": "Owned documentation/AST data-only validation; no SDK/routine/native validation executed",
+    "proof_scope": "Historical actual-context PATH-only predecessor validation; subsequent offline failure and normal-resolution preparation recorded separately",
     "observed_other_input_parity": "Root same-context diagnostic MATCH",
     "fresh_capacity_after_freeze": "REQUIRED",
     "runtime": "UNRUN"
@@ -681,5 +711,157 @@
       "preserved_commit": "74bb4d9ff6d07776ec0657771fff20d6c30fc85b",
       "disposition": "SUPERSEDED_CONTEXT_MISMATCH: Projects/use_default preflight differed from actual Just-Share/require_escalated caller"
     }
-  ]
+  ],
+  "normal_resolution_predecessor_preparation": {
+    "commit": "965e559de11b139a02f6cc0dc52250068e5094b0",
+    "caller_sha256": "8b7b4e6b73553a612b138a0ff34f1171b3ab5f68f5660203cbb7454e9eac6f08",
+    "function_ast_sha256": "9b18afb45b1142bc31bedb4f2ee06041401995f592cad6682cf622b266fbc81d",
+    "source_critic": "SOURCE ACCEPT",
+    "preservation": "Exact offline preparation remains in Git; its One packet and sibling claim remain untouched"
+  },
+  "prior_offline_attempt": {
+    "packet_commit": "04ba89b5491b8d9a5deb7b6f2d2be6c8186a16f1",
+    "source": "965e559de11b139a02f6cc0dc52250068e5094b0",
+    "packet": "docs/permission-recovery-debug-packaging-20261006-one",
+    "claim": "docs/permission-recovery-debug-packaging-20261006-one.claim.json",
+    "actual_exec_id": 61233,
+    "terminal_exit_status": 1,
+    "elapsed_seconds": 3.633,
+    "gradle_reported_seconds": 2,
+    "failure": "Configured AGP8.10.1 plugin marker unavailable with --offline before compilation or package tasks",
+    "proof_sha256": {
+      "result.json": "49ff83069fb5605e9980aef7365bf51210fb70fd79e888d7947c45868f82a5b9",
+      "gradle.log": "24bfcae5f076a93b5373660301d414750809a0fb35c05eddb49a1cccd6a0ba74",
+      "independent-release.json": "ce55772f03d1feeeeed1900de67a6a30288f29b252ae38f9cb488ddf89795e62",
+      "actor-claim.json": "71f9bc3ea84da2fca001d0bc185aa47836be902858e7a621168f6371c41872af"
+    },
+    "sibling_claim_sha256": "71f9bc3ea84da2fca001d0bc185aa47836be902858e7a621168f6371c41872af",
+    "inputs_unchanged": true,
+    "owned_cleanup": true,
+    "packaging_passed": false,
+    "package_task_observations": {},
+    "artifacts": {},
+    "sdk_inspections_executed": 0,
+    "independent_release": {
+      "epoch": 1791274885.635351,
+      "owned_identity_count": 3,
+      "owned_groups": [
+        51240,
+        51277
+      ],
+      "matching_live_identities": {},
+      "live_group_members": [],
+      "release_verified": true,
+      "memory_pressure": 1,
+      "free_gib": 24.4,
+      "current_foreign_heavy": [],
+      "fresh_capacity_after_new_freeze": "REQUIRED"
+    }
+  },
+  "prior_failed_attempt_guards": {
+    "before_and_after_pins": "Exact result/log/independent-release/both claims; regular file hashes, byte counts and modes",
+    "complete_prior_packet_entry_set": "Fixed exact four files; no extra entries or symlink packet",
+    "prior_packet_commit_ancestor_required": "04ba89b5491b8d9a5deb7b6f2d2be6c8186a16f1",
+    "failed_outcome_scope": "Exact offline argv/source/source175/tree, unchanged before-after inputs, owned cleanup true, zero package task/artifact/certificate credit",
+    "independent_release": "Exact result binding, verified release of all three fixed identities and both owned groups",
+    "current_absence": "Existing bounded full process rows and actual executable/start inventory must contain none of the prior exact identities and no member of either prior group before new claim",
+    "prior_process_termination": "NONE",
+    "prior_packet_or_claim_mutation": "NONE",
+    "coordinator_grant": false
+  },
+  "normal_resolution_successor_control_changes": [
+    "Only --offline removed from Gradle argv; two assemble tasks and all six installed SDK inspections unchanged",
+    "One-use packet/claim suffix and Watchdog tag switch from ONE to TWO",
+    "packaging_inputs adds only five immutable failed predecessor proof/claim inputs to before-after comparison",
+    "validate_prior_failed_attempt binds exact immutable failed One outcome and independently verified owned release",
+    "require_prior_owned_release checks existing bounded admission rows/executable inventory for continued prior identity/group absence before claim",
+    "main requires failed packet commit ancestry and records predecessor proof/current release in new claim/result; nested shared boundary unchanged"
+  ],
+  "normal_resolution_successor_static_proof": {
+    "changed_predecessor_functions": [
+      "main",
+      "packaging_inputs"
+    ],
+    "added_functions": [
+      "require_prior_owned_release",
+      "validate_prior_failed_attempt"
+    ],
+    "unchanged_existing_functions": [
+      "check_layout",
+      "check_work_deadline",
+      "command",
+      "configured_external_files",
+      "configured_files",
+      "declared_android_methods",
+      "executable_inventory",
+      "fingerprints",
+      "fresh_artifact",
+      "heavy",
+      "inspect_zip",
+      "json_bytes",
+      "output_metadata",
+      "package_task_observations",
+      "public_badging",
+      "public_certificate",
+      "public_instrumentation",
+      "sha",
+      "source_files",
+      "validate_host_proof",
+      "write_private"
+    ],
+    "changed_existing_data": [
+      "CLAIM",
+      "PACKET",
+      "REVIEWED_PACKAGING_INPUTS"
+    ],
+    "existing_packaging_inputs8": "UNCHANGED",
+    "new_prior_proof_inputs5": "MATCH",
+    "source175_app_build_wrapper_configured_environment_jdk_helper_sdk_signing_constants": "UNCHANGED",
+    "sdk_call_expressions": "UNCHANGED",
+    "shared_boundary": "UNCHANGED",
+    "watchdog_seconds": 300,
+    "source_and_environment_guards": "UNCHANGED",
+    "current_actor_path_sha256": "f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3",
+    "real_runtime_during_preparation": "UNRUN"
+  },
+  "normal_resolution_successor_pure_mock_checks": {
+    "status": "PASS",
+    "count": 34,
+    "checks": [
+      "Exact immutable failed predecessor and independent release accept",
+      "Changed predecessor hash refuses PRIOR_RESULT",
+      "Changed predecessor hash refuses PRIOR_LOG",
+      "Changed predecessor hash refuses PRIOR_RELEASE",
+      "Changed predecessor hash refuses PRIOR_CLAIM",
+      "Unexpected One packet entry refuses",
+      "Symlink predecessor packet refuses",
+      "Successful outcome cannot become failed predecessor",
+      "Failed owned cleanup refuses",
+      "Changed predecessor inputs refuse",
+      "Wrong predecessor source refuses",
+      "Changed predecessor offline argv refuses",
+      "Prior package credit refuses",
+      "Prior artifact credit refuses",
+      "Wrong raw predecessor log binding refuses",
+      "Changed prior owned identities refuse",
+      "Missing prior failure refuses",
+      "Unequal prior before-after snapshots refuse",
+      "Changed prior claim source refuses",
+      "Changed prior claim snapshot refuses",
+      "Wrong independent release source refuses",
+      "Wrong independent release result binding refuses",
+      "Unverified independent release refuses",
+      "Independent live owned identity refuses",
+      "Incomplete independent owned group inventory refuses",
+      "Independent live owned group member refuses",
+      "Incomplete independent owned identity inventory refuses",
+      "Current absent prior identities and groups accept",
+      "Reused prior PID with different start and unrelated group accepts",
+      "Current prior owned identity in full rows refuses",
+      "Current prior owned identity in executable inventory refuses",
+      "Nonheavy foreign member in first prior group refuses",
+      "Nonheavy foreign member in second prior group refuses",
+      "Conflicting inventories retaining old identity refuse"
+    ]
+  }
 }
