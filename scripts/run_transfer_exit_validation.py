@@ -26,6 +26,7 @@ SOURCE_PATHS = [
     "app/src/androidTest/java/com/blackandblue/justshare/TransferConnectionOwnershipTest.kt",
     "build.gradle", "settings.gradle", "app/build.gradle", "gradle.properties",
     "gradle/wrapper/gradle-wrapper.properties",
+    "scripts/run_transfer_exit_validation.py",
 ]
 
 
@@ -46,15 +47,18 @@ def foreign_work(rows, allowed=()):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True)
-    parser.add_argument("--attempt", choices=("one", "two"), default="one")
+    parser.add_argument("--attempt", choices=("one", "two", "three"), default="one")
     args = parser.parse_args()
     packet = REPO / ("docs/reviews/transfer-exit-20261006/compile-" + args.attempt)
     claim_path = Path("/private/tmp/UX-JUSTSHARE-COMPILE-20261006-" + args.attempt.upper() + ".json")
-    if args.attempt == "two":
+    if args.attempt != "one":
         previous = json.loads((REPO / "docs/reviews/transfer-exit-20261006/compile-one/result.json").read_text())
         raw = (REPO / "docs/reviews/transfer-exit-20261006/compile-one/gradle.log").read_text()
         assert previous["owned_cleanup"] and previous["failure"]
         assert "version: '8.10.1'" in raw and "could not resolve plugin artifact" in raw
+    if args.attempt == "three":
+        previous = json.loads((REPO / "docs/reviews/transfer-exit-20261006/compile-two/result.json").read_text())
+        assert previous["owned_cleanup"] and previous["failure"] == "AssertionError('Concurrent shared work appeared; stop own batch')"
     assert command("git", "rev-parse", "HEAD") == args.source
     subprocess.run(["rtk", "proxy", "git", "-c", "core.fsmonitor=false", "diff", "--quiet", "HEAD", "--", "app", "gradle", "build.gradle", "settings.gradle", "gradle.properties"], cwd=REPO, check=True, timeout=10)
     pins = {name: sha(REPO / name) for name in SOURCE_PATHS}
@@ -87,12 +91,19 @@ def main():
     watch = module.Watchdog(REPO, packet, "JUSTSHARE-EXIT-COMPILE-20261006-" + args.attempt.upper(), seconds=300)
     result = {"source": args.source, "source_pins": pins, "argv": argv,
               "apk_assembly": False, "android_cases_executed": 0,
-              "coordinator_grant": False, "watchdog_completed": False}
+              "coordinator_grant": False, "watchdog_completed": False,
+              "foreign_work_observations": []}
     failure = None
 
     def shared_boundary():
         rows, owned, _ = watch.sample()
-        assert not foreign_work(rows, owned), "Concurrent shared work appeared; stop own batch"
+        foreign = foreign_work(rows, owned)
+        if foreign:
+            result["foreign_work_observations"].append([
+                {"pid": pid, "pgid": rows[pid]["pgid"],
+                 "identity_sha256": rows[pid]["identity"],
+                 "command_sha256": rows[pid]["commandHash"]} for pid in foreign])
+            raise AssertionError("Concurrent shared work appeared; stop own batch")
 
     try:
         watch.run(argv, env, "gradle.log", callback=shared_boundary)

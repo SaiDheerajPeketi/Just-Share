@@ -42,8 +42,13 @@ Attempt one stopped before compilation because the host's offline cache lacked t
 existing Android plugin 8.10.1. Its raw failure and released worker identities are
 retained in `compile-one`; no tests ran. Attempt two permits ordinary dependency
 resolution with the same unchanged 300-second Watchdog and resource bounds. It is
-only admitted after checking that exact plugin failure and release. Build files and
-dependency versions are unchanged; attempt two is still unrun at this handoff.
+only admitted after checking that exact plugin failure and release. It stopped in
+78.349 seconds when concurrent shared work appeared; its owned cleanup passed and
+independent host inspection found all three recorded PIDs absent. No tests or
+Android compilation received credit. Attempt three is a distinct one-use successor,
+admitted only after that exact retained stop/release and a new idle-host check; it
+also records any conflicting worker's hashed identity. Build files and dependency
+versions are unchanged; attempt three is still unrun at this handoff.
 
 ## Limits
 
