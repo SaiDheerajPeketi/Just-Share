@@ -4,9 +4,10 @@ import timber.log.Timber
 
 import android.annotation.SuppressLint
 import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
@@ -16,10 +17,11 @@ import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.location.LocationManagerCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.blackandblue.justshare.domain.transfer.TransferOrchestration
+import com.blackandblue.justshare.LocalTransferMethod
+import com.blackandblue.justshare.hasLocalTransferPermissions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -75,6 +77,7 @@ class WifiDirectViewModel @Inject constructor(
     private var activeConnectJob: Job? = null
     private var connectTimeoutJob: Job? = null
     private var discoveryJob: Job? = null
+    private var hostingJob: Job? = null
     private var discoveryRefreshJob: Job? = null
 
     companion object {
@@ -97,12 +100,14 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     val peerListListener = WifiP2pManager.PeerListListener { peerList ->
+        if (!requireWifiDirectPermission()) return@PeerListListener
         val peers = peerList.deviceList.toList()
         _uiState.update { it.copy(peers = peers) }
     }
 
     @SuppressLint("MissingPermission")
     val connectionInfoListener = WifiP2pManager.ConnectionInfoListener { info ->
+        if (!requireWifiDirectPermission()) return@ConnectionInfoListener
         Log.d(TAG, "ConnectionInfo: $info")
         if (!info.groupFormed) {
             val groupState = TransferOrchestration.wifiGroupState(
@@ -147,6 +152,7 @@ class WifiDirectViewModel @Inject constructor(
         }
 
         manager.requestGroupInfo(channel) { group ->
+            if (!requireWifiDirectPermission()) return@requestGroupInfo
             val connectedClientCount = group?.clientList?.size ?: 0
             val groupState = TransferOrchestration.wifiGroupState(
                 senderRole = isSenderRole,
@@ -187,6 +193,7 @@ class WifiDirectViewModel @Inject constructor(
      */
     fun initialize(manager: WifiP2pManager, channel: WifiP2pManager.Channel) {
         Timber.d("WifiDirectViewModel - initialize called")
+        if (!requireWifiDirectPermission()) return
         wifiP2pManager = manager
         wifiP2pChannel = channel
         // Request existing connection info
@@ -302,19 +309,17 @@ class WifiDirectViewModel @Inject constructor(
             }
             return
         }
-        if (!hasWifiDirectPermission()) {
-            _uiState.update { it.copy(isDiscovering = false, errorMessage = "Nearby-device permission is required to discover devices.") }
-            return
-        }
+        if (!requireWifiDirectPermission()) return
         try {
             wifiP2pManager?.requestPeers(wifiP2pChannel, peerListListener)
         } catch (_: SecurityException) {
-            _uiState.update { it.copy(isDiscovering = false, errorMessage = "Nearby-device permission is required to discover devices.") }
+            onPermissionRevoked()
         }
     }
 
     fun onConnectionChanged() {
         Timber.d("WifiDirectViewModel - onConnectionChanged called")
+        if (!requireWifiDirectPermission()) return
         wifiP2pManager?.requestConnectionInfo(wifiP2pChannel, connectionInfoListener)
     }
 
@@ -323,6 +328,7 @@ class WifiDirectViewModel @Inject constructor(
     @SuppressLint("MissingPermission")
     fun startDiscovery() {
         Timber.d("WifiDirectViewModel - startDiscovery called")
+        if (!requireWifiDirectPermission()) return
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
         if (!_uiState.value.isWifiDirectEnabled) {
@@ -373,7 +379,13 @@ class WifiDirectViewModel @Inject constructor(
             }
             
             // Manually request peers just in case the system doesn't broadcast a change
-            manager.requestPeers(channel, peerListListener)
+            if (!requireWifiDirectPermission()) return@launch
+            try {
+                manager.requestPeers(channel, peerListListener)
+            } catch (_: SecurityException) {
+                onPermissionRevoked()
+                return@launch
+            }
             if (failure == null) {
                 startDiscoveryRefreshLoop()
             }
@@ -408,6 +420,7 @@ class WifiDirectViewModel @Inject constructor(
     @SuppressLint("MissingPermission")
     fun startHosting() {
         Timber.d("WifiDirectViewModel - startHosting called")
+        if (!requireWifiDirectPermission()) return
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
         if (!_uiState.value.isWifiDirectEnabled) {
@@ -418,7 +431,8 @@ class WifiDirectViewModel @Inject constructor(
             return
         }
         _uiState.update { it.copy(connectionStatus = "hosting", errorMessage = null) }
-        viewModelScope.launch {
+        hostingJob?.cancel()
+        hostingJob = viewModelScope.launch {
             // Clean up any existing state to prevent BUSY error
             awaitP2pAction { manager.cancelConnect(channel, it) }
             awaitP2pAction { manager.stopPeerDiscovery(channel, it) }
@@ -443,6 +457,7 @@ class WifiDirectViewModel @Inject constructor(
     @SuppressLint("MissingPermission")
     fun connectToDevice(device: WifiP2pDevice) {
         Timber.d("WifiDirectViewModel - connectToDevice called")
+        if (!requireWifiDirectPermission()) return
         val manager = wifiP2pManager ?: return
         val channel = wifiP2pChannel ?: return
         if (_uiState.value.isConnected || !isSenderRole) {
@@ -491,18 +506,21 @@ class WifiDirectViewModel @Inject constructor(
 
     fun requestConnectionInfo() {
         Timber.d("WifiDirectViewModel - requestConnectionInfo called")
+        if (!requireWifiDirectPermission()) return
         wifiP2pManager?.requestConnectionInfo(wifiP2pChannel, connectionInfoListener)
     }
 
     fun disconnectP2P() {
         Timber.d("WifiDirectViewModel - disconnectP2P called")
+        hostingJob?.cancel()
+        hostingJob = null
         activeConnectJob?.cancel()
         discoveryJob?.cancel()
         discoveryJob = null
         cancelConnectTimeout()
         stopDiscoveryRefreshLoop()
         stopCommunicationService()
-        wifiP2pManager?.let { mgr ->
+        if (hasWifiDirectPermission()) wifiP2pManager?.let { mgr ->
             wifiP2pChannel?.let { ch ->
                 mgr.cancelConnect(ch, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() { 
@@ -530,6 +548,7 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     private fun startCommunicationService(info: android.net.wifi.p2p.WifiP2pInfo) {
+        if (!requireWifiDirectPermission()) return
         if (communicationServiceStarted) return
         val role = if (info.isGroupOwner) {
             com.blackandblue.justshare.CommunicationService.SERVER_ROLE
@@ -634,6 +653,7 @@ class WifiDirectViewModel @Inject constructor(
         discoveryRefreshJob = viewModelScope.launch {
             while (true) {
                 delay(DISCOVERY_REFRESH_MS)
+                if (!requireWifiDirectPermission()) return@launch
                 val manager = wifiP2pManager ?: return@launch
                 val channel = wifiP2pChannel ?: return@launch
                 val state = _uiState.value
@@ -665,7 +685,13 @@ class WifiDirectViewModel @Inject constructor(
                 }
                 if (failure == null) {
                     _uiState.update { it.copy(isDiscovering = true, errorMessage = null) }
-                    manager.requestPeers(channel, peerListListener)
+                    if (!requireWifiDirectPermission()) return@launch
+                    try {
+                        manager.requestPeers(channel, peerListListener)
+                    } catch (_: SecurityException) {
+                        onPermissionRevoked()
+                        return@launch
+                    }
                 } else {
                     Log.e(TAG, "Wi-Fi Direct refresh failed: ${failureReason(failure)}")
                 }
@@ -710,16 +736,24 @@ class WifiDirectViewModel @Inject constructor(
 
     private suspend fun awaitP2pAction(
         action: (WifiP2pManager.ActionListener) -> Unit
-    ): Int? = suspendCancellableCoroutine { continuation ->
-        action(object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                if (continuation.isActive) continuation.resume(null)
-            }
+    ): Int? {
+        if (!requireWifiDirectPermission()) return WifiP2pManager.ERROR
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                action(object : WifiP2pManager.ActionListener {
+                    override fun onSuccess() {
+                        if (continuation.isActive) continuation.resume(null)
+                    }
 
-            override fun onFailure(reason: Int) {
-                if (continuation.isActive) continuation.resume(reason)
+                    override fun onFailure(reason: Int) {
+                        if (continuation.isActive) continuation.resume(reason)
+                    }
+                })
+            } catch (_: SecurityException) {
+                onPermissionRevoked()
+                if (continuation.isActive) continuation.resume(WifiP2pManager.ERROR)
             }
-        })
+        }
     }
 
     private fun failureReason(reason: Int): String = when (reason) {
@@ -730,6 +764,12 @@ class WifiDirectViewModel @Inject constructor(
     }
 
     private fun stopCommunicationService() {
+        if (!communicationServiceStarted) return
+        if (!hasWifiDirectPermission()) {
+            runCatching { context.stopService(Intent(context, com.blackandblue.justshare.CommunicationService::class.java)) }
+            communicationServiceStarted = false
+            return
+        }
         val stopIntent = Intent(context, com.blackandblue.justshare.CommunicationService::class.java).apply {
             action = com.blackandblue.justshare.CommunicationService.ACTION_STOP_COMMUNICATION
         }
@@ -781,12 +821,47 @@ class WifiDirectViewModel @Inject constructor(
         }
     }
 
-    private fun hasWifiDirectPermission(): Boolean {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.NEARBY_WIFI_DEVICES
-        } else {
-            Manifest.permission.ACCESS_FINE_LOCATION
+    fun onPermissionRevoked() {
+        activeConnectJob?.cancel()
+        activeConnectJob = null
+        hostingJob?.cancel()
+        hostingJob = null
+        discoveryJob?.cancel()
+        discoveryJob = null
+        cancelConnectTimeout()
+        stopDiscoveryRefreshLoop()
+        // Stop an existing service directly; do not create a new service just
+        // to deliver a stop command while permission is denied.
+        runCatching { context.stopService(Intent(context, com.blackandblue.justshare.CommunicationService::class.java)) }
+        communicationServiceStarted = false
+        receiver?.let { runCatching { context.unregisterReceiver(it) } }
+        receiver = null
+        // If only legacy file access was revoked, the nearby grant still allows
+        // us to stop discovery and remove the group before closing the channel.
+        val nearbyPermission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.NEARBY_WIFI_DEVICES
+            else Manifest.permission.ACCESS_FINE_LOCATION
+        if (ContextCompat.checkSelfPermission(context, nearbyPermission) == PackageManager.PERMISSION_GRANTED) {
+            wifiP2pManager?.let { manager -> wifiP2pChannel?.let { channel ->
+                runCatching { manager.cancelConnect(channel, null) }
+                runCatching { manager.stopPeerDiscovery(channel, null) }
+                runCatching { manager.removeGroup(channel, null) }
+            } }
         }
-        return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            runCatching { wifiP2pChannel?.close() }
+        }
+        wifiP2pManager = null
+        wifiP2pChannel = null
+        _uiState.update { it.copy(peers = emptyList(), isConnected = false, isDiscovering = false,
+            connectionStatus = "", errorMessage = "Allow nearby sharing to continue.") }
     }
+
+    private fun requireWifiDirectPermission(): Boolean {
+        if (hasWifiDirectPermission()) return true
+        onPermissionRevoked()
+        return false
+    }
+
+    private fun hasWifiDirectPermission(): Boolean =
+        hasLocalTransferPermissions(context, LocalTransferMethod.WIFI)
 }

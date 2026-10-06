@@ -1,0 +1,64 @@
+{
+  "source_check": "PASS lexical delimiter sanity and targeted wiring assertions only; no Kotlin parser/compiler",
+  "source_files": {
+    "app/src/main/java/com/blackandblue/justshare/LocalTransferPermissions.kt": "4b23ae1aad33b5eb74d08bd5651af524aaf40dff30697366cf9276d609085757",
+    "app/src/main/java/com/blackandblue/justshare/data/chat/AndroidBluetoothController.kt": "becd31ffbcb1bf5201edf0ee48b0debd2575440aa3b745159078c58a5a19e08f",
+    "app/src/main/java/com/blackandblue/justshare/navigation/NavGraph.kt": "df5a73e40ee80d5aa020b51d8eecc249392ecf4a70071873551a6ce82a24b63f",
+    "app/src/main/java/com/blackandblue/justshare/presentation/BluetoothViewModel.kt": "0b0b8ca9bfd378d31e1cb362ace87b09b9dbf47a08207493e1ff6c077e83925f",
+    "app/src/main/java/com/blackandblue/justshare/presentation/WifiDirectViewModel.kt": "f6fb6c354805d2af1a2e7126a1f4efe908db71e5dfa4a804193be6003878ea39",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/DiscoverDevicesScreen.kt": "b1b071a9b90579c573cc53c202f12d45675a600c393539d8facc42d0559f50f0",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/PermissionsScreen.kt": "01b2e1990eaf2ed4b5ba69f2c642f8f5da73412958338bb56a968a10f066b787",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/TransferProgressScreen.kt": "6ed684d97a5388948b14d84a5d2bdbb7c324dcda7863471684d0fbeb3484fd5d",
+    "app/src/androidTest/java/com/blackandblue/justshare/ui/screens/PermissionsScreenTest.kt": "79164d4e8939f92e859f15c90128d2150477c5b107f6ce5e00e2d1bd809b7c4c",
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/PermissionRecoveryNavigationTest.kt": "b510b712899c6be250f4ab3e7a8caad9ad73929c425550621b2e5c476252a5e4",
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/WifiPermissionRecoveryTest.kt": "7ff8b9ccffd17a790c6ed5c5fb9faa499576ed25166fa414f1b23926964c0e27",
+    "app/src/test/java/com/blackandblue/justshare/LocalTransferPermissionsTest.kt": "34a285acbc4c9e7de469dbea8e1cf91cfe8841ee0ccadbec4eeb712ad3e7dbd8"
+  },
+  "test_declarations": {
+    "app/src/androidTest/java/com/blackandblue/justshare/ui/screens/PermissionsScreenTest.kt": 3,
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/PermissionRecoveryNavigationTest.kt": 5,
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/WifiPermissionRecoveryTest.kt": 3,
+    "app/src/test/java/com/blackandblue/justshare/LocalTransferPermissionsTest.kt": 4
+  },
+  "total_declared_tests": 15,
+  "executed_tests": 0,
+  "native_validation": "UNRUN",
+  "iteration": "Just-Share contextual permission recovery",
+  "base_head": "c5b40bf4bd4a930f3bcfdc33225fc28af39039fe",
+  "base_app_source": "c144bd06821c57e6559995c2b94ded70eb2ea7f0",
+  "authority": "Parent source-only implementation assignment; parent owns later compilation and native validation",
+  "whitespace_check": "PASS rtk git diff --check; existing unrelated edits preserved",
+  "parser": "UNAVAILABLE in current host Python; lexical sanity is not AST or compilation",
+  "prior_test_count": {
+    "PermissionsScreenTest": 1
+  },
+  "test_count_scope": "15 declarations in four selected suites; zero tests executed in this iteration",
+  "primary_sources": [
+    "https://developer.android.com/training/permissions/requesting#handle-permission-denial",
+    "https://developer.android.com/develop/sensors-and-location/location/permissions/runtime"
+  ],
+  "unchanged_contracts": [
+    "manifest",
+    "build configuration/dependencies",
+    "billing/provider/Remote Transfer protocol",
+    "MainActivity external-share ingestion",
+    "file selection and transfer protocol"
+  ],
+  "limitations": [
+    "No Kotlin compilation or test execution",
+    "No platform Settings/permission-dialog interaction or hardware service evidence",
+    "Navigation Compose fixture uses the production LocalDiscoveryDestination and gate, a harmless discovery body and actual TransferViewModel for selection/role; it is not full AppNavGraph or MainActivity acceptance",
+    "Selection/direction preservation is scoped to retained in-memory state during navigation/settings return; process death and temporary URI grant survival are not proven"
+  ],
+  "parent_compile_targets": [
+    ":app:compileDebugKotlin",
+    ":app:compileDebugUnitTestKotlin",
+    ":app:testDebugUnitTest --tests com.blackandblue.justshare.LocalTransferPermissionsTest",
+    ":app:compileDebugAndroidTestKotlin"
+  ],
+  "parent_android_test_classes": [
+    "com.blackandblue.justshare.ui.screens.PermissionsScreenTest",
+    "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest",
+    "com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest"
+  ]
+}

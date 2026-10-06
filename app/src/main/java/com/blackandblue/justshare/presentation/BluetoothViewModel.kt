@@ -163,6 +163,16 @@ class BluetoothViewModel @Inject constructor(
         _state.update { it.copy(isConnecting = false, isConnected = false) }
     }
 
+    fun onPermissionRevoked() {
+        pendingPairDevice = null
+        deviceConnectionJob?.cancel()
+        deviceConnectionJob = null
+        runCatching { bluetoothController.stopDiscovery() }
+        runCatching { bluetoothController.closeConnection() }
+        _state.update { it.copy(isConnecting = false, isConnected = false,
+            errorMessage = "Allow nearby sharing to continue.") }
+    }
+
     fun waitForIncomingConnections() {
         Timber.d("BluetoothViewModel - waitForIncomingConnections called")
         deviceConnectionJob?.cancel()

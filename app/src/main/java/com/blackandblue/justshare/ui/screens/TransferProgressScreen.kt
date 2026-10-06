@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.blackandblue.justshare.presentation.BluetoothViewModel
 import com.blackandblue.justshare.presentation.WifiDirectViewModel
 import com.blackandblue.justshare.presentation.TransferViewModel
+import com.blackandblue.justshare.LocalTransferMethod
 import com.blackandblue.justshare.ui.components.BackBar
 import com.blackandblue.justshare.ui.components.rememberTransferExitRequest
 import com.blackandblue.justshare.ui.theme.JediShareTheme
@@ -67,6 +68,14 @@ fun TransferProgressScreen(
     
     val isSender = state.urisToShare.isNotEmpty()
     val method = state.method
+    if (method == "bt" || method == "wifi") {
+        LocalTransferPermissionLossEffect(
+            if (method == "bt") LocalTransferMethod.BLUETOOTH else LocalTransferMethod.WIFI
+        ) {
+            if (method == "bt") btViewModel.onPermissionRevoked()
+            else wifiViewModel.onPermissionRevoked()
+        }
+    }
     var navigatingAway by remember { mutableStateOf(false) }
     
     val progress = if (method == "bt") {

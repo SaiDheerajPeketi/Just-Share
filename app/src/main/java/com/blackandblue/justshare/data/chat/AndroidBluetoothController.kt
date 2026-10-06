@@ -1,6 +1,8 @@
 package com.blackandblue.justshare.data.chat
 
 import timber.log.Timber
+import com.blackandblue.justshare.LocalTransferMethod
+import com.blackandblue.justshare.hasLocalTransferPermissions
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -153,8 +155,16 @@ class AndroidBluetoothController(
 
     override fun stopDiscovery() {
         Timber.d("AndroidBluetoothController - stopDiscovery called")
-        if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
-        bluetoothAdapter?.cancelDiscovery()
+        // Cleanup only needs the platform's scan/admin grant; losing a different
+        // local-sharing permission must not prevent us from cancelling a scan.
+        val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S)
+            Manifest.permission.BLUETOOTH_SCAN else Manifest.permission.BLUETOOTH_ADMIN
+        if (context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) return
+        try {
+            bluetoothAdapter?.cancelDiscovery()
+        } catch (_: SecurityException) {
+            // The OS can revoke the grant between the check and cancellation.
+        }
     }
 
     override fun pairDevice(device: BluetoothDeviceDomain) {
@@ -456,8 +466,16 @@ class AndroidBluetoothController(
         }
     }
 
-    private fun hasPermission(permission: String): Boolean =
-        context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    private fun hasPermission(permission: String): Boolean {
+        // Runtime Bluetooth grants were introduced in Android 12. On older
+        // devices discovery uses location and Bluetooth itself is a normal grant.
+        if (permission in listOf(Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE)) {
+            if (!hasLocalTransferPermissions(context, LocalTransferMethod.BLUETOOTH)) return false
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return true
+        }
+        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    }
 
     /** Maps an [IncomingData] event to a [ConnectionResult] for the ViewModel. */
     private fun IncomingData.toConnectionResult(): ConnectionResult {

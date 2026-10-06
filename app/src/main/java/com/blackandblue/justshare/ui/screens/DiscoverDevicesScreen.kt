@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.blackandblue.justshare.presentation.BluetoothViewModel
+import com.blackandblue.justshare.LocalTransferMethod
+import com.blackandblue.justshare.hasLocalTransferPermissions
 import com.blackandblue.justshare.presentation.TransferViewModel
 import com.blackandblue.justshare.presentation.UnifiedDevice
 import com.blackandblue.justshare.presentation.WifiDirectViewModel
@@ -108,6 +110,13 @@ fun DiscoverDevicesScreen(
     val wifiState by wifiViewModel.uiState.collectAsState()
     val transferState by transferViewModel.state.collectAsState()
     val isSender = transferState.urisToShare.isNotEmpty()
+
+    LocalTransferPermissionLossEffect(
+        if (transferMethod == "bt") LocalTransferMethod.BLUETOOTH else LocalTransferMethod.WIFI
+    ) {
+        if (transferMethod == "bt") btViewModel.onPermissionRevoked()
+        else wifiViewModel.onPermissionRevoked()
+    }
 
     // Unify discovered devices
     val discovered = if (transferMethod == "bt") {
@@ -197,6 +206,11 @@ fun DiscoverDevicesScreen(
     // from navigating when the group first forms (groupFormed=true but connectedClients=0).
     val wifiActuallyConnected = wifiState.connectionStatus == "connected"
     LaunchedEffect(btState.isConnected, wifiActuallyConnected, transferState.hasTransferStarted) {
+        val method = if (transferMethod == "bt") LocalTransferMethod.BLUETOOTH else LocalTransferMethod.WIFI
+        if (!hasLocalTransferPermissions(context, method)) {
+            if (transferMethod == "bt") btViewModel.onPermissionRevoked() else wifiViewModel.onPermissionRevoked()
+            return@LaunchedEffect
+        }
         if (btState.isConnected && transferMethod == "bt" && !transferState.hasTransferStarted) {
             val uris = transferState.urisToShare
             transferViewModel.markTransferStarted()

@@ -1,212 +1,267 @@
 package com.blackandblue.justshare.ui.screens
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.blackandblue.justshare.LocalTransferMethod
+import com.blackandblue.justshare.localTransferPermissions
+import com.blackandblue.justshare.localPermissionRequest
+import com.blackandblue.justshare.hasLocalTransferPermissions
 import com.blackandblue.justshare.ui.components.PillButton
-import com.blackandblue.justshare.ui.components.PillButtonSize
 import com.blackandblue.justshare.ui.theme.JediShareTheme
 
+/** The Android boundary is injectable so lifecycle recovery can be exercised
+ * without changing the device's actual permission grants. */
+interface NearbyPermissionAccess {
+    val sdkInt: Int
+    fun isGranted(permission: String): Boolean
+    fun openAppSettings(): Boolean
+}
+
+class AndroidNearbyPermissionAccess(private val context: Context) : NearbyPermissionAccess {
+    override val sdkInt: Int get() = Build.VERSION.SDK_INT
+    override fun isGranted(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+    override fun openAppSettings(): Boolean = runCatching {
+        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", context.packageName, null)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    }.isSuccess
+}
+
 @Composable
-fun PermissionsScreen(onContinue: () -> Unit) {
-    val colors = JediShareTheme.colors
+internal fun rememberPermissionAccess(): NearbyPermissionAccess {
     val context = LocalContext.current
+    return remember(context) { AndroidNearbyPermissionAccess(context) }
+}
 
-    val storagePerms = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-        listOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    } else {
-        emptyList()
+@Composable
+fun PermissionsScreen(
+    onContinue: () -> Unit,
+    onNotNow: () -> Unit = onContinue,
+    permissionAccess: NearbyPermissionAccess = rememberPermissionAccess()
+) {
+    PermissionRecovery(null, onContinue, onNotNow, permissionAccess)
+}
+
+/** Do not construct discovery content (including its default ViewModels) until
+ * this exact transport is allowed. Recovery stays on the original destination. */
+@Composable
+fun LocalTransferPermissionGate(
+    method: LocalTransferMethod,
+    onNotNow: () -> Unit,
+    permissionAccess: NearbyPermissionAccess = rememberPermissionAccess(),
+    content: @Composable () -> Unit
+) {
+    PermissionRecovery(method, {}, onNotNow, permissionAccess, content)
+}
+
+@Composable
+private fun PermissionRecovery(
+    method: LocalTransferMethod?,
+    onContinue: () -> Unit,
+    onNotNow: () -> Unit,
+    access: NearbyPermissionAccess,
+    allowedContent: (@Composable () -> Unit)? = null
+) {
+    val methods = remember(method) { method?.let { listOf(it) } ?: LocalTransferMethod.entries.toList() }
+    val requested = remember(methods, access.sdkInt) {
+        methods.flatMap { localTransferPermissions(it, access.sdkInt) }.distinct()
     }
-
-    val btPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE)
-    } else {
-        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-    }
-
-    val wifiPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.NEARBY_WIFI_DEVICES)
-    } else {
-        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-    }
-
-    val notifPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.POST_NOTIFICATIONS)
-    } else {
-        emptyList()
-    }
-
-    fun checkPerms(perms: List<String>) = perms.all { 
-        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED 
-    }
-
-    var storageGranted by remember { mutableStateOf(checkPerms(storagePerms)) }
-    var btGranted by remember { mutableStateOf(checkPerms(btPerms)) }
-    var wifiGranted by remember { mutableStateOf(checkPerms(wifiPerms)) }
-    var notifGranted by remember { mutableStateOf(checkPerms(notifPerms)) }
-
-    val hasRequired = storageGranted && (btGranted || wifiGranted)
-
-    LaunchedEffect(hasRequired) {
-        if (hasRequired) {
-            onContinue()
+    val notifications = if (access.sdkInt >= 33) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
+    fun snapshot() = (requested + notifications).associateWith(access::isGranted)
+    var grants by remember(access, method) { mutableStateOf(snapshot()) }
+    var settingsError by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val refresh by rememberUpdatedState({ settingsError = false; grants = snapshot() })
+    DisposableEffect(lifecycleOwner, access, method) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refresh()
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        storageGranted = checkPerms(storagePerms)
-        btGranted = checkPerms(btPerms)
-        wifiGranted = checkPerms(wifiPerms)
-        notifGranted = checkPerms(notifPerms)
-        
-        if (storageGranted && (btGranted || wifiGranted)) {
-            // Permissions granted, button will update to Continue
-        }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        refresh()
     }
+    // Also recheck before each composition of protected content. Lifecycle
+    // events trigger recomposition, but another state change must not reuse an
+    // old allow result after the grant has been revoked.
+    val checkedGrants = grants.mapValues { access.isGranted(it.key) }
+    val ready = methods.any { candidate ->
+        localTransferPermissions(candidate, access.sdkInt).all { checkedGrants[it] == true }
+    }
+    if (ready && allowedContent != null) {
+        allowedContent()
+        return
+    }
+    BackHandler(onBack = onNotNow)
 
-    val permissions = listOf(
-        Triple("Bluetooth", "Find & connect nearby devices", Icons.Default.Bluetooth) to btGranted,
-        Triple("Wi-Fi Direct", "High-speed peer-to-peer transfers", Icons.Default.Wifi) to wifiGranted,
-        Triple("File access", "Choose only the files you want to send", Icons.Default.FolderOpen) to storageGranted,
-        Triple("Notifications", "Optional transfer progress updates", Icons.Default.Notifications) to (notifPerms.isEmpty() || notifGranted)
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-            .safeDrawingPadding()
-    ) {
+    val colors = JediShareTheme.colors
+    Column(Modifier.fillMaxSize().background(colors.surface).safeDrawingPadding()) {
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(top = 48.dp, bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            Modifier.weight(1f).verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp).padding(top = 24.dp, bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(140.dp)
-                    .background(colors.red.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Wifi,
-                    contentDescription = null,
-                    tint = colors.red,
-                    modifier = Modifier.size(52.dp)
-                )
+            Box(Modifier.size(96.dp).background(colors.red.copy(alpha = 0.05f), CircleShape),
+                contentAlignment = Alignment.Center) {
+                Icon(if (method == LocalTransferMethod.BLUETOOTH) Icons.Default.Bluetooth else Icons.Default.Wifi,
+                    contentDescription = null, tint = colors.red, modifier = Modifier.size(48.dp))
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
             Text(
-                text = "A Few Permissions",
-                color = colors.black,
-                style = MaterialTheme.typography.h1.copy(fontSize = 30.sp, fontWeight = FontWeight.Black),
-                textAlign = TextAlign.Center
+                text = method?.let { "Allow ${it.label} sharing" } ?: "Share with nearby devices",
+                style = MaterialTheme.typography.h1.copy(fontWeight = FontWeight.Black, fontSize = 30.sp),
+                color = colors.black, textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = "Nearby-device access powers local transfers, and notifications can show progress. Remote Transfer uses an encrypted relay only when you choose it; file contents stay end-to-end encrypted.",
-                color = colors.mutedFg,
-                style = MaterialTheme.typography.body2,
-                textAlign = TextAlign.Center
+                text = if (method == null) "You can allow nearby sharing now or browse the app and choose later."
+                    else "Allow nearby access to find devices and send or receive files. You can allow access in app settings, then return to this sharing step.",
+                style = MaterialTheme.typography.body1, color = colors.mutedFg, textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            permissions.forEach { (perm, isGranted) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(if (isGranted) colors.red else colors.red.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(perm.third, contentDescription = null, tint = if (isGranted) colors.white else colors.red, modifier = Modifier.size(20.dp))
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = perm.first, style = MaterialTheme.typography.body2.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp), color = colors.black)
-                        Text(text = perm.second, style = MaterialTheme.typography.caption.copy(fontSize = 12.sp), color = colors.mutedFg)
-                    }
-                    if (isGranted) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = colors.green, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(24.dp))
+            methods.forEach { candidate ->
+                val nearby = localTransferPermissions(candidate, access.sdkInt)
+                    .filterNot { it == Manifest.permission.WRITE_EXTERNAL_STORAGE }
+                val description = if (Manifest.permission.ACCESS_FINE_LOCATION in nearby) {
+                    if (access.sdkInt >= 31) "Allow Precise location to find nearby devices"
+                    else "Allow Location to find nearby devices"
+                } else "Find and connect to nearby devices"
+                PermissionRow(candidate.label, description,
+                    if (candidate == LocalTransferMethod.BLUETOOTH) Icons.Default.Bluetooth else Icons.Default.Wifi,
+                    nearby.all { checkedGrants[it] == true })
+            }
+            if (access.sdkInt <= 28) {
+                PermissionRow("Save received files", "Save incoming files on this device", Icons.Default.Folder,
+                    checkedGrants[Manifest.permission.WRITE_EXTERNAL_STORAGE] == true)
+            }
+            if (notifications.isNotEmpty()) {
+                PermissionRow("Notifications", "Optional transfer progress updates", Icons.Default.Notifications,
+                    notifications.all { checkedGrants[it] == true }, optional = true)
+                if (notifications.any { checkedGrants[it] != true }) {
+                    TextButton(onClick = { launcher.launch(notifications.toTypedArray()) }) {
+                        Text("Allow notifications", color = colors.red)
                     }
                 }
             }
+            if (!ready) {
+                Spacer(Modifier.height(16.dp))
+                Text("If Android no longer asks, open app settings and choose Permissions.",
+                    style = MaterialTheme.typography.body2, color = colors.mutedFg, textAlign = TextAlign.Center)
+            }
+            if (settingsError) {
+                Spacer(Modifier.height(12.dp))
+                Text("App settings could not open. Try again, or open Just Share in your device's Settings.",
+                    style = MaterialTheme.typography.body2, color = colors.red, textAlign = TextAlign.Center)
+            }
         }
-
-        Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 40.dp)) {
-            PillButton(
-                label = if (hasRequired) "Continue" else "Grant Permissions",
-                onClick = {
-                    if (hasRequired) {
-                        onContinue()
-                    } else {
-                        val toRequest = (storagePerms + btPerms + wifiPerms + notifPerms).distinct()
-                        permissionLauncher.launch(toRequest.toTypedArray())
-                    }
-                },
-                size = PillButtonSize.LG,
-                modifier = Modifier.fillMaxWidth()
-            )
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
+            PillButton(label = if (ready) "Continue" else "Allow nearby sharing", onClick = {
+                val current = snapshot()
+                grants = current
+                val currentlyReady = methods.any { candidate ->
+                    localTransferPermissions(candidate, access.sdkInt).all { current[it] == true }
+                }
+                if (currentlyReady) onContinue()
+                else launcher.launch(localPermissionRequest(requested.filter { current[it] != true }).toTypedArray())
+            }, modifier = Modifier.fillMaxWidth())
+            if (!ready) {
+                TextButton(onClick = { settingsError = !access.openAppSettings() }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open app settings", color = colors.red)
+                }
+            }
+            TextButton(onClick = onNotNow, modifier = Modifier.fillMaxWidth()) {
+                Text("Not now", color = colors.mutedFg)
+            }
         }
     }
 }
 
-fun hasRequiredPermissions(context: android.content.Context): Boolean {
-    val storagePerms = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-        listOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    } else {
-        emptyList()
+@Composable
+private fun PermissionRow(title: String, description: String, icon: ImageVector, granted: Boolean, optional: Boolean = false) {
+    val colors = JediShareTheme.colors
+    val status = if (granted) "Allowed" else if (optional) "Optional, off" else "Not allowed"
+    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp).semantics(mergeDescendants = true) {
+        stateDescription = status
+    }, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(48.dp).background(colors.red.copy(alpha = 0.08f), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = colors.red, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold), color = colors.black)
+            Text(description, style = MaterialTheme.typography.body2, color = colors.mutedFg)
+            Text(status, style = MaterialTheme.typography.body2, color = if (granted) colors.red else colors.mutedFg)
+        }
+        if (granted) {
+            Spacer(Modifier.width(12.dp))
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.red, modifier = Modifier.size(24.dp))
+        }
     }
+}
 
-    val btPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE)
-    } else {
-        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+/** Cancels retained local work when grants are revoked, including when the
+ * contextual gate removes discovery content. Normal progress navigation keeps
+ * its connection intact. */
+@Composable
+internal fun LocalTransferPermissionLossEffect(method: LocalTransferMethod, onPermissionLost: () -> Unit) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val onLoss by rememberUpdatedState(onPermissionLost)
+    DisposableEffect(context, lifecycleOwner, method) {
+        fun check() {
+            if (!hasLocalTransferPermissions(context, method)) onLoss()
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) check()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            check()
+        }
     }
-
-    val wifiPerms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.NEARBY_WIFI_DEVICES)
-    } else {
-        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-    }
-
-    fun checkPerms(perms: List<String>) = perms.all { 
-        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED 
-    }
-
-    val storageGranted = checkPerms(storagePerms)
-    val btGranted = checkPerms(btPerms)
-    val wifiGranted = checkPerms(wifiPerms)
-    return storageGranted && (btGranted || wifiGranted)
 }

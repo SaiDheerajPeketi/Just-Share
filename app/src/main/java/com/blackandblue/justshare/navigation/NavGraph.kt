@@ -1,7 +1,6 @@
 package com.blackandblue.justshare.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import android.net.Uri
 import androidx.navigation.NavHostController
@@ -11,6 +10,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.blackandblue.justshare.presentation.BluetoothViewModel
 import com.blackandblue.justshare.presentation.TransferViewModel
+import com.blackandblue.justshare.LocalTransferMethod
+import com.blackandblue.justshare.ui.screens.LocalTransferPermissionGate
+import com.blackandblue.justshare.ui.screens.NearbyPermissionAccess
+import com.blackandblue.justshare.ui.screens.rememberPermissionAccess
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Onboarding : Screen("onboarding")
@@ -41,29 +44,6 @@ fun AppNavGraph(
 ) {
     // Initial state is now populated directly in MainActivity before AppNavGraph is composed.
 
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    val context = androidx.compose.ui.platform.LocalContext.current
-    
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                val currentRoute = navController.currentDestination?.route
-                val excludedRoutes = listOf(Screen.Splash.route, Screen.Onboarding.route, Screen.Permissions.route)
-                if (currentRoute != null && currentRoute !in excludedRoutes) {
-                    if (!com.blackandblue.justshare.ui.screens.hasRequiredPermissions(context)) {
-                        navController.navigate(Screen.Permissions.route) {
-                            popUpTo(0)
-                        }
-                    }
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -91,18 +71,13 @@ fun AppNavGraph(
         sizeTransform = { null }
     ) {
         composable(Screen.Splash.route) {
-            val context = androidx.compose.ui.platform.LocalContext.current
             com.blackandblue.justshare.ui.screens.SplashScreen(onNavigateNext = { isFirstLaunch -> 
                 if (isFirstLaunch) {
                     navController.navigate(Screen.Onboarding.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
-                } else if (com.blackandblue.justshare.hasAllRequiredPermissions(context)) {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
                 } else {
-                    navController.navigate(Screen.Permissions.route) {
+                    navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -116,10 +91,11 @@ fun AppNavGraph(
             })
         }
         composable(Screen.Permissions.route) {
-            com.blackandblue.justshare.ui.screens.PermissionsScreen(onContinue = { 
-                navController.navigate(Screen.Home.route) { 
-                    popUpTo(Screen.Splash.route) { inclusive = true } 
-                } 
+            com.blackandblue.justshare.ui.screens.PermissionsScreen(onContinue = {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Permissions.route) { inclusive = true }
+                    launchSingleTop = true
+                }
             })
         }
         composable(
@@ -148,23 +124,33 @@ fun AppNavGraph(
             )
         }
         composable(Screen.DiscoverBT.route) {
-            com.blackandblue.justshare.ui.screens.DiscoverDevicesScreen(
-                title = "Bluetooth Devices",
-                transferMethod = "bt",
-                transferViewModel = transferViewModel,
-                btViewModel = btViewModel,
-                onBack = { navController.popBackStack() },
-                onNavigateToScreen = { route -> navController.navigate(route) }
-            )
+            LocalDiscoveryDestination(
+                method = LocalTransferMethod.BLUETOOTH,
+                navController = navController
+            ) {
+                com.blackandblue.justshare.ui.screens.DiscoverDevicesScreen(
+                    title = "Bluetooth Devices",
+                    transferMethod = "bt",
+                    transferViewModel = transferViewModel,
+                    btViewModel = btViewModel,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToScreen = { route -> navController.navigate(route) }
+                )
+            }
         }
         composable(Screen.DiscoverWifi.route) {
-            com.blackandblue.justshare.ui.screens.DiscoverDevicesScreen(
-                title = "Wi-Fi Direct Devices",
-                transferMethod = "wifi",
-                transferViewModel = transferViewModel,
-                onBack = { navController.popBackStack() },
-                onNavigateToScreen = { route -> navController.navigate(route) }
-            )
+            LocalDiscoveryDestination(
+                method = LocalTransferMethod.WIFI,
+                navController = navController
+            ) {
+                com.blackandblue.justshare.ui.screens.DiscoverDevicesScreen(
+                    title = "Wi-Fi Direct Devices",
+                    transferMethod = "wifi",
+                    transferViewModel = transferViewModel,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToScreen = { route -> navController.navigate(route) }
+                )
+            }
         }
         composable(Screen.TransferProgress.route) {
             com.blackandblue.justshare.ui.screens.TransferProgressScreen(
@@ -236,4 +222,28 @@ fun AppNavGraph(
             )
         }
     }
+}
+
+/** A direct share-sheet entry has no previous page to pop back to. */
+internal fun NavHostController.leaveLocalPermissionStep() {
+    if (previousBackStackEntry != null) {
+        popBackStack()
+    } else {
+        navigate(Screen.Home.route) {
+            popUpTo(graph.id) { inclusive = false }
+            launchSingleTop = true
+        }
+    }
+}
+
+/** Shared by both real local routes; no navigation to a replacement permission
+ * destination can discard their pending transfer context. */
+@Composable
+internal fun LocalDiscoveryDestination(
+    method: LocalTransferMethod,
+    navController: NavHostController,
+    permissionAccess: NearbyPermissionAccess = rememberPermissionAccess(),
+    content: @Composable () -> Unit
+) {
+    LocalTransferPermissionGate(method, { navController.leaveLocalPermissionStep() }, permissionAccess, content)
 }
