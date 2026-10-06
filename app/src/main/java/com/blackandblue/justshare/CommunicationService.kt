@@ -20,6 +20,7 @@ import com.blackandblue.justshare.data.chat.toFileInfo
 import com.blackandblue.justshare.data.db.TransferHistoryEntity
 import com.blackandblue.justshare.data.repository.TransferHistoryRepository
 import com.blackandblue.justshare.domain.chat.FileInfo
+import com.blackandblue.justshare.domain.transfer.TransferProgressSession
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +48,8 @@ data class WifiTransferUpdate(
     val totalFiles: Int,
     val remoteDeviceName: String?,
     val mimeType: String?,
-    val manifest: List<com.blackandblue.justshare.domain.chat.FileInfo>? = null
+    val manifest: List<com.blackandblue.justshare.domain.chat.FileInfo>? = null,
+    val generation: Long = 0L
 )
 
 /**
@@ -92,14 +94,22 @@ class CommunicationService : Service() {
         const val EXTRAS_REMOTE_DEVICE_NAME  = "com.blackandblue.justshare.EXTRAS_REMOTE_DEVICE_NAME"
         const val EXTRAS_MIME_TYPE           = "com.blackandblue.justshare.EXTRAS_MIME_TYPE"
         const val EXTRAS_MANIFEST            = "com.blackandblue.justshare.EXTRAS_MANIFEST"
+        const val EXTRAS_PROGRESS_GENERATION = "com.blackandblue.justshare.EXTRAS_PROGRESS_GENERATION"
         const val BROADCAST_SENDING_UPDATE   = "com.blackandblue.justshare.SENDING_UPDATE"
 
+        private val progressSession = TransferProgressSession()
         private val _transferUpdates = MutableStateFlow<WifiTransferUpdate?>(null)
         val transferUpdates: StateFlow<WifiTransferUpdate?> = _transferUpdates.asStateFlow()
 
         fun clearTransferUpdate() {
-            _transferUpdates.value = null
+            progressSession.clear { _transferUpdates.value = null }
         }
+
+        internal fun beginTransferUpdateSession(): Long =
+            progressSession.begin { _transferUpdates.value = null }
+
+        internal fun withCurrentTransferUpdate(generation: Long, action: () -> Unit): Boolean =
+            progressSession.withCurrent(generation, action)
 
         private const val SOCKET_WAIT_TIMEOUT_MS = 10_000L
         private const val SOCKET_WAIT_STEP_MS = 100L
@@ -120,6 +130,8 @@ class CommunicationService : Service() {
     private var dataOutputStream: DataOutputStream? = null
     @Volatile
     private var stopRequested = false
+    @Volatile
+    private var progressGeneration = 0L
 
     // Tracks remote device name for history logging
     private var remoteDeviceName: String? = null
@@ -174,15 +186,18 @@ class CommunicationService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    @Synchronized
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Timber.d("CommunicationService - onStartCommand called with action ${intent?.action}")
         when (intent?.action) {
             ACTION_START_COMMUNICATION -> {
-                stopRequested = false
                 val state = serviceState.get()
                 if (state == CONNECTED || state == IS_SENDING || state == CONNECTING) {
                     return START_NOT_STICKY
                 }
+                val generation = beginTransferUpdateSession()
+                stopRequested = false
+                progressGeneration = generation
                 serviceState.set(CONNECTING)
                 startForegroundNotification()
                 ensureExecutor().execute {
@@ -192,9 +207,9 @@ class CommunicationService : Service() {
                     val name    = intent.getStringExtra(EXTRAS_DEVICE_NAME)
                     try {
                         if (role == SERVER_ROLE) {
-                            startServer(port, name)
+                            startServer(port, name, generation)
                         } else {
-                            startClient(address, port, name)
+                            startClient(address, port, name, generation)
                         }
                     } catch (e: IOException) {
                         if (e is java.net.SocketException && e.message?.contains("Socket closed") == true) {
@@ -202,25 +217,26 @@ class CommunicationService : Service() {
                         } else {
                             Log.e(TAG, "Communication error", e)
                         }
-                        closeAllAndStop()
+                    } finally {
+                        closeAllAndStop(generation, startId)
                     }
                 }
             }
             ACTION_SEND_MSG -> {
-                if (stopRequested) return START_NOT_STICKY
+                val generation = progressGeneration
+                if (stopRequested || !progressSession.isCurrent(generation)) return START_NOT_STICKY
                 startForegroundNotification()
                 ensureExecutor().execute {
                     try {
-                        sendFiles(intent)
+                        sendFiles(intent, generation)
                     } catch (e: IOException) {
                         Log.e(TAG, "Send error", e)
-                        closeAllAndStop()
+                        closeAllAndStop(generation, startId)
                     }
                 }
             }
             ACTION_STOP_COMMUNICATION -> {
-                stopRequested = true
-                closeAllAndStop()
+                closeAllAndStop(startId = startId)
             }
         }
         return START_NOT_STICKY
@@ -229,37 +245,44 @@ class CommunicationService : Service() {
     // ── Socket Setup ──────────────────────────────────────────────────────────
 
     @Throws(IOException::class)
-    private fun startServer(port: Int, deviceName: String?) {
+    private fun startServer(port: Int, deviceName: String?, generation: Long) {
         Timber.d("CommunicationService - startServer called")
-        serverSocket = ServerSocket(port)
-        Log.d(TAG, "Server: waiting for connection on port $port")
-        communicationSocket = try {
-            serverSocket!!.accept()
+        val listeningSocket = ServerSocket(port)
+        try {
+            withConnection(generation) { serverSocket = listeningSocket }
+            Log.d(TAG, "Server: waiting for connection on port $port")
+            val socket = listeningSocket.accept()
+            try {
+                socket.soTimeout = 30000
+                withConnection(generation) { communicationSocket = socket }
+                Log.d(TAG, "Server: client connected")
+                messageReadingLoop(socket, deviceName, generation)
+            } finally {
+                socket.close()
+            }
         } finally {
-            serverSocket?.close()
-            serverSocket = null
+            listeningSocket.close()
+            synchronized(this) {
+                if (serverSocket === listeningSocket) serverSocket = null
+            }
         }
-        communicationSocket?.soTimeout = 30000
-        Log.d(TAG, "Server: client connected")
-        messageReadingLoop(deviceName)
     }
 
     @Throws(IOException::class)
-    private fun startClient(address: String?, port: Int, deviceName: String?) {
+    private fun startClient(address: String?, port: Int, deviceName: String?, generation: Long) {
         Timber.d("CommunicationService - startClient called")
-        communicationSocket = Socket().apply { bind(null) }
+        val socket = Socket()
         Log.d(TAG, "Client: connecting to $address:$port")
         try {
-            communicationSocket!!.connect(InetSocketAddress(address, port), 8000)
-            communicationSocket?.soTimeout = 30000
-        } catch (e: IOException) {
-            Log.e(TAG, "Client: connect failed — ${e.message}")
-            communicationSocket?.close()
-            communicationSocket = null
-            throw e
+            withConnection(generation) { communicationSocket = socket }
+            socket.bind(null)
+            socket.connect(InetSocketAddress(address, port), 8000)
+            socket.soTimeout = 30000
+            Log.d(TAG, "Client: connected")
+            messageReadingLoop(socket, deviceName, generation)
+        } finally {
+            socket.close()
         }
-        Log.d(TAG, "Client: connected")
-        messageReadingLoop(deviceName)
     }
 
     // ── Receiving ─────────────────────────────────────────────────────────────
@@ -274,22 +297,25 @@ class CommunicationService : Service() {
      *  4. Exactly file-size bytes of raw content.
      */
     @Throws(IOException::class)
-    private fun messageReadingLoop(deviceName: String?) {
+    private fun messageReadingLoop(socket: Socket, deviceName: String?, generation: Long) {
         Timber.d("CommunicationService - messageReadingLoop called")
-        val socket = communicationSocket ?: return
-        dataOutputStream = DataOutputStream(socket.getOutputStream())
-        dataOutputStream!!.writeUTF(deviceName ?: "Unknown")
+        val outputStream = DataOutputStream(socket.getOutputStream())
+        withConnection(generation) { dataOutputStream = outputStream }
+        outputStream.writeUTF(deviceName ?: "Unknown")
 
         DataInputStream(socket.getInputStream()).use { dataInput ->
             val remoteDevice = dataInput.readUTF()
-            remoteDeviceName = remoteDevice
+            withConnection(generation) {
+                remoteDeviceName = remoteDevice
+                serviceState.set(CONNECTED)
+            }
             Log.d(TAG, "Connected to: $remoteDevice")
-            serviceState.set(CONNECTED)
 
             val buffer = ByteArray(CHUNK_SIZE)
             var currentIndex = 0
 
             while (!stopRequested && !Thread.currentThread().isInterrupted) {
+                ensureTransferActive(generation)
                 val metaSize = try {
                     dataInput.readInt()
                 } catch (e: EOFException) {
@@ -326,7 +352,7 @@ class CommunicationService : Service() {
                 
                 if (rawFileSize == -1L) {
                     Log.e(TAG, "File was skipped by sender: ${fileInfo.fileName}")
-                    broadcastProgress(-1, fileInfo.fileName, 0L, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, fileInfo.manifest)
+                    broadcastProgress(generation, -1, fileInfo.fileName, 0L, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, fileInfo.manifest)
                     currentIndex++
                     continue
                 }
@@ -343,6 +369,7 @@ class CommunicationService : Service() {
                 }
                 
                 broadcastProgress(
+                    generation,
                     progress = 0,
                     fileName = fileInfo.fileName,
                     fileSize = fileSize,
@@ -351,6 +378,7 @@ class CommunicationService : Service() {
                     mimeType = fileInfo.mimeType,
                     manifest = fileInfo.manifest
                 )
+                ensureTransferActive(generation)
                 val fileUri = createMediaStoreEntry(fileInfo)
                 var bytesReceived = 0L
 
@@ -371,12 +399,12 @@ class CommunicationService : Service() {
                             if (chunkSize < 0 || chunkSize > CHUNK_SIZE) {
                                 throw IOException("Invalid chunk size: $chunkSize")
                             }
-                            ensureTransferActive()
+                            ensureTransferActive(generation)
                             
                             var remainingChunk = chunkSize
                             var offset = 0
                             while (remainingChunk > 0) {
-                                ensureTransferActive()
+                                ensureTransferActive(generation)
                                 val bytesRead = dataInput.read(buffer, offset, remainingChunk)
                                 if (bytesRead == -1) throw EOFException("Stream ended while receiving chunk")
                                 offset += bytesRead
@@ -385,8 +413,9 @@ class CommunicationService : Service() {
                             output?.write(buffer, 0, chunkSize)
                             bytesReceived += chunkSize
                             val pct = if (fileSize > 0) ((bytesReceived * 100) / fileSize).toInt() else (bytesReceived / (1024 * 1024)).toInt()
-                            broadcastProgress(pct, fileInfo.fileName ?: "received_file", fileSize, currentIndex, 0, fileInfo.mimeType)
+                            broadcastProgress(generation, pct, fileInfo.fileName ?: "received_file", fileSize, currentIndex, 0, fileInfo.mimeType)
                         }
+                        ensureTransferActive(generation)
                     }
                 } catch (e: Exception) {
                     fileUri?.let { uri -> 
@@ -397,7 +426,7 @@ class CommunicationService : Service() {
                             Log.e(TAG, "Failed to delete partial file", delEx)
                         }
                     }
-                    broadcastProgress(-1, fileInfo.fileName ?: "received_file", fileSize, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, null)
+                    broadcastProgress(generation, -1, fileInfo.fileName ?: "received_file", fileSize, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, null)
                     throw e
                 }
                 
@@ -407,7 +436,7 @@ class CommunicationService : Service() {
                             contentResolver.delete(uri, null, null)
                         } catch (e: Exception) {}
                     }
-                    broadcastProgress(-1, fileInfo.fileName ?: "received_file", fileSize, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, null)
+                    broadcastProgress(generation, -1, fileInfo.fileName ?: "received_file", fileSize, currentIndex, fileInfo.manifest?.size ?: 0, fileInfo.mimeType, null)
                     throw IOException("Connection closed before EOF marker")
                 }
                 
@@ -432,7 +461,7 @@ class CommunicationService : Service() {
                                 fileSizeBytes = fileSize,
                                 isSender = false,
                                 transferMethod = "WiFi-Direct",
-                                remoteDeviceName = remoteDeviceName,
+                                remoteDeviceName = remoteDevice,
                                 contentUri = fileUri?.toString()
                             )
                         )
@@ -442,6 +471,7 @@ class CommunicationService : Service() {
                 }
 
                 broadcastProgress(
+                    generation,
                     progress = 100,
                     fileName = fileInfo.fileName ?: "received_file",
                     fileSize = fileSize,
@@ -469,19 +499,22 @@ class CommunicationService : Service() {
      * Fix: removed the 5s pre-send delay, sentinel EOF, and per-chunk runBlocking/delay calls.
      */
     @Throws(IOException::class)
-    private fun sendFiles(intent: Intent) {
+    private fun sendFiles(intent: Intent, generation: Long) {
         Timber.d("CommunicationService - sendFiles called")
         val uris = intent.getParcelableArrayListExtra<Uri>("urilist") ?: return
         if (uris.isEmpty()) return
-        val outputStream = waitForOutputStream() ?: throw IOException("Wi-Fi Direct socket is not connected")
-        ensureTransferActive()
-        serviceState.set(IS_SENDING)
+        val outputStream = waitForOutputStream(generation) ?: throw IOException("Wi-Fi Direct socket is not connected")
+        var remoteDevice: String? = null
+        withConnection(generation) {
+            serviceState.set(IS_SENDING)
+            remoteDevice = remoteDeviceName
+        }
 
         val totalFiles = uris.size
         val allFileInfos = uris.map { getFileDetailsFromUri(it, contentResolver) }
         var currentIndex = 0
         for (i in uris.indices) {
-            ensureTransferActive()
+            ensureTransferActive(generation)
             val uri = uris[i]
             val baseFileInfo = allFileInfos[i]
             val fileInfo = if (i == 0) baseFileInfo.copy(manifest = allFileInfos) else baseFileInfo
@@ -501,7 +534,7 @@ class CommunicationService : Service() {
                 Log.e(TAG, "File skipped (deleted or inaccessible): $uri")
                 outputStream.writeLong(-1L)
                 outputStream.flush()
-                broadcastProgress(-1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                broadcastProgress(generation, -1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
                 currentIndex++
                 continue
             }
@@ -509,7 +542,7 @@ class CommunicationService : Service() {
             outputStream.writeLong(totalSize)
             outputStream.flush()
 
-            broadcastProgress(0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+            broadcastProgress(generation, 0, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
             Log.d(TAG, "Sending: ${fileInfo.fileName} ($totalSize bytes)")
 
             try {
@@ -518,17 +551,17 @@ class CommunicationService : Service() {
                     var bytesSent = 0L
 
                     while (true) {
-                        ensureTransferActive()
+                        ensureTransferActive(generation)
                         val bytesRead = stream.read(buffer)
                         if (bytesRead == -1) break
                         
-                        ensureTransferActive()
+                        ensureTransferActive(generation)
                         outputStream.writeInt(bytesRead)
                         outputStream.write(buffer, 0, bytesRead)
                         
                         bytesSent += bytesRead
                         val pct = if (totalSize > 0) ((bytesSent * 100) / totalSize).toInt() else (bytesSent / (1024 * 1024)).toInt()
-                        broadcastProgress(pct.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                        broadcastProgress(generation, pct.coerceIn(0, 99), fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
                     }
                     
                     val eofMarker = java.nio.ByteBuffer.allocate(4).putInt(0).array()
@@ -537,7 +570,7 @@ class CommunicationService : Service() {
                 }
             } catch (e: IOException) {
                 Log.e(TAG, "Socket closed during transfer: $uri", e)
-                broadcastProgress(-1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                broadcastProgress(generation, -1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed reading file mid-transfer: $uri", e)
@@ -548,12 +581,12 @@ class CommunicationService : Service() {
                 } catch (ioe: IOException) {
                     // Ignore, connection probably already closed
                 }
-                broadcastProgress(-1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
+                broadcastProgress(generation, -1, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType, null)
                 currentIndex++
                 continue
             }
 
-            broadcastProgress(100, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
+            broadcastProgress(generation, 100, fileInfo.fileName, totalSize, currentIndex, totalFiles, fileInfo.mimeType)
             Log.d(TAG, "Sent: ${fileInfo.fileName} ($totalSize bytes)")
             currentIndex++
 
@@ -567,7 +600,7 @@ class CommunicationService : Service() {
                                 fileSizeBytes = totalSize,
                                 isSender = true,
                                 transferMethod = "WiFi-Direct",
-                                remoteDeviceName = remoteDeviceName ?: "Unknown Device",
+                                remoteDeviceName = remoteDevice ?: "Unknown Device",
                                 contentUri = uri.toString()
                             )
                     )
@@ -576,18 +609,21 @@ class CommunicationService : Service() {
                 }
             }
         }
-        if (!stopRequested && serviceState.get() == IS_SENDING) {
-            serviceState.set(CONNECTED)
+        withConnection(generation) {
+            if (serviceState.get() == IS_SENDING) serviceState.set(CONNECTED)
         }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun waitForOutputStream(): DataOutputStream? {
+    private fun waitForOutputStream(generation: Long): DataOutputStream? {
         val deadline = System.currentTimeMillis() + SOCKET_WAIT_TIMEOUT_MS
         while (System.currentTimeMillis() < deadline) {
-            dataOutputStream?.let { return it }
-            if (serviceState.get() == NOT_CONNECTED) return null
+            val output = synchronized(this) {
+                ensureTransferActive(generation)
+                dataOutputStream
+            }
+            if (output != null) return output
             try {
                 Thread.sleep(SOCKET_WAIT_STEP_MS)
             } catch (e: InterruptedException) {
@@ -595,7 +631,20 @@ class CommunicationService : Service() {
                 return null
             }
         }
-        return dataOutputStream
+        return synchronized(this) {
+            ensureTransferActive(generation)
+            dataOutputStream
+        }
+    }
+
+    /** Serializes resource/state installation with START and teardown. */
+    @Synchronized
+    private fun withConnection(generation: Long, action: () -> Unit) {
+        ensureTransferActive(generation)
+        if (progressGeneration != generation) {
+            throw InterruptedIOException("Wi-Fi Direct connection was replaced")
+        }
+        action()
     }
 
     @Synchronized
@@ -607,6 +656,7 @@ class CommunicationService : Service() {
     }
 
     private fun broadcastProgress(
+        generation: Long,
         progress: Int,
         fileName: String?,
         fileSize: Long,
@@ -623,25 +673,29 @@ class CommunicationService : Service() {
             totalFiles = totalFiles,
             remoteDeviceName = remoteDeviceName,
             mimeType = mimeType,
-            manifest = manifest
+            manifest = manifest,
+            generation = generation
         )
-        _transferUpdates.value = update
-        sendBroadcast(Intent(BROADCAST_SENDING_UPDATE).apply {
-            setPackage(packageName)
-            putExtra(EXTRAS_PROGRESS_STATE, progress)
-            putExtra(EXTRAS_FILE_NAME, update.fileName)
-            putExtra(EXTRAS_FILE_SIZE, fileSize)
-            putExtra(EXTRAS_CURRENT_FILE_INDEX, currentFileIndex)
-            putExtra(EXTRAS_TOTAL_FILES, totalFiles)
-            putExtra(EXTRAS_REMOTE_DEVICE_NAME, remoteDeviceName)
-            putExtra(EXTRAS_MIME_TYPE, mimeType)
-            manifest?.let { putExtra(EXTRAS_MANIFEST, java.util.ArrayList(it)) }
-        })
+        withCurrentTransferUpdate(generation) {
+            _transferUpdates.value = update
+            sendBroadcast(Intent(BROADCAST_SENDING_UPDATE).apply {
+                setPackage(packageName)
+                putExtra(EXTRAS_PROGRESS_GENERATION, generation)
+                putExtra(EXTRAS_PROGRESS_STATE, progress)
+                putExtra(EXTRAS_FILE_NAME, update.fileName)
+                putExtra(EXTRAS_FILE_SIZE, fileSize)
+                putExtra(EXTRAS_CURRENT_FILE_INDEX, currentFileIndex)
+                putExtra(EXTRAS_TOTAL_FILES, totalFiles)
+                putExtra(EXTRAS_REMOTE_DEVICE_NAME, remoteDeviceName)
+                putExtra(EXTRAS_MIME_TYPE, mimeType)
+                manifest?.let { putExtra(EXTRAS_MANIFEST, java.util.ArrayList(it)) }
+            })
+        }
     }
 
     @Throws(IOException::class)
-    private fun ensureTransferActive() {
-        if (stopRequested || serviceState.get() == NOT_CONNECTED || Thread.currentThread().isInterrupted) {
+    private fun ensureTransferActive(generation: Long) {
+        if (stopRequested || !progressSession.isCurrent(generation) || serviceState.get() == NOT_CONNECTED || Thread.currentThread().isInterrupted) {
             throw InterruptedIOException("Wi-Fi Direct transfer was cancelled")
         }
     }
@@ -681,8 +735,12 @@ class CommunicationService : Service() {
         }
     }
 
-    private fun closeAllAndStop() {
+    @Synchronized
+    private fun closeAllAndStop(generation: Long? = null, startId: Int? = null) {
         Timber.d("CommunicationService - closeAllAndStop called")
+        // Clear can invalidate progress before this owner finishes closing its resources.
+        // A replacement generation must keep its sockets, executor and foreground state.
+        if (generation != null && progressGeneration != generation) return
         stopRequested = true
         try { 
             communicationSocket?.setSoLinger(true, 0)
@@ -697,7 +755,7 @@ class CommunicationService : Service() {
         serviceState.set(NOT_CONNECTED)
         @Suppress("DEPRECATION")
         stopForeground(true)
-        stopSelf()
+        if (startId == null) stopSelf() else stopSelf(startId)
     }
 
     override fun onDestroy() {

@@ -78,7 +78,8 @@ class TransferViewModel @Inject constructor(
                         totalFiles = intent.getIntExtra(CommunicationService.EXTRAS_TOTAL_FILES, 0),
                         remoteDeviceName = intent.getStringExtra(CommunicationService.EXTRAS_REMOTE_DEVICE_NAME),
                         mimeType = intent.getStringExtra(CommunicationService.EXTRAS_MIME_TYPE),
-                        manifest = manifest
+                        manifest = manifest,
+                        generation = intent.getLongExtra(CommunicationService.EXTRAS_PROGRESS_GENERATION, 0L)
                     )
                 )
             }
@@ -103,27 +104,28 @@ class TransferViewModel @Inject constructor(
     }
 
     private fun applyWifiProgress(update: WifiTransferUpdate) {
-        _state.update {
-            val newFileInfos = if (update.manifest != null && it.fileInfos.isEmpty()) {
-                update.manifest
-            } else {
-                it.fileInfos
-            }
-            val newTotalFiles = if (update.totalFiles > 0) update.totalFiles else it.totalFiles
-            it.copy(
-                fileInfos = newFileInfos,
-                progressPercent = update.progress.toFloat(),
-                currentFileName = update.fileName,
-                currentFileSizeBytes = update.fileSize,
-                currentFileIndex = update.currentFileIndex,
-                totalFiles = newTotalFiles,
-                connectedDeviceName = update.remoteDeviceName ?: it.connectedDeviceName,
-                incomingMimeType = update.mimeType ?: it.incomingMimeType,
-                hasTransferStarted = true,
-                isTransferComplete = update.progress == 100 && (
-                    newTotalFiles == 0 || update.currentFileIndex >= newTotalFiles - 1
+        CommunicationService.withCurrentTransferUpdate(update.generation) {
+            _state.update {
+                val newFileInfos = if (update.manifest != null && it.fileInfos.isEmpty()) {
+                    update.manifest
+                } else {
+                    it.fileInfos
+                }
+                val newTotalFiles = if (update.totalFiles > 0) update.totalFiles else it.totalFiles
+                it.copy(
+                    fileInfos = newFileInfos,
+                    progressPercent = update.progress.toFloat(),
+                    currentFileName = update.fileName,
+                    currentFileSizeBytes = update.fileSize,
+                    currentFileIndex = update.currentFileIndex,
+                    totalFiles = newTotalFiles,
+                    connectedDeviceName = update.remoteDeviceName ?: it.connectedDeviceName,
+                    incomingMimeType = update.mimeType ?: it.incomingMimeType,
+                    isTransferComplete = update.progress == 100 && (
+                        newTotalFiles == 0 || update.currentFileIndex >= newTotalFiles - 1
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -159,10 +161,12 @@ class TransferViewModel @Inject constructor(
     }
 
     fun markTransferStarted() {
-        _state.update { it.copy(hasTransferStarted = true, isTransferComplete = false) }
+        // Incoming progress can finish before discovery opens the progress screen.
+        _state.update { it.copy(hasTransferStarted = true) }
     }
 
     fun clearTransferProgress() {
+        CommunicationService.clearTransferUpdate()
         _state.update {
             it.copy(
                 hasTransferStarted = false,

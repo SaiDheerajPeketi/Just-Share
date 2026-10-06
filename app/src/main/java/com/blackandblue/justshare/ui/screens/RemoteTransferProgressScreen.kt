@@ -1,6 +1,5 @@
 package com.blackandblue.justshare.ui.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +55,7 @@ import com.blackandblue.justshare.ui.components.BackBar
 import com.blackandblue.justshare.ui.components.PillButton
 import com.blackandblue.justshare.ui.components.PillButtonSize
 import com.blackandblue.justshare.ui.components.PillButtonVariant
+import com.blackandblue.justshare.ui.components.rememberTransferExitRequest
 import com.blackandblue.justshare.ui.theme.JediShareTheme
 import kotlinx.coroutines.delay
 
@@ -64,10 +64,6 @@ fun RemoteTransferProgressScreen(
     viewModel: AlterSendViewModel = hiltViewModel(),
     onNavigateHome: () -> Unit
 ) {
-    BackHandler {
-        // Keep transfer screen behavior aligned with Bluetooth/Wi-Fi progress.
-    }
-
     val colors = JediShareTheme.colors
     val state by viewModel.state.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
@@ -83,9 +79,21 @@ fun RemoteTransferProgressScreen(
         state.phase == AlterSendConnectionPhase.IncomingOffer ||
         state.phase == AlterSendConnectionPhase.Transferring
 
+    val requestExit = rememberTransferExitRequest(
+        isTransferActive = isTransferring && !navigatingAway,
+        onLeave = {
+            if (!navigatingAway) {
+                navigatingAway = true
+                viewModel.reset()
+                onNavigateHome()
+            }
+        }
+    )
+
     LaunchedEffect(isDone) {
         if (isDone) {
             delay(1500)
+            if (navigatingAway) return@LaunchedEffect
             navigatingAway = true
             viewModel.reset()
             onNavigateHome()
@@ -128,7 +136,7 @@ fun RemoteTransferProgressScreen(
             .fillMaxSize()
             .background(colors.surface)
     ) {
-        BackBar(title = "Transfer Progress", onBack = null)
+        BackBar(title = "Transfer Progress", onBack = requestExit)
 
         Column(
             modifier = Modifier
@@ -286,11 +294,7 @@ fun RemoteTransferProgressScreen(
             }
         } else {
             Button(
-                onClick = {
-                    navigatingAway = true
-                    viewModel.reset()
-                    onNavigateHome()
-                },
+                onClick = requestExit,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)

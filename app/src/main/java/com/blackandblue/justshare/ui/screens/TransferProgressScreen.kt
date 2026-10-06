@@ -1,6 +1,5 @@
 package com.blackandblue.justshare.ui.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -37,6 +36,7 @@ import com.blackandblue.justshare.presentation.BluetoothViewModel
 import com.blackandblue.justshare.presentation.WifiDirectViewModel
 import com.blackandblue.justshare.presentation.TransferViewModel
 import com.blackandblue.justshare.ui.components.BackBar
+import com.blackandblue.justshare.ui.components.rememberTransferExitRequest
 import com.blackandblue.justshare.ui.theme.JediShareTheme
 
 data class TransferFile(
@@ -58,9 +58,6 @@ fun TransferProgressScreen(
     onBack: () -> Unit,
     onNavigateToScreen: (String) -> Unit
 ) {
-    BackHandler {
-        // Do nothing to prevent system back button
-    }
     val colors = JediShareTheme.colors
     val state by transferViewModel.state.collectAsState()
     val btProgress by btViewModel.transferProgress.collectAsState()
@@ -111,9 +108,32 @@ fun TransferProgressScreen(
     val isConnected = if (method == "bt") btState.isConnected else wifiState.isConnected
     val transferFailed = !isDone && (progress < 0f || (!isConnected && !state.hasTransferStarted))
 
+    val requestExit = rememberTransferExitRequest(
+        isTransferActive = !isDone && !transferFailed,
+        onLeave = {
+            if (!navigatingAway) {
+                navigatingAway = true
+                if (method == "bt") {
+                    btViewModel.disconnectFromDevice()
+                    if (isDone) btViewModel.resetTransferState()
+                } else if (method == "wifi") {
+                    wifiViewModel.disconnectP2P()
+                }
+                if (isDone) {
+                    transferViewModel.resetTransfer()
+                    onNavigateToScreen("home")
+                } else {
+                    transferViewModel.clearTransferProgress()
+                    onBack()
+                }
+            }
+        }
+    )
+
     LaunchedEffect(isDone, isConnected) {
         if (isDone && !isSender) {
             kotlinx.coroutines.delay(1500) // Small delay to let user see 100% completion
+            if (navigatingAway) return@LaunchedEffect
             navigatingAway = true
             if (method == "bt") {
                 btViewModel.disconnectFromDevice()
@@ -126,6 +146,7 @@ fun TransferProgressScreen(
         } else if (isDone && isSender && !isConnected) {
             // Sender navigates home when transfer is done and receiver disconnects
             kotlinx.coroutines.delay(1500)
+            if (navigatingAway) return@LaunchedEffect
             navigatingAway = true
             if (method == "bt") {
                 btViewModel.disconnectFromDevice()
@@ -210,7 +231,7 @@ fun TransferProgressScreen(
                 .fillMaxSize()
                 .background(colors.surface)
         ) {
-        BackBar(title = "Transfer Progress", onBack = null)
+        BackBar(title = "Transfer Progress", onBack = requestExit)
 
         Column(
             modifier = Modifier
@@ -307,26 +328,7 @@ fun TransferProgressScreen(
 
         Column(modifier = Modifier.padding(16.dp)) {
             Button(
-                onClick = {
-                    if (isDone) {
-                        navigatingAway = true
-                        if (method == "bt") {
-                            btViewModel.disconnectFromDevice()
-                            btViewModel.resetTransferState()
-                        } else if (method == "wifi") {
-                            wifiViewModel.disconnectP2P()
-                        }
-                        transferViewModel.resetTransfer()
-                        onNavigateToScreen("home")
-                    } else {
-                        if (method == "bt") {
-                            btViewModel.disconnectFromDevice()
-                        } else if (method == "wifi") {
-                            wifiViewModel.disconnectP2P()
-                        }
-                        onBack()
-                    }
-                },
+                onClick = requestExit,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
@@ -340,7 +342,7 @@ fun TransferProgressScreen(
                 val showHome = isDone || navigatingAway
                 Icon(if (showHome) Icons.Default.Home else Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (showHome) "Go Home" else "Disconnect", fontWeight = FontWeight.SemiBold)
+                Text(if (showHome) "Go Home" else if (transferFailed) "Go Back" else "Stop Transfer", fontWeight = FontWeight.SemiBold)
             }
             }
         }
