@@ -1,0 +1,19 @@
+{
+  "source": "45afb8b71f2ea2271d62c35fc00dce8da0ce9201",
+  "counts": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "report_sha256": "8633832cea7da70ee8396ee4cf9206484dff8a817e03c6ec6caee7dc9f72b109",
+  "report_mtime": 1791259255.6355755,
+  "started_after_epoch": 1791259058.2579288,
+  "source_pins": {
+    "app/src/main/java/com/blackandblue/justshare/domain/transfer/TransferProgressSession.kt": "5b00733420d644c90fbe48b9f496b48d332592abc9528d01d5f7adf7181ceed6",
+    "app/src/test/java/com/blackandblue/justshare/domain/transfer/TransferProgressSessionTest.kt": "09fd1b5698c920bdb5165d726117bb56c1a542649f1777f3e5dc6e1d733d5340"
+  },
+  "android_compilation": "failed: invalid assertDoesNotExist import",
+  "android_tests_executed": 0,
+  "overall_batch_pass": false
+}

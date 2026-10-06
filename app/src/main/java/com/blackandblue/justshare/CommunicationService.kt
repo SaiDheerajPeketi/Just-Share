@@ -300,12 +300,13 @@ class CommunicationService : Service() {
     private fun messageReadingLoop(socket: Socket, deviceName: String?, generation: Long) {
         Timber.d("CommunicationService - messageReadingLoop called")
         val outputStream = DataOutputStream(socket.getOutputStream())
-        withConnection(generation) { dataOutputStream = outputStream }
         outputStream.writeUTF(deviceName ?: "Unknown")
+        outputStream.flush()
 
         DataInputStream(socket.getInputStream()).use { dataInput ->
             val remoteDevice = dataInput.readUTF()
             withConnection(generation) {
+                dataOutputStream = outputStream
                 remoteDeviceName = remoteDevice
                 serviceState.set(CONNECTED)
             }

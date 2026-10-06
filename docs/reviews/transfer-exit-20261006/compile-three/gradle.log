@@ -1,0 +1,107 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:checkDebugAarMetadata
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoDebug UP-TO-DATE
+> Task :app:processDebugGoogleServices UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+
+> Task :app:kaptGenerateStubsDebugKotlin
+w: Kapt currently doesn't support language version 2.0+. Falling back to 1.9.
+
+> Task :app:kaptDebugKotlin
+warning: The following options were not recognized by any processor: '[room.schemaLocation, kapt.kotlin.generated]'
+
+> Task :app:compileDebugKotlin
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/CommunicationService.kt:504:27 'fun <T : Parcelable!> getParcelableArrayListExtra(p0: String!): ArrayList<T!>?' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/MainActivity.kt:31:34 'fun <T : Parcelable!> getParcelableArrayListExtra(p0: String!): ArrayList<T!>?' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/MainActivity.kt:49:38 'fun <T : Parcelable!> getParcelableExtra(p0: String!): T?' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/MainActivity.kt:53:28 'fun <T : Parcelable!> getParcelableArrayListExtra(p0: String!): ArrayList<T!>?' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/WiFiDirectBroadcastReceiver.kt:9:8 'class NetworkInfo : Any, Parcelable' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/data/chat/BluetoothStateReceiver.kt:25:21 'fun <T : Parcelable!> getParcelableExtra(p0: String!): T?' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/data/chat/FoundDeviceReceiver.kt:25:28 'fun <T : Parcelable!> getParcelableExtra(p0: String!): T?' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/presentation/TransferViewModel.kt:71:98 Unchecked cast of 'java.io.Serializable?' to 'java.util.ArrayList<com.blackandblue.justshare.domain.chat.FileInfo>'.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/components/BottomNavBar.kt:26:37 'val Icons.Outlined.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.Send.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/components/DesignSystem.kt:147:36 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/components/DesignSystem.kt:203:63 'val Icons.Filled.InsertDriveFile: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.InsertDriveFile.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/components/HardwareStateWrapper.kt:40:45 'static fun getDefaultAdapter(): BluetoothAdapter!' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/screens/DiscoverDevicesScreen.kt:340:56 'val Icons.Filled.BluetoothSearching: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.BluetoothSearching.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/screens/SelectFilesScreen.kt:64:46 'val Icons.Filled.InsertDriveFile: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.InsertDriveFile.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/theme/Theme.kt:137:24 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///Users/speketi/Projects/Just-Share/app/src/main/java/com/blackandblue/justshare/ui/theme/Theme.kt:138:24 'var navigationBarColor: Int' is deprecated. Deprecated in Java.
+
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac
+> Task :app:hiltAggregateDepsDebug UP-TO-DATE
+> Task :app:hiltJavaCompileDebug
+> Task :app:transformDebugClassesWithAsm
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:processDebugJavaRes
+> Task :app:bundleDebugClassesToCompileJar
+
+> Task :app:kaptGenerateStubsDebugUnitTestKotlin
+w: Kapt currently doesn't support language version 2.0+. Falling back to 1.9.
+
+> Task :app:kaptDebugUnitTestKotlin
+warning: The following options were not recognized by any processor: '[dagger.fastInit, dagger.hilt.android.internal.disableAndroidSuperclassValidation, dagger.hilt.android.internal.projectType, dagger.hilt.internal.useAggregatingRootProcessor, room.schemaLocation, kapt.kotlin.generated]'
+
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltAggregateDepsDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:transformDebugUnitTestClassesWithAsm
+> Task :app:testDebugUnitTest
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeDebugAndroidTestResources UP-TO-DATE
+> Task :app:processDebugAndroidTestResources UP-TO-DATE
+
+> Task :app:kaptGenerateStubsDebugAndroidTestKotlin
+w: Kapt currently doesn't support language version 2.0+. Falling back to 1.9.
+
+> Task :app:kaptDebugAndroidTestKotlin
+warning: The following options were not recognized by any processor: '[dagger.fastInit, dagger.hilt.android.internal.disableAndroidSuperclassValidation, dagger.hilt.android.internal.projectType, dagger.hilt.internal.useAggregatingRootProcessor, room.schemaLocation, kapt.kotlin.generated]'
+
+e: file:///Users/speketi/Projects/Just-Share/app/src/androidTest/java/com/blackandblue/justshare/ui/components/TransferExitGuardTest.kt:8:33 Unresolved reference 'assertDoesNotExist'.
+> Task :app:compileDebugAndroidTestKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugAndroidTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3m 29s
+47 actionable tasks: 17 executed, 30 up-to-date
