@@ -1,5 +1,5 @@
 {
-  "status": "SOURCE_ACCEPTED_HOME_NORMAL_RESOLUTION_DEBUG_PACKAGING_TWO_PREPARATION_RUNTIME_UNRUN",
+  "status": "SOURCE_ACCEPTED_HOME_NORMAL_RESOLUTION_DEBUG_PACKAGING_THREE_PREPARATION_RUNTIME_UNRUN",
   "preparation_base_head": "d66c25bf172fc821052298f34a6936bbf3b925a3",
   "accepted_app_source": "d66c25bf172fc821052298f34a6936bbf3b925a3",
   "source_trees": {
@@ -296,6 +296,31 @@
       "mode": 384,
       "sha256": "49ff83069fb5605e9980aef7365bf51210fb70fd79e888d7947c45868f82a5b9"
     },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-two.claim.json": {
+      "bytes": 36920,
+      "mode": 384,
+      "sha256": "e591fefbe6d1882fb6fd935fbbf6de6f0748c1dbc9b899788335a6a076919b79"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-two/actor-claim.json": {
+      "bytes": 36920,
+      "mode": 384,
+      "sha256": "e591fefbe6d1882fb6fd935fbbf6de6f0748c1dbc9b899788335a6a076919b79"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-two/gradle.log": {
+      "bytes": 1586,
+      "mode": 384,
+      "sha256": "fc461b8a17e9bfc051cec60ba538d698d154cf9d6319f76092058d112c068f33"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-two/independent-release.json": {
+      "bytes": 542,
+      "mode": 420,
+      "sha256": "524e86fbecd96b2e4a0539e1230e8985a4ceb3335990e5ce40c21228918d0ab3"
+    },
+    "/Users/speketi/Projects/Just-Share/docs/permission-recovery-debug-packaging-20261006-two/result.json": {
+      "bytes": 1565356,
+      "mode": 384,
+      "sha256": "27dc161a80b6cf742ea396e6c21303880e8533d080f795440b0804bafde2dc34"
+    },
     "/Users/speketi/Projects/Just-Share/docs/permission-recovery-host-validation-20261006-one/result.json": {
       "bytes": 1042884,
       "mode": 384,
@@ -308,7 +333,7 @@
     }
   },
   "caller": "docs/run-permission-recovery-debug-packaging-20261006.py",
-  "caller_sha256": "41e93bdfd2a4c07408cabe7d31f9686260fcc0046335d07afb48111ff913ab5b",
+  "caller_sha256": "9bd52cfa5943348b3ccd50519354e90c62227b69467ba63cf51dbf3aa6df8c74",
   "accepted_host_caller_sha256": "fb362f7af2bae50cd21852f2aec1f5b5c09e7c775b28974543e905fe0c798525",
   "accepted_host_result_sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79",
   "accepted_host_validation_head": "4e35e47fee047a6cfafd92079aacdc0c21df9efb",
@@ -425,8 +450,8 @@
   "actual_main_certificate_sha256": null,
   "actual_test_certificate_sha256": null,
   "runtime_artifact_metadata": "UNRUN",
-  "packet": "docs/permission-recovery-debug-packaging-20261006-two",
-  "claim": "docs/permission-recovery-debug-packaging-20261006-two.claim.json",
+  "packet": "docs/permission-recovery-debug-packaging-20261006-three",
+  "claim": "docs/permission-recovery-debug-packaging-20261006-three.claim.json",
   "coordinator_grant": false,
   "runtime_authorized_by_preparation": false,
   "java_gradle_sdk_helper_watchdog_process_device_provider_browser_remote_execution_during_preparation": false,
@@ -448,7 +473,7 @@
     "main"
   ],
   "shared_boundary_nested_ast_unchanged": true,
-  "function_ast_sha256": "c37fa64f568e2dc7d65d5054ad21c8108b77ad86e1ed902f7a11e2cf2507d055",
+  "function_ast_sha256": "c195067e2a4e9269b2d81c4f0ede63e53abacf8db932375b055ba9a858f101ab",
   "self_inspection_1": {
     "exact_source_build_and_host_proof": "PASS",
     "SDK_source_supports_bounded_JVM_flag": "PASS",
@@ -533,7 +558,7 @@
       "XML-tree tabs refuse ambiguous scoping"
     ],
     "real_runtime": "UNRUN",
-    "evidence_scope": "Inherited 57 passing preparation checks preserved; unchanged artifact/SDK functions were not rerun for this minimal successor. New 34 predecessor-release checks are separately recorded."
+    "evidence_scope": "Historical57 artifact/SDK checks retained; Three adds27 new Two-boundary checks separately. No SDK/runtime tests rerun."
   },
   "preserved_historical_evidence": [
     "c144bd06821c57e6559995c2b94ded70eb2ea7f0",
@@ -638,12 +663,13 @@
     "build_wrapper_configured_environment_local_init_jdk_helpers_signing_sdk_host_proof": "MATCH",
     "android_declared_cases21": "UNRUN",
     "current_revision_jvm_rerun": false,
-    "packet_claim": "TWO_UNUSED; ONE_FAILED_PACKET_AND_CLAIM_IMMUTABLE",
+    "packet_claim": "THREE_UNUSED; ONE_AND_TWO_FAILED_FOUR_FILE_PACKETS_AND_SIBLING_CLAIMS_IMMUTABLE",
     "SDK_xmltree_static_binary_token": "PRESENT",
     "shared_boundary_ast": "UNCHANGED",
-    "real_native_runtime": "UNRUN_DURING_THIS_PREPARATION",
+    "real_native_runtime": "UNRUN_DURING_THIS_THREE_PREPARATION",
     "root_actor_environment": "SAME_ACTUAL_JUST_SHARE_REQUIRE_ESCALATED_F63_PATH_REVIEWED; FRESH_ROOT_GATE_REQUIRED_AFTER_FREEZE",
-    "packaging_inputs13": "MATCH"
+    "packaging_inputs13": "HISTORICAL_TWO_MATCH; ALL13_RETAINED_UNCHANGED",
+    "packaging_inputs18": "MATCH"
   },
   "root_actor_path_rebind": {
     "reviewed_root_path_sha256": "f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3",
@@ -822,7 +848,8 @@
     "watchdog_seconds": 300,
     "source_and_environment_guards": "UNCHANGED",
     "current_actor_path_sha256": "f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3",
-    "real_runtime_during_preparation": "UNRUN"
+    "real_runtime_during_preparation": "UNRUN",
+    "evidence_scope": "Historical Two preparation at a73; preserved without rerunning unchanged checks"
   },
   "normal_resolution_successor_pure_mock_checks": {
     "status": "PASS",
@@ -862,6 +889,154 @@
       "Nonheavy foreign member in first prior group refuses",
       "Nonheavy foreign member in second prior group refuses",
       "Conflicting inventories retaining old identity refuse"
+    ],
+    "evidence_scope": "Historical34 passing Two predecessor guard checks; no mirrored rerun in Three"
+  },
+  "historical_normal_resolution_two_preparation": {
+    "source": "a73f60906f470eaf239cdf2b9d206015095a7cdd",
+    "caller_sha256": "41e93bdfd2a4c07408cabe7d31f9686260fcc0046335d07afb48111ff913ab5b",
+    "function_ast_sha256": "c37fa64f568e2dc7d65d5054ad21c8108b77ad86e1ed902f7a11e2cf2507d055",
+    "archive_commit": "fb21bb9553492f1d47e275aefcf7c96651e0aea4",
+    "preservation": "Exact source and failed four-file packet plus sibling claim/outcome remain in Git",
+    "deadline_increase": false
+  },
+  "prior_two_attempt": {
+    "source": "a73f60906f470eaf239cdf2b9d206015095a7cdd",
+    "archive_commit": "fb21bb9553492f1d47e275aefcf7c96651e0aea4",
+    "packet": "docs/permission-recovery-debug-packaging-20261006-two",
+    "claim": "docs/permission-recovery-debug-packaging-20261006-two.claim.json",
+    "actual_session": 95814,
+    "terminal_exit_status": 1,
+    "seconds": 286.026,
+    "failure": "Bounded shared-boundary ps inventory timed out with0.019285458001832012 seconds remaining near285-second work deadline",
+    "work_deadline_seconds": 285,
+    "total_watchdog_seconds": 300,
+    "proof_sha256": {
+      "actor-claim.json": "e591fefbe6d1882fb6fd935fbbf6de6f0748c1dbc9b899788335a6a076919b79",
+      "gradle.log": "fc461b8a17e9bfc051cec60ba538d698d154cf9d6319f76092058d112c068f33",
+      "independent-release.json": "524e86fbecd96b2e4a0539e1230e8985a4ceb3335990e5ce40c21228918d0ab3",
+      "result.json": "27dc161a80b6cf742ea396e6c21303880e8533d080f795440b0804bafde2dc34"
+    },
+    "sibling_claim_sha256": "e591fefbe6d1882fb6fd935fbbf6de6f0748c1dbc9b899788335a6a076919b79",
+    "source_tree": "d28999b76b7c1c16357db7221bae9f8d0d4b153c",
+    "source_app_tree": "5b78e7caa7244e6aa7795e118dbd835f2b34cae3",
+    "inputs_unchanged": true,
+    "owned_cleanup": true,
+    "packaging_passed": false,
+    "package_task_observations": {},
+    "artifacts": {},
+    "certificate_pair_matches": false,
+    "sdk_inspections_executed": 0,
+    "jvm_test_reexecution": false,
+    "android_declared_cases21": "UNRUN",
+    "last_gradle_observation": "processDebugResources UP-TO-DATE; no compile/package tasks or SDK inspections",
+    "independent_release": {
+      "epoch": 1791276157.840526,
+      "owned_identity_count": 4,
+      "owned_groups": [
+        63217,
+        63253
+      ],
+      "matching_live_identities": {},
+      "live_group_members": [],
+      "release_verified": true,
+      "memory_pressure": 1,
+      "free_gib": 23.0,
+      "current_foreign_heavy": [],
+      "fresh_capacity_after_three_freeze": "REQUIRED"
+    },
+    "independent_temp_checker": {
+      "path": "/private/tmp/ux-justshare-packaging-two-proof-checks-20261006.py",
+      "sha256": "46ce262fbe98ccbca68b7a03a9e5ea07a3effcec7445c868caf7e12ed44898c9",
+      "source_pure_mock_checks": 45,
+      "actual_root_exit_status": 1,
+      "actual_root_result": "VALID_FAILED_RECEIPT_AND_OWNED_RELEASE_NO_BUILD_CREDIT",
+      "this_preparer_executed_checker_on_actual_evidence": false
+    }
+  },
+  "three_successor_control_changes": [
+    "Fresh THREE packet/claim/tag; same two assemble tasks, normal Gradle argv and six SDK commands",
+    "All One inputs/validators/absence guards retained unchanged; both historical packet file sets remain exactly four files",
+    "Only five immutable Two result/log/release/both-claim inputs added to before-after packaging pins",
+    "validate_two_failed_attempt requires exact sourcea73 starting/ending pins, failed286.026-second bounded outcome, zero artifact/package credit and verified four-identity/two-group release",
+    "require_two_owned_release checks existing bounded full rows/executable inventory before new claim; no extra process subprocess or prior termination",
+    "main binds Two archive commit ancestry and records Two proof/current release; nested shared callback/artifact parsers/deadline unchanged"
+  ],
+  "three_successor_static_proof": {
+    "changed_predecessor_functions": [
+      "main",
+      "packaging_inputs"
+    ],
+    "added_functions": [
+      "require_two_owned_release",
+      "validate_two_failed_attempt"
+    ],
+    "changed_existing_data": [
+      "CLAIM",
+      "PACKET",
+      "REVIEWED_PACKAGING_INPUTS"
+    ],
+    "source175": "MATCH_UNCHANGED",
+    "existing_packaging_inputs13": "UNCHANGED",
+    "new_two_inputs5": "MATCH",
+    "packaging_inputs18": "MATCH",
+    "one_validators_and_release_guard_asts": "UNCHANGED",
+    "gradle_argv": "UNCHANGED_NORMAL_CONFIGURED_RESOLUTION",
+    "six_sdk_call_expressions": "UNCHANGED",
+    "artifact_parser_asts": "UNCHANGED",
+    "shared_callback_ast": "UNCHANGED",
+    "watchdog_seconds": 300,
+    "source175_home_tree_build_wrapper_configured_env_jdk_signing_sdk_helper_pins": "UNCHANGED",
+    "root_actor_path_sha256": "f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3",
+    "fresh_attempt_justification": "Configured dependency/resource work completed in Two; ordinary incremental attempt under same deadline",
+    "current_revision_jvm_rerun": false,
+    "android21": "UNRUN",
+    "three_packet_claim": "UNUSED",
+    "runtime_during_preparation": "UNRUN"
+  },
+  "three_successor_pure_mock_checks": {
+    "status": "PASS",
+    "count": 27,
+    "checks": [
+      "Exact failed Two source/bounded outcome and release accept",
+      "Changed exact Two proof hash refuses TWO_RESULT",
+      "Changed exact Two proof hash refuses TWO_LOG",
+      "Changed exact Two proof hash refuses TWO_RELEASE",
+      "Changed exact Two proof hash refuses TWO_CLAIM",
+      "Noncanonical Two packet file set refuses",
+      "Wrong frozen Two source refuses",
+      "Changed Two before-after snapshot refuses",
+      "Two failure cannot acquire passing credit",
+      "Unreleased Two cleanup refuses",
+      "Changed Two bounded deadline outcome refuses",
+      "Changed exact near-deadline failure refuses",
+      "Two zero-package outcome cannot gain task credit",
+      "Two zero-artifact outcome cannot gain APK credit",
+      "Changed Two release-result binding refuses",
+      "Unverified Two independent release refuses",
+      "Incomplete Two owned identity inventory refuses",
+      "Recorded live Two identity refuses",
+      "Incomplete Two owned groups refuse",
+      "Recorded live Two group member refuses",
+      "Absent current Two identities/groups accept",
+      "Reused Two PID with different start/unrelated group accepts",
+      "Current Two owned identity in full rows refuses",
+      "Current Two identity in executable inventory refuses",
+      "Conflicting inventories retaining Two identity refuse",
+      "Nonheavy member in first Two group refuses",
+      "Nonheavy member in second Two group refuses"
     ]
+  },
+  "three_self_inspection_1": {
+    "two_exact_archive_proof_source_deadline_release_pins": "PASS",
+    "one_guards_and_both_four_file_packets": "UNCHANGED",
+    "source175_home_tree_toolchain_config_pins": "UNCHANGED",
+    "13_existing_and5_added_input_pins": "MATCH"
+  },
+  "three_self_inspection_2": {
+    "new_two_failed_outcome_and_current_identity_group_absence_guards": "PASS",
+    "same_normal_argv_six_sdk_commands_deadline_and_ownership": "PASS",
+    "one_guard_and_artifact_shared_callback_asts": "UNCHANGED",
+    "no_runtime_or_new_artifact_claim": "PASS"
   }
 }
