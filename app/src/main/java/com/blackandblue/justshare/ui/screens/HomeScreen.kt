@@ -160,8 +160,9 @@ fun HomeScreen(
     )
 
     com.blackandblue.justshare.ui.components.RequireHardware(
-        requireWifi = true,
-        requireBluetooth = true
+        // Browsing remains available; the chosen transfer route checks its own radio.
+        requireWifi = false,
+        requireBluetooth = false
     ) {
         Column(
             modifier = Modifier
