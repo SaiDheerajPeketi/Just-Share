@@ -19,7 +19,7 @@ REPO = Path(__file__).resolve().parents[1]
 PACKET = REPO / "docs/permission-recovery-debug-packaging-20261006-one"
 CLAIM = REPO / "docs/permission-recovery-debug-packaging-20261006-one.claim.json"
 SELF = "docs/run-permission-recovery-debug-packaging-20261006.py"
-APP_SOURCE = '965536c13b4678aa302f75f100ecab52e065f857'
+APP_SOURCE = 'd66c25bf172fc821052298f34a6936bbf3b925a3'
 SOURCE_ACCEPTED = True
 HELPER = Path("/Users/speketi/Projects/HearthLedger/tools/run_offline_release.py")
 HELPER_SHA = "b7667e7646e9e0a6d650fecdfdc8a4563f5a1153d068125c781744684283202e"
@@ -27,7 +27,7 @@ HELPER_INPUTS = HELPER.with_name("release_input_fingerprints.py")
 HELPER_INPUTS_SHA = "60452b0711b86e51f836f6a2d9365bf28a04bcce5318d39a54d8ee9c9182fb7a"
 JAVA_HOME = Path("/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home")
 TREES = ["app/src"]
-REVIEWED_SOURCE_TREES = {'app/src': '658642c649f9f888804012e0aa3b6e713d24ccf2'}
+REVIEWED_SOURCE_TREES = {'app/src': '5b78e7caa7244e6aa7795e118dbd835f2b34cae3'}
 REVIEWED_SOURCE_SHA256 = {'app/src/androidTest/java/com/blackandblue/justshare/ExampleInstrumentedTest.kt': 'ebc1abf5b1227a3f08587aa9b1cc33986b49090de3f6783146eb31e2039f6d16',
  'app/src/androidTest/java/com/blackandblue/justshare/TransferConnectionOwnershipTest.kt': '736bb1898eee2e5cf50a67d758ad7f25853476604394547600254f9366c2ef4f',
  'app/src/androidTest/java/com/blackandblue/justshare/data/chat/BluetoothDiscoveryPermissionTest.kt': '5539c01e236fbc52fc053e3c5696682ec6a59373aec0bd4eb236167abd4413c7',
@@ -118,7 +118,7 @@ REVIEWED_SOURCE_SHA256 = {'app/src/androidTest/java/com/blackandblue/justshare/E
  'app/src/main/java/com/blackandblue/justshare/ui/screens/AlterSendScreen.kt': '7d306a1ac13cf59c6c0dcee460598d9bbd07fa30af68ccbf64e901abb69a0ed6',
  'app/src/main/java/com/blackandblue/justshare/ui/screens/DiscoverDevicesScreen.kt': 'c3d7fca3900417b90449ea579fffbbc3e7d55c2edee3442e69a3252bbbeeae70',
  'app/src/main/java/com/blackandblue/justshare/ui/screens/HistoryScreen.kt': '7a29c4c97d9b319e62cbe0ce3c442b1d117fc1673a7edaa0d950cd6a30a4290d',
- 'app/src/main/java/com/blackandblue/justshare/ui/screens/HomeScreen.kt': '20b425e206fc9f098f3f7d3bb80587a07877b7cc517de0b2671bdb214437e23a',
+ 'app/src/main/java/com/blackandblue/justshare/ui/screens/HomeScreen.kt': 'ab979ef699d95e12e1f97c36682b4d7a368c0372c4eb51f25181b2bc9820b50e',
  'app/src/main/java/com/blackandblue/justshare/ui/screens/OnboardingScreen.kt': '1cc12203101b322537bcde1912b600d1f058001d92a3bfe2a5760eb72c18283d',
  'app/src/main/java/com/blackandblue/justshare/ui/screens/PermissionsScreen.kt': '01b2e1990eaf2ed4b5ba69f2c642f8f5da73412958338bb56a968a10f066b787',
  'app/src/main/java/com/blackandblue/justshare/ui/screens/RemoteTransferProgressScreen.kt': 'ebc6def8d78654a9a38aae80a571ce8787e6c4def3a1accfc8c35497c75b7647',
@@ -502,8 +502,11 @@ HOST_CALLER_SHA = "fb362f7af2bae50cd21852f2aec1f5b5c09e7c775b28974543e905fe0c798
 HOST_RESULT = REPO / "docs/permission-recovery-host-validation-20261006-one/result.json"
 HOST_RESULT_SHA = "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79"
 HOST_VALIDATION_HEAD = "4e35e47fee047a6cfafd92079aacdc0c21df9efb"
-PREPARATION_BASE_HEAD = "81490059ada05cd983ef67d1a6db3350e1ab4699"
-PACKAGING_ADMISSION_READY = False  # Historical preparation: Home source blocker requires a fresh source/test freeze.
+HOST_TEST_APP_SOURCE = "965536c13b4678aa302f75f100ecab52e065f857"
+HOST_SOURCE_TREES = {"app/src": "658642c649f9f888804012e0aa3b6e713d24ccf2"}
+HOME_SUCCESSOR_SOURCE_DELTA = "app/src/main/java/com/blackandblue/justshare/ui/screens/HomeScreen.kt"
+PREPARATION_BASE_HEAD = 'd66c25bf172fc821052298f34a6936bbf3b925a3'
+PACKAGING_ADMISSION_READY = True
 ASSEMBLE_TASKS = [":app:assembleDebug", ":app:assembleDebugAndroidTest"]
 PACKAGE_TASKS = [":app:packageDebug", ":app:packageDebugAndroidTest"]
 ARTIFACTS = [
@@ -558,17 +561,21 @@ def validate_host_proof():
     if sha(HOST_CALLER) != HOST_CALLER_SHA or sha(HOST_RESULT) != HOST_RESULT_SHA:
         raise ValueError("Accepted host caller/result changed")
     proof = json.loads(HOST_RESULT.read_text())
+    host_sources = proof.get("source_pins_before", {}).get("source_files", {})
     expected = {"com.blackandblue.justshare.LocalTransferPermissionsTest",
                 "com.blackandblue.justshare.domain.transfer.TransferProgressSessionTest"}
     if (proof.get("source") != HOST_VALIDATION_HEAD or not proof.get("validation_passed")
             or not proof.get("inputs_unchanged") or not proof.get("owned_cleanup")
-            or proof.get("source_pins_before", {}).get("source_trees") != REVIEWED_SOURCE_TREES
+            or proof.get("source_pins_before", {}).get("source_trees") != HOST_SOURCE_TREES
+            or set(host_sources) != set(REVIEWED_SOURCE_SHA256)
+            or any(host_sources[name] != digest for name, digest in REVIEWED_SOURCE_SHA256.items()
+                   if name != HOME_SUCCESSOR_SOURCE_DELTA)
             or set(proof.get("tests", {})) != expected
             or any(value.get("counts") != {"tests": 4, "failures": 0, "errors": 0, "skipped": 0}
                    for value in proof["tests"].values())
             or proof.get("compile_task_observations") != {
                 ":app:compileDebugKotlin": "EXECUTED", ":app:compileDebugAndroidTestKotlin": "EXECUTED"}):
-        raise ValueError("Existing exact eight-case host/compile proof does not match the accepted source")
+        raise ValueError("Historical eight-case host/compile proof must match every current source input except the reviewed Home-only successor")
 
 
 def package_task_observations(raw):
@@ -660,20 +667,59 @@ def public_badging(raw, entry, metadata):
                         if entry["kind"] == "main" else TEST_MANIFEST_VERSION)
     if values.get("name") != metadata["package"] or any(values.get(key) != value for key, value in expected_version.items()):
         raise ValueError("SDK package/version metadata differs from the selected fresh output/compiled manifest")
-    instruments = re.findall(r"(?m)^instrumentation: ([^\n]+)$", raw)
     result = {"package": metadata["package"], "version_code": int(values["versionCode"]) if values["versionCode"] else None,
               "version_name": values["versionName"] or None}
-    if entry["kind"] == "test":
-        if len(instruments) != 1:
-            raise ValueError("Android-test APK must have exactly one instrumentation target")
-        target = dict(re.findall(r"([A-Za-z][A-Za-z0-9]*)='([^']*)'", instruments[0]))
-        if (target.get("targetPackage") != "com.blackandblue.justshare"
-                or target.get("name") != "androidx.test.runner.AndroidJUnitRunner"):
-            raise ValueError("Android-test APK target/runner changed")
-        result.update(test_target=target["targetPackage"], test_runner=target["name"])
-    elif instruments:
-        raise ValueError("Production debug APK unexpectedly declares instrumentation")
     return result
+
+
+def public_instrumentation(raw, entry):
+    stack, instruments, roots = [], [], 0
+    for line in raw.splitlines():
+        if "\t" in line:
+            raise ValueError("SDK manifest tree indentation must use spaces")
+        element = re.fullmatch(r"( *)E: ([A-Za-z_][A-Za-z0-9_.:-]*) \(line=\d+\)", line)
+        if element:
+            indent, name = len(element.group(1)), element.group(2)
+            while stack and stack[-1]["indent"] >= indent:
+                stack.pop()
+            if not stack:
+                roots += 1
+                if roots != 1 or name != "manifest":
+                    raise ValueError("SDK manifest tree must have exactly one manifest root")
+            elif indent != stack[-1]["indent"] + 2:
+                raise ValueError("SDK manifest element indentation is not an immediate child")
+            current = {"indent": indent, "name": name, "attributes": {}}
+            if name == "instrumentation":
+                if not stack or stack[-1]["name"] != "manifest":
+                    raise ValueError("Instrumentation must be a direct manifest child")
+                instruments.append(current)
+            stack.append(current)
+            continue
+        attribute = re.fullmatch(r"( *)A: ([^=]+)=(.*)", line)
+        if attribute and stack:
+            if len(attribute.group(1)) != stack[-1]["indent"] + 2:
+                raise ValueError("SDK manifest attribute is not an immediate element child")
+            if stack[-1]["name"] == "instrumentation":
+                key = re.fullmatch(r"android:(name|targetPackage)(?:\(0x[0-9a-fA-F]{8}\))?", attribute.group(2))
+                if key:
+                    value = re.fullmatch(r'"([^"\\]*)"(?: \(Raw: "[^"\\]*"\))?', attribute.group(3))
+                    if not value or key.group(1) in stack[-1]["attributes"]:
+                        raise ValueError("Instrumentation attributes must be unique direct literal strings")
+                    stack[-1]["attributes"][key.group(1)] = value.group(1)
+            continue
+        if line.lstrip().startswith(("E:", "A:")):
+            raise ValueError("Malformed SDK manifest tree element/attribute")
+    if roots != 1:
+        raise ValueError("SDK manifest tree root is missing")
+    if entry["kind"] == "main":
+        if instruments:
+            raise ValueError("Production debug APK unexpectedly declares instrumentation")
+        return {"instrumentation_count": 0}
+    if len(instruments) != 1 or instruments[0]["attributes"] != {
+            "name": "androidx.test.runner.AndroidJUnitRunner", "targetPackage": "com.blackandblue.justshare"}:
+        raise ValueError("Android-test APK must declare exactly one direct expected runner/target")
+    return {"instrumentation_count": 1, "test_runner": instruments[0]["attributes"]["name"],
+            "test_target": instruments[0]["attributes"]["targetPackage"]}
 
 
 def public_certificate(raw):
@@ -694,7 +740,7 @@ def main():
     args = parser.parse_args()
     if (not re.fullmatch(r"[0-9a-f]{40}", args.source) or not SOURCE_ACCEPTED
             or not REVIEWED_PACKAGING_INPUTS or not PACKAGING_ADMISSION_READY):
-        raise ValueError("Historical packaging preparation is blocked until the Home fix receives a fresh source/test freeze")
+        raise ValueError("A full committed source and source-accepted packaging preparation are required before admission")
     pins = fingerprints()
     if (pins["source"] != args.source or pins["source_trees"] != REVIEWED_SOURCE_TREES
             or pins["source_files"] != REVIEWED_SOURCE_SHA256 or pins["build_blobs"] != REVIEWED_BUILD_BLOBS
@@ -736,7 +782,7 @@ def main():
     write_private(CLAIM, json_bytes(claim))
     PACKET.mkdir(mode=0o700)
     write_private(PACKET / "actor-claim.json", json_bytes(claim))
-    argv = ["rtk", "proxy", str(REPO / "gradlew"), *ASSEMBLE_TASKS, "--no-daemon", "--max-workers=1",
+    argv = ["rtk", "proxy", str(REPO / "gradlew"), *ASSEMBLE_TASKS, "--offline", "--no-daemon", "--max-workers=1",
             "-Dorg.gradle.jvmargs=-Xmx1536m", "-Pkotlin.compiler.execution.strategy=in-process", "--console=plain"]
     env = dict(os.environ, JAVA_HOME=str(JAVA_HOME), PATH=str(JAVA_HOME / "bin") + os.pathsep + os.environ.get("PATH", ""))
     result = {"source": args.source, "accepted_app_source": APP_SOURCE, "source_pins_before": pins,
@@ -781,14 +827,18 @@ def main():
             write_private(PACKET / (entry["kind"] + "-output-metadata.json"), metadata_raw)
             digest = hashlib.sha256(raw).hexdigest()
             badging_log = entry["kind"] + "-badging.log"
+            xmltree_log = entry["kind"] + "-manifest-xmltree.log"
             cert_log = entry["kind"] + "-certificate.log"
             shared_boundary()
             WATCH.run(["rtk", "proxy", str(SDK_TOOLS / "aapt"), "dump", "badging", str(captured)],
                       env, badging_log, callback=shared_boundary)
+            WATCH.run(["rtk", "proxy", str(SDK_TOOLS / "aapt"), "dump", "xmltree", str(captured), "AndroidManifest.xml"],
+                      env, xmltree_log, callback=shared_boundary)
             # The pinned installed shell script converts -JXmx256m into Java -Xmx256m.
             WATCH.run(["rtk", "proxy", str(SDK_TOOLS / "apksigner"), "-JXmx256m", "verify", "--verbose",
                        "--print-certs", str(captured)], env, cert_log, callback=shared_boundary)
             public = public_badging((PACKET / badging_log).read_text(), entry, metadata)
+            public.update(public_instrumentation((PACKET / xmltree_log).read_text(), entry))
             cert = public_certificate((PACKET / cert_log).read_text())
             check_work_deadline()
             if sha(captured) != digest or sha(REPO / entry["apk"]) != digest:
@@ -796,7 +846,8 @@ def main():
             result["artifacts"][entry["kind"]] = {"apk_sha256": digest, "bytes": len(raw),
                 "metadata_sha256": hashlib.sha256(metadata_raw).hexdigest(), "zip_structure": structure,
                 "public_metadata": public, "certificate": cert,
-                "aapt_output_sha256": sha(PACKET / badging_log), "apksigner_output_sha256": sha(PACKET / cert_log)}
+                "aapt_output_sha256": sha(PACKET / badging_log), "manifest_xmltree_output_sha256": sha(PACKET / xmltree_log),
+                "apksigner_output_sha256": sha(PACKET / cert_log)}
         result["certificate_pair_matches"] = (result["artifacts"]["main"]["certificate"]["certificate_sha256"]
                                               == result["artifacts"]["test"]["certificate"]["certificate_sha256"])
         if not result["certificate_pair_matches"]:

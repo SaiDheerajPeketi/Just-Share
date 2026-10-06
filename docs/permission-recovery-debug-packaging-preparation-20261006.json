@@ -1,9 +1,9 @@
 {
-  "status": "HISTORICAL_SOURCE_ONLY_DEBUG_PACKAGING_PREPARATION_BLOCKED_FOR_HOME_SUCCESSOR",
-  "preparation_base_head": "81490059ada05cd983ef67d1a6db3350e1ab4699",
-  "accepted_app_source": "965536c13b4678aa302f75f100ecab52e065f857",
+  "status": "SOURCE_ACCEPTED_HOME_SUCCESSOR_DEBUG_PACKAGING_PREPARATION_RUNTIME_UNRUN",
+  "preparation_base_head": "d66c25bf172fc821052298f34a6936bbf3b925a3",
+  "accepted_app_source": "d66c25bf172fc821052298f34a6936bbf3b925a3",
   "source_trees": {
-    "app/src": "658642c649f9f888804012e0aa3b6e713d24ccf2"
+    "app/src": "5b78e7caa7244e6aa7795e118dbd835f2b34cae3"
   },
   "source_file_count": 175,
   "source_sha256_inventory": {
@@ -97,7 +97,7 @@
     "app/src/main/java/com/blackandblue/justshare/ui/screens/AlterSendScreen.kt": "7d306a1ac13cf59c6c0dcee460598d9bbd07fa30af68ccbf64e901abb69a0ed6",
     "app/src/main/java/com/blackandblue/justshare/ui/screens/DiscoverDevicesScreen.kt": "c3d7fca3900417b90449ea579fffbbc3e7d55c2edee3442e69a3252bbbeeae70",
     "app/src/main/java/com/blackandblue/justshare/ui/screens/HistoryScreen.kt": "7a29c4c97d9b319e62cbe0ce3c442b1d117fc1673a7edaa0d950cd6a30a4290d",
-    "app/src/main/java/com/blackandblue/justshare/ui/screens/HomeScreen.kt": "20b425e206fc9f098f3f7d3bb80587a07877b7cc517de0b2671bdb214437e23a",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/HomeScreen.kt": "ab979ef699d95e12e1f97c36682b4d7a368c0372c4eb51f25181b2bc9820b50e",
     "app/src/main/java/com/blackandblue/justshare/ui/screens/OnboardingScreen.kt": "1cc12203101b322537bcde1912b600d1f058001d92a3bfe2a5760eb72c18283d",
     "app/src/main/java/com/blackandblue/justshare/ui/screens/PermissionsScreen.kt": "01b2e1990eaf2ed4b5ba69f2c642f8f5da73412958338bb56a968a10f066b787",
     "app/src/main/java/com/blackandblue/justshare/ui/screens/RemoteTransferProgressScreen.kt": "ebc6def8d78654a9a38aae80a571ce8787e6c4def3a1accfc8c35497c75b7647",
@@ -110,8 +110,6 @@
     "app/src/main/java/com/blackandblue/justshare/ui/theme/Shape.kt": "ff0e79cf8ebd73ff7c08b235b12960d0bfccc6f671b24f40d64ebba9b6e0fe99",
     "app/src/main/java/com/blackandblue/justshare/ui/theme/Theme.kt": "d357a7f5e6632114d4c924184d4d943ff908870c496e2365c68489d68b66514a",
     "app/src/main/java/com/blackandblue/justshare/ui/theme/Type.kt": "0ef99b61393f2fcb8327c08938328717399e3cfad14e97b6fb64a49987a00c79",
-    "app/src/main/res/drawable-night/app_logo_mark.xml": "a449bb414df8da3ed9430afeecd9d249f20c12ec310f87b967c994afe0227d41",
-    "app/src/main/res/drawable-night/ic_launcher_foreground.xml": "f9371415c2a82d4ce066f4564823233963e013ca1c9fcfac0a77f3b9fb92c8c1",
     "app/src/main/res/drawable/app_logo_full.png": "2414ae863eff8dacd02d8390b8e2c1773b9e23fd95aae5d57cfb4548c48aa63c",
     "app/src/main/res/drawable/app_logo_mark.xml": "7f8c43fb5df00087a562c62b7267371d19caeb1870c5bcdd0cb03a78e742d850",
     "app/src/main/res/drawable/bluetooth_24.xml": "9725772eb26bc075b192e717f50b300fd29c9f11447dfb7e43043960a3a004c3",
@@ -129,6 +127,8 @@
     "app/src/main/res/drawable/video_icon.png": "26ee6a991422eaa442f875efae57133729b67be188c255c83a5c568e2a8194ce",
     "app/src/main/res/drawable/welcome_image.jpeg": "062cf8adc77f3c54f96db94ae7051c9b2499e20600a310e4562c7fd988b215d5",
     "app/src/main/res/drawable/wifi_icon.xml": "f1bfd24a140e6f4105819309690ce098947c169d976ffdf5c0ffbb1e2437a53c",
+    "app/src/main/res/drawable-night/app_logo_mark.xml": "a449bb414df8da3ed9430afeecd9d249f20c12ec310f87b967c994afe0227d41",
+    "app/src/main/res/drawable-night/ic_launcher_foreground.xml": "f9371415c2a82d4ce066f4564823233963e013ca1c9fcfac0a77f3b9fb92c8c1",
     "app/src/main/res/font/roboto_serif_regular.ttf": "ae870616f883b21ff4f22b833cfeefce5de340ba4eab48f1f024a9789e8ea1c9",
     "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml": "26310833a35076dfe3bdcd9fa469c5c7e36c26623eaf6009bf2d450f779189a3",
     "app/src/main/res/mipmap-hdpi/ic_launcher.png": "9c2b7f2a75132942e30445bf77afc003475d3e0b10f2e04daf9dc72de01f9775",
@@ -161,13 +161,13 @@
     "app/src/main/res/raw/done_tick_animation.json": "9a367d38c7bb2a89ca2e0a5033fcdffc30ab697771017370e8adc981e4caa6ab",
     "app/src/main/res/raw/file_transfer_animation.json": "dae9ae82a62136c1ecf961b5de218933b24824c26a86661ecf803ad144070f5a",
     "app/src/main/res/raw/welcome_activity_animation.json": "eb3ff685a29e03ffe1b14c2083bc36696f65ae84f59128a92605f95709481933",
-    "app/src/main/res/values-night/colors.xml": "ea7e04cbe0304f41c272512fddb2c20082d1a120eb8277c04e55322f20846fce",
-    "app/src/main/res/values-night/ic_launcher_background.xml": "b5ac8a081d33ff53462c07829e21f07e7e22d3ba223fb6e684407ac170317fae",
-    "app/src/main/res/values-v31/themes.xml": "9f391219afe0d450b0f17fe2c7d68f323bac2c0770f6153468a4af48b9bfc742",
     "app/src/main/res/values/colors.xml": "f0220d25fd10b430b0f9c9eaef09b0d1c7fddcc7de7105248971a706088fe87c",
     "app/src/main/res/values/ic_launcher_background.xml": "b5ac8a081d33ff53462c07829e21f07e7e22d3ba223fb6e684407ac170317fae",
     "app/src/main/res/values/strings.xml": "f931bc4df8c626dacf23c159ad34cb5f8ac07b0370af4038a27f2bf463e01e0a",
     "app/src/main/res/values/themes.xml": "c535be7075c8fc3d388488589311a738c69979cd2a482d69fb7418b531cd9c7a",
+    "app/src/main/res/values-night/colors.xml": "ea7e04cbe0304f41c272512fddb2c20082d1a120eb8277c04e55322f20846fce",
+    "app/src/main/res/values-night/ic_launcher_background.xml": "b5ac8a081d33ff53462c07829e21f07e7e22d3ba223fb6e684407ac170317fae",
+    "app/src/main/res/values-v31/themes.xml": "9f391219afe0d450b0f17fe2c7d68f323bac2c0770f6153468a4af48b9bfc742",
     "app/src/main/res/xml/backup_rules.xml": "2c5c697984f4c52b526337ab61113f5843e0bfc6af4722374916ffe6da38dd9a",
     "app/src/main/res/xml/data_extraction_rules.xml": "cb029b35db0e976c087100424e16e14a6256b46962398887520e51508c3b5842",
     "app/src/release/java/com/blackandblue/justshare/AppCheckInstaller.kt": "43da5ef0909d9d9ad28630dd753396cdd4fae838b3d54925b481000dfb30c2bf",
@@ -283,12 +283,12 @@
     }
   },
   "caller": "docs/run-permission-recovery-debug-packaging-20261006.py",
-  "caller_sha256": "3a11bb3d80931e624a2514c5d7359e759fa27495168959aaf2e2f66745e25bdd",
+  "caller_sha256": "8b7b4e6b73553a612b138a0ff34f1171b3ab5f68f5660203cbb7454e9eac6f08",
   "accepted_host_caller_sha256": "fb362f7af2bae50cd21852f2aec1f5b5c09e7c775b28974543e905fe0c798525",
   "accepted_host_result_sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79",
   "accepted_host_validation_head": "4e35e47fee047a6cfafd92079aacdc0c21df9efb",
   "existing_host_cases_passed": 8,
-  "existing_main_and_android_test_compile": "PASS",
+  "existing_main_and_android_test_compile": "HISTORICAL_PASS_AT_4e35e47_CURRENT_HOME_SUCCESSOR_UNRUN",
   "selected_android_declared_cases": 21,
   "android_device_cases_executed": 0,
   "declared_android_methods_unrun": {
@@ -374,7 +374,7 @@
   "jvm_test_reexecution": false,
   "lint_requested": false,
   "connected_test_requested": false,
-  "normal_configured_dependency_resolution": true,
+  "normal_configured_dependency_resolution": false,
   "configured_toolchain": {
     "agp": "8.10.1",
     "kotlin": "2.0.21",
@@ -423,24 +423,28 @@
     "main"
   ],
   "shared_boundary_nested_ast_unchanged": true,
-  "function_ast_sha256": "3d2caa936c0a9a74639deb1adb84b1065543582fc8231a5b766012ee7d51b9ac",
+  "function_ast_sha256": "9b18afb45b1142bc31bedb4f2ee06041401995f592cad6682cf622b266fbc81d",
   "self_inspection_1": {
     "exact_source_build_and_host_proof": "PASS",
     "SDK_source_supports_bounded_JVM_flag": "PASS",
     "existing_debug_signing_input_pinned_hash_only": "PASS",
     "compiled_test_manifest_version_absence_pinned": "PASS",
-    "retained_host_boundary_control_asts": "PASS"
+    "retained_host_boundary_control_asts": "PASS",
+    "home_successor_only_input_delta_and_21_android_declarations": "PASS",
+    "aapt_instrumentation_contract_correction": "ROOT_VERIFIED_PRIMARY_AOSP_SOURCE"
   },
   "self_inspection_2": {
     "metadata_freshness_version_target_certificate_zip_guards": "PASS",
     "same_deadline_and_owned_only_inherited_controls": "PASS",
     "scope_no_force_compile_or_test_reexecution": "PASS",
     "actual_APK_certificate_hashes_remain_unclaimed": "PASS",
-    "historical_source_blocker_preflight_refusal": "PASS"
+    "enabled_home_successor_preparation_with_historical_jvm_scope": "PASS",
+    "unchanged_packaging_sdk_deadline_ownership_mechanics": "PASS",
+    "corrected_badging_xmltree_contract_and_offline_scope": "PASS"
   },
   "pure_mocked_checks": {
     "status": "PASS",
-    "count": 43,
+    "count": 57,
     "checks": [
       "Fresh exact package task observations accept",
       "Nonfresh package task refuses UP-TO-DATE",
@@ -454,14 +458,6 @@
       "Boolean production version refuses",
       "Wrong APK variant/package metadata refuses",
       "Android test nullable Gradle version metadata accepts without inventing APK version",
-      "SDK main package/version matches fresh metadata",
-      "SDK test target/runner and pinned manifest version absence match",
-      "SDK wrong test target refuses",
-      "SDK wrong test runner refuses",
-      "SDK unexpected test version refuses",
-      "SDK wrong main version refuses",
-      "SDK production instrumentation refuses",
-      "SDK duplicate package metadata refuses",
       "Verified exactly one certificate digest accepts mock public metadata",
       "Unverified certificate metadata refuses",
       "Multiple signers certificate metadata refuses",
@@ -484,7 +480,29 @@
       "No forced compilation rerun/test/lint/connected invocation",
       "Installed signer command uses source-supported 256MiB flag",
       "Maintained deadline remains300",
-      "Historical main admission refuses before fingerprint/helper/process/runtime activity"
+      "Historical8PASS proof accepts with only separately reviewed Home input changed",
+      "Historical proof rejects any non-Home source hash delta",
+      "Historical proof rejects missing source input",
+      "Historical proof remains bound to historical tree rather than relabeled current source",
+      "Historical proof rejects partial selected suite",
+      "Corrected badging-only main package/version fixture accepts",
+      "Corrected badging-only test fixture accepts without invented instrumentation line",
+      "Corrected badging-only changed main version refuses",
+      "Corrected badging-only changed test version refuses",
+      "Corrected badging-only duplicate package line refuses",
+      "XML-tree direct unique test instrumentation and literal child attributes accept",
+      "XML-tree main manifest with no instrumentation accepts",
+      "XML-tree missing test instrumentation refuses",
+      "XML-tree duplicate test instrumentation refuses",
+      "XML-tree wrong runner refuses",
+      "XML-tree wrong target refuses",
+      "XML-tree nonchild attributes cannot satisfy instrumentation",
+      "XML-tree nested instrumentation refuses",
+      "XML-tree invalid direct attribute indentation refuses",
+      "XML-tree duplicate required attribute refuses",
+      "XML-tree main instrumentation refuses",
+      "XML-tree missing root refuses",
+      "XML-tree tabs refuse ambiguous scoping"
     ],
     "real_runtime": "UNRUN"
   },
@@ -500,12 +518,100 @@
     "Any packaging or device runtime decision"
   ],
   "python_ast": "PASS",
-  "packaging_admission_ready": false,
+  "packaging_admission_ready": true,
   "source_scope_correction": {
-    "finding": "Home RequireHardware(requireWifi=true, requireBluetooth=true) uses a nondismissible radio dialog, blocking browse/History/Settings despite Not now",
-    "owner": "Root",
-    "historical_app_source": "965536c13b4678aa302f75f100ecab52e065f857",
-    "required_before_packaging": "Targeted Home fix plus a fresh source/test freeze and new independent caller/admission review",
-    "production_changes_in_this_preparation": false
+    "finding": "Historical Home hardware dialog blocked browse/History/Settings with radios off",
+    "home_fix_source_commit": "d66c25bf172fc821052298f34a6936bbf3b925a3",
+    "home_sha256": "ab979ef699d95e12e1f97c36682b4d7a368c0372c4eb51f25181b2bc9820b50e",
+    "critic": "SOURCE ACCEPT",
+    "changed_source_input_count": 1,
+    "changed_source_path": "app/src/main/java/com/blackandblue/justshare/ui/screens/HomeScreen.kt",
+    "production_changes_in_this_preparation": false,
+    "current_revision_compilation_device_and_visual_proof": "UNRUN"
+  },
+  "historical_disabled_preparation": {
+    "commit": "b92b426bf69774bfeb8b3a7618fc3ed5489a868f",
+    "caller_sha256": "3a11bb3d80931e624a2514c5d7359e759fa27495168959aaf2e2f66745e25bdd",
+    "app_source": "965536c13b4678aa302f75f100ecab52e065f857",
+    "admission_ready": false,
+    "preservation": "Full prior three-file version remains in Git"
+  },
+  "historical_host_jvm_evidence": {
+    "tests_passed": 8,
+    "app_source": "965536c13b4678aa302f75f100ecab52e065f857",
+    "validation_head": "4e35e47fee047a6cfafd92079aacdc0c21df9efb",
+    "source_tree": "658642c649f9f888804012e0aa3b6e713d24ccf2",
+    "result_sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79",
+    "current_revision_jvm_rerun": false,
+    "reused_evidence_policy": "All174 non-Home source hashes must equal the historical proof; new Home source is accepted separately and compiled by ordinary assemble dependencies"
+  },
+  "successor_control_changes": [
+    "validate_host_proof separates historical source tree and requires174 unchanged non-Home inputs",
+    "main admission error text reflects enabled source preparation; workflow and nested shared boundary unchanged",
+    "public_badging verifies only package/version; public_instrumentation uses strict XML-tree scope and new raw XMLtree hashes",
+    "main adds exactly two bounded XMLtree SDK commands and requested Gradle --offline within unchanged300-second helper"
+  ],
+  "successor_function_changes_from_disabled_b92": [
+    "main",
+    "public_badging",
+    "validate_host_proof"
+  ],
+  "superseded_sdk_contract_mock_evidence": {
+    "status": "SUPERSEDED_FORMAT_ERROR",
+    "source": "Earlier disabled historical b92 preparation and initial enabled draft",
+    "reason": "Invented instrumentation line in aapt dump badging; root verified AOSP Command.cpp has no such badging contract",
+    "superseded_checks": [
+      "SDK main package/version matches fresh metadata",
+      "SDK test target/runner and pinned manifest version absence match",
+      "SDK wrong test target refuses",
+      "SDK wrong test runner refuses",
+      "SDK unexpected test version refuses",
+      "SDK wrong main version refuses",
+      "SDK production instrumentation refuses",
+      "SDK duplicate package metadata refuses"
+    ],
+    "replacement": "Badging package/version fixtures plus indent-scoped aapt dump xmltree manifest fixtures"
+  },
+  "corrected_sdk_contract_pure_mock_checks": {
+    "status": "PASS",
+    "count": 18,
+    "checks": [
+      "Corrected badging-only main package/version fixture accepts",
+      "Corrected badging-only test fixture accepts without invented instrumentation line",
+      "Corrected badging-only changed main version refuses",
+      "Corrected badging-only changed test version refuses",
+      "Corrected badging-only duplicate package line refuses",
+      "XML-tree direct unique test instrumentation and literal child attributes accept",
+      "XML-tree main manifest with no instrumentation accepts",
+      "XML-tree missing test instrumentation refuses",
+      "XML-tree duplicate test instrumentation refuses",
+      "XML-tree wrong runner refuses",
+      "XML-tree wrong target refuses",
+      "XML-tree nonchild attributes cannot satisfy instrumentation",
+      "XML-tree nested instrumentation refuses",
+      "XML-tree invalid direct attribute indentation refuses",
+      "XML-tree duplicate required attribute refuses",
+      "XML-tree main instrumentation refuses",
+      "XML-tree missing root refuses",
+      "XML-tree tabs refuse ambiguous scoping"
+    ],
+    "actual_sdk_execution": "UNRUN"
+  },
+  "offline_configured_dependency_resolution": true,
+  "sdk_metadata_command_count": 6,
+  "added_successor_functions": [
+    "public_instrumentation"
+  ],
+  "final_static_input_inventory_proof": {
+    "source_files175": "MATCH",
+    "non_home_historical_inputs174": "MATCH",
+    "home_source_sha256": "ab979ef699d95e12e1f97c36682b4d7a368c0372c4eb51f25181b2bc9820b50e",
+    "build_wrapper_configured_environment_local_init_jdk_helpers_signing_sdk_host_proof": "MATCH",
+    "android_declared_cases21": "UNRUN",
+    "current_revision_jvm_rerun": false,
+    "packet_claim": "UNUSED",
+    "SDK_xmltree_static_binary_token": "PRESENT",
+    "shared_boundary_ast": "UNCHANGED",
+    "real_native_runtime": "UNRUN"
   }
 }
