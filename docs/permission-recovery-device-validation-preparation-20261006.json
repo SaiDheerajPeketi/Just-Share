@@ -1,0 +1,660 @@
+{
+  "schema": 1,
+  "purpose": "justshare-permission-recovery-device-preparation-v1",
+  "status": "SOURCE_ONLY_NATIVE_ADMISSION_DISABLED",
+  "prepared_date": "2026-10-06",
+  "caller": "docs/run-permission-recovery-device-validation-20261006.py",
+  "caller_sha256": "b767a3038cd8ee116d7bc1f79b7538c3efa38465bf95642a7a0e988296d731f6",
+  "native_admission_enabled": false,
+  "root_actor": false,
+  "coordinator_grant": false,
+  "runtime_authorized": false,
+  "native_executor_implemented": false,
+  "expected_source": {
+    "accepted_source": "965536c13b4678aa302f75f100ecab52e065f857",
+    "app_tree": "9177d21b523f35e3aa53a8047c12c3f895e34afb",
+    "app_src_tree": "658642c649f9f888804012e0aa3b6e713d24ccf2"
+  },
+  "historical_baseline_only": true,
+  "root_source_successor": {
+    "commit": "d66c25bf172fc821052298f34a6936bbf3b925a3",
+    "app_src_tree": "5b78e7caa7244e6aa7795e118dbd835f2b34cae3",
+    "home_sha256": "ab979ef699d95e12e1f97c36682b4d7a368c0372c4eb51f25181b2bc9820b50e",
+    "status": "ROOT_SOURCE_ACCEPTED_COMMITTED_APK_PAIR_UNBOUND",
+    "actual_artifact_binding": false
+  },
+  "existing_host_evidence": {
+    "compiled_source": "4e35e47fee047a6cfafd92079aacdc0c21df9efb",
+    "proof_commit": "81490059ada05cd983ef67d1a6db3350e1ab4699",
+    "host_cases_passed": 8,
+    "selected_android_methods_compiled": 21,
+    "selected_android_methods_executed": 0,
+    "not_an_apk_pair_binding": true
+  },
+  "historical_selected_source_sha256": {
+    "app/src/androidTest/java/com/blackandblue/justshare/ui/screens/PermissionsScreenTest.kt": "79164d4e8939f92e859f15c90128d2150477c5b107f6ce5e00e2d1bd809b7c4c",
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/PermissionRecoveryNavigationTest.kt": "b510b712899c6be250f4ab3e7a8caad9ad73929c425550621b2e5c476252a5e4",
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/WifiPermissionRecoveryTest.kt": "9ff16ad59663a4e945c50c94496b3d9cf9c34313ecea0359398b3e8ab13ac69c",
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/TransferRetryStateTest.kt": "1c68ea0a48b4a59c20bfd4a2e024623de58bf6aa45679211611d0cc0089f7247",
+    "app/src/androidTest/java/com/blackandblue/justshare/data/chat/BluetoothDiscoveryPermissionTest.kt": "5539c01e236fbc52fc053e3c5696682ec6a59373aec0bd4eb236167abd4413c7",
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/LocalTransportOwnershipTest.kt": "7e9b54891e7e076f5679abc5d7533ca947a82b2a87a34a5146d5c5f4350eddca",
+    "app/src/main/java/com/blackandblue/justshare/MainActivity.kt": "44a2389f1e280147f8d09854f043285d71b1570141990047c01d94e25cd7e765",
+    "app/src/main/java/com/blackandblue/justshare/SharingApp.kt": "18f6d0a883490ec1efca66b78dce6c5e1055076af91aa03226962f8936e2e506",
+    "app/src/main/java/com/blackandblue/justshare/navigation/NavGraph.kt": "0c9efd27bc75b7b05e053fa86f308031347225f138f4eaad3283538aa8f62510",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/PermissionsScreen.kt": "01b2e1990eaf2ed4b5ba69f2c642f8f5da73412958338bb56a968a10f066b787",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/HomeScreen.kt": "20b425e206fc9f098f3f7d3bb80587a07877b7cc517de0b2671bdb214437e23a",
+    "app/src/main/java/com/blackandblue/justshare/ui/components/HardwareStateWrapper.kt": "7143621afa6cd304c3bf15828eb716eb78f831a4d941d303723e4b95c1b7cab2",
+    "app/src/debug/java/com/blackandblue/justshare/AppCheckInstaller.kt": "6bd981b7c9cf56f8a28ae6c93e8f73b1c4d635e72e44556765c6b1da5d64570e",
+    "app/src/main/AndroidManifest.xml": "11c335230084cfbf9e482edceda02219827e4e035f8182a0b720b6f567c19c51"
+  },
+  "selected_suites": [
+    {
+      "class": "com.blackandblue.justshare.ui.screens.PermissionsScreenTest",
+      "source": "app/src/androidTest/java/com/blackandblue/justshare/ui/screens/PermissionsScreenTest.kt",
+      "count": 3,
+      "methods": [
+        "finalPermissionAndRecoveryActionsRemainAccessible",
+        "returningFromSettingsRefreshesActualGrantsWithoutAutoNavigation",
+        "unavailableSettingsKeepsRecoveryAndBrowseExitUsable"
+      ],
+      "executed": 0,
+      "status": "UNRUN"
+    },
+    {
+      "class": "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest",
+      "source": "app/src/androidTest/java/com/blackandblue/justshare/navigation/PermissionRecoveryNavigationTest.kt",
+      "count": 5,
+      "methods": [
+        "directShareDenialCanBrowseAndResumeDoesNotBounceNonlocalPages",
+        "foregroundRevocationDisposesDiscoveryBeforeRecoveryAndCanResume",
+        "otherTransportGrantCannotConstructBluetoothDiscovery",
+        "receiverRoleSurvivesDirectEntryRecoveryWithoutInventingFiles",
+        "selectedFilesAndSenderRoleSurviveDenialSettingsAndReturnToPicker"
+      ],
+      "executed": 0,
+      "status": "UNRUN"
+    },
+    {
+      "class": "com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest",
+      "source": "app/src/androidTest/java/com/blackandblue/justshare/presentation/WifiPermissionRecoveryTest.kt",
+      "count": 3,
+      "methods": [
+        "deniedLateConnectionAndDiscoveryCallbacksCannotStartLocalService",
+        "revocationStopsExistingServiceAndRejectsQueuedConnectionCallback",
+        "settingsRecoveryTargetsOnlyThisAppsPermissionPage"
+      ],
+      "executed": 0,
+      "status": "UNRUN"
+    },
+    {
+      "class": "com.blackandblue.justshare.presentation.TransferRetryStateTest",
+      "source": "app/src/androidTest/java/com/blackandblue/justshare/presentation/TransferRetryStateTest.kt",
+      "count": 4,
+      "methods": [
+        "cancelledAndQueuedOldProgressCannotBlockSelectedFileRetry",
+        "fastIncomingCompletionSurvivesTheNavigationStart",
+        "permissionInterruptionInvalidatesOldUpdatesAndRetainsExactSelectionForRetry",
+        "permissionLossAfterFastIncomingCompletionDoesNotReplaceTheFinishedResult"
+      ],
+      "executed": 0,
+      "status": "UNRUN"
+    },
+    {
+      "class": "com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest",
+      "source": "app/src/androidTest/java/com/blackandblue/justshare/data/chat/BluetoothDiscoveryPermissionTest.kt",
+      "count": 3,
+      "methods": [
+        "liveGrantRevocationRejectsProtectedMetadataAndUnregistersFoundReceiver",
+        "protectedGetterRaceIsCaughtAndQueuedCallbacksStayInactive",
+        "stopWithoutScanGrantUnregistersAndRegrantRegistersOnceAgain"
+      ],
+      "executed": 0,
+      "status": "UNRUN"
+    },
+    {
+      "class": "com.blackandblue.justshare.navigation.LocalTransportOwnershipTest",
+      "source": "app/src/androidTest/java/com/blackandblue/justshare/navigation/LocalTransportOwnershipTest.kt",
+      "count": 3,
+      "methods": [
+        "immediateHomeReentryReleasesOldLeaseWhileOutgoingDiscoveryStillFades",
+        "receiverProgressReusesDiscoveryOwnerAndRevocationKeepsReceiveDirection",
+        "senderProgressReusesDiscoveryOwnerAndRevocationStopsItWithoutLosingFiles"
+      ],
+      "executed": 0,
+      "status": "UNRUN"
+    }
+  ],
+  "selected_methods": [
+    "com.blackandblue.justshare.ui.screens.PermissionsScreenTest#finalPermissionAndRecoveryActionsRemainAccessible",
+    "com.blackandblue.justshare.ui.screens.PermissionsScreenTest#returningFromSettingsRefreshesActualGrantsWithoutAutoNavigation",
+    "com.blackandblue.justshare.ui.screens.PermissionsScreenTest#unavailableSettingsKeepsRecoveryAndBrowseExitUsable",
+    "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#directShareDenialCanBrowseAndResumeDoesNotBounceNonlocalPages",
+    "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#foregroundRevocationDisposesDiscoveryBeforeRecoveryAndCanResume",
+    "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#otherTransportGrantCannotConstructBluetoothDiscovery",
+    "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#receiverRoleSurvivesDirectEntryRecoveryWithoutInventingFiles",
+    "com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#selectedFilesAndSenderRoleSurviveDenialSettingsAndReturnToPicker",
+    "com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest#deniedLateConnectionAndDiscoveryCallbacksCannotStartLocalService",
+    "com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest#revocationStopsExistingServiceAndRejectsQueuedConnectionCallback",
+    "com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest#settingsRecoveryTargetsOnlyThisAppsPermissionPage",
+    "com.blackandblue.justshare.presentation.TransferRetryStateTest#cancelledAndQueuedOldProgressCannotBlockSelectedFileRetry",
+    "com.blackandblue.justshare.presentation.TransferRetryStateTest#fastIncomingCompletionSurvivesTheNavigationStart",
+    "com.blackandblue.justshare.presentation.TransferRetryStateTest#permissionInterruptionInvalidatesOldUpdatesAndRetainsExactSelectionForRetry",
+    "com.blackandblue.justshare.presentation.TransferRetryStateTest#permissionLossAfterFastIncomingCompletionDoesNotReplaceTheFinishedResult",
+    "com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest#liveGrantRevocationRejectsProtectedMetadataAndUnregistersFoundReceiver",
+    "com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest#protectedGetterRaceIsCaughtAndQueuedCallbacksStayInactive",
+    "com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest#stopWithoutScanGrantUnregistersAndRegrantRegistersOnceAgain",
+    "com.blackandblue.justshare.navigation.LocalTransportOwnershipTest#immediateHomeReentryReleasesOldLeaseWhileOutgoingDiscoveryStillFades",
+    "com.blackandblue.justshare.navigation.LocalTransportOwnershipTest#receiverProgressReusesDiscoveryOwnerAndRevocationKeepsReceiveDirection",
+    "com.blackandblue.justshare.navigation.LocalTransportOwnershipTest#senderProgressReusesDiscoveryOwnerAndRevocationStopsItWithoutLosingFiles"
+  ],
+  "expected_case_count": 21,
+  "executed_cases": 0,
+  "native_pass": null,
+  "screenshots": [],
+  "screenshot_scores": null,
+  "after_release_proof": null,
+  "actual_apk_binding": {
+    "app": {
+      "path": null,
+      "sha256": null,
+      "bytes": null,
+      "package": null,
+      "certificate_sha256": null,
+      "debuggable": null,
+      "source_commit": null,
+      "app_tree": null,
+      "app_src_tree": null,
+      "packaging_receipt_sha256": null,
+      "test_target": null,
+      "runner": null
+    },
+    "test": {
+      "path": null,
+      "sha256": null,
+      "bytes": null,
+      "package": null,
+      "certificate_sha256": null,
+      "debuggable": null,
+      "source_commit": null,
+      "app_tree": null,
+      "app_src_tree": null,
+      "packaging_receipt_sha256": null,
+      "test_target": null,
+      "runner": null
+    }
+  },
+  "actual_tool_pins": {
+    "/Users/speketi/Library/Android/sdk/platform-tools/adb": null,
+    "/Users/speketi/Library/Android/sdk/emulator/emulator": null,
+    "resolved_qemu_executable": null,
+    "apksigner_executable": null,
+    "apksigner_jar": null,
+    "aapt_or_apkanalyzer_executable": null,
+    "rtk_executable": null,
+    "python_executable": null,
+    "supervisor_source_sha256": null,
+    "supervisor_plan_sha256": null
+  },
+  "actual_runtime_binding": {
+    "packet": null,
+    "avd_name": null,
+    "console_port": null,
+    "adb_port": null,
+    "proxy_port": null,
+    "serial": null,
+    "boot_id": null,
+    "api": null,
+    "abi": null,
+    "qemu": null,
+    "current_user": null,
+    "server_pid": null,
+    "server_lstart": null,
+    "server_identity_sha256": null,
+    "server_binary_sha256": null,
+    "server_listener": null,
+    "emulator_pid": null,
+    "emulator_lstart": null,
+    "emulator_identity_sha256": null,
+    "emulator_pgid": null,
+    "emulator_executable": null,
+    "started_monotonic": null,
+    "native_window_receipt_sha256": null,
+    "root_admission_sha256": null
+  },
+  "limits": {
+    "total_seconds": 600,
+    "work_cutoff_seconds": 480,
+    "cleanup_cutoff_seconds": 570,
+    "final_cutoff_seconds": 600,
+    "preflight_free_bytes": 16106127360,
+    "runtime_free_floor_bytes": 12884901888,
+    "fresh_data_reserve_bytes": 3221225472,
+    "memory_pressure_required": 1,
+    "emulator_ram_mib": 1536,
+    "emulator_cores": 2,
+    "renewals": 0
+  },
+  "proposed_ports": {
+    "console": 5582,
+    "emulator_adb": 5583,
+    "dedicated_adb_server": 5149,
+    "unused_dead_http_proxy": 5151,
+    "status": "PROPOSED_NO_ACTUAL_ADMISSION"
+  },
+  "original_public_profile": {
+    "path": "/Users/speketi/.android/avd/Pixel_8_Android15_35_-_B.avd/config.ini",
+    "sha256": "f4384c476ef8ccf5f38720f201d9d5755f2db618ab8e810490c65c112a488188",
+    "bytes": 1367
+  },
+  "immutable_sdk_image_baseline": [
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/source.properties",
+      "sha256": "01ee052cbd7e0f52ae73b154dbb9968784b68a044e5ae797f43c72486a50089d",
+      "bytes": 372
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/package.xml",
+      "sha256": "d3da0f6fdd03e8e0941ef28836ccc4c0d13ed0b3c61ffb6dc3f6a384d903b199",
+      "bytes": 19656
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/system.img",
+      "sha256": "3f091dd5b7656b6b56cf8623ac579369ed4a583a627a53f368c71a6d5b379977",
+      "bytes": 2203058176
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/vendor.img",
+      "sha256": "97fc7e35248033210b357e277a9efbe58d7a26b8c5244a0c5c94b82b2dcd22b4",
+      "bytes": 50331648
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/kernel-ranchu",
+      "sha256": "a9dda2ae115395ea352bca2201294b4df0020a7f425cbfae879ee66a03a8f19f",
+      "bytes": 14474326
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/ramdisk.img",
+      "sha256": "ca72fd53454b7f05d9913bbdefb6e87fc02e9d1b62758b6c1fd98fdb99ee5cd2",
+      "bytes": 1802106
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/encryptionkey.img",
+      "sha256": "522bd0b6a2c92e37de465059bb9487bb9597a9aae032b469a8ebe0b38146d8c3",
+      "bytes": 18874368
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/VerifiedBootParams.textproto",
+      "sha256": "aaecd09c916d835692a13da9912a18b36f86411b98f89dd75736e72372239459",
+      "bytes": 356
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/advancedFeatures.ini",
+      "sha256": "199704a222a162162c53183b6ae22da18e48abd1540708fe1b6a5d406a9267c3",
+      "bytes": 778
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/kernel_cmdline.txt",
+      "sha256": "5bd6571f46a3e593053a7c6c37f4eed840c0da2278506fa53d1ff021e9d4d8e4",
+      "bytes": 16
+    },
+    {
+      "path": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/build.prop",
+      "sha256": "ea560dfee416326616e73bcdf0cbc6d64c1dc0438037b489dbf0e057a28e852c",
+      "bytes": 4551
+    }
+  ],
+  "profile_observation_scope": "Named public config.ini only. No private existing userdata/accounts/snapshots read or copied. These baseline hashes alone do not supply runtime unchanged-after proof.",
+  "sdk_image": {
+    "api": 35,
+    "abi": "arm64-v8a",
+    "tag": "google_apis_playstore",
+    "revision": 9,
+    "extension_level": 13,
+    "stock_userdata_img_present": false,
+    "fresh_boot_readiness": null,
+    "fresh_boot_uncertainty": "Official docs describe stock userdata.img to userdata-qemu.img initialization; installed image lacks stock userdata.img. Fresh config-only -wipe-data remains unverified; boot failure stops before installation."
+  },
+  "fresh_profile": {
+    "runtime_root": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>",
+    "ignored_parent": "build",
+    "create_exclusively": true,
+    "avd_home": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/profile/avd",
+    "avd_name": "JustSharePermissionRecovery20261006_<same-32hex>",
+    "config_path": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/profile/avd/JustSharePermissionRecovery20261006_<same-32hex>.avd/config.ini",
+    "ini_path": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/profile/avd/JustSharePermissionRecovery20261006_<same-32hex>.ini",
+    "ini_fields": {
+      "avd.ini.encoding": "UTF-8",
+      "path": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/profile/avd/JustSharePermissionRecovery20261006_<same-32hex>.avd",
+      "path.rel": "JustSharePermissionRecovery20261006_<same-32hex>.avd",
+      "target": "android-35"
+    },
+    "config_fields": {
+      "AvdId": "JustSharePermissionRecovery20261006_<same-32hex>",
+      "avd.ini.displayname": "Just Share Permission Recovery Disposable",
+      "avd.ini.encoding": "UTF-8",
+      "abi.type": "arm64-v8a",
+      "tag.id": "google_apis_playstore",
+      "hw.cpu.arch": "arm64",
+      "hw.cpu.ncore": "2",
+      "hw.lcd.width": "1080",
+      "hw.lcd.height": "2400",
+      "hw.lcd.density": "420",
+      "hw.ramSize": "1536",
+      "disk.dataPartition.size": "3G",
+      "hw.sdCard": "no",
+      "hw.audioInput": "no",
+      "hw.audioOutput": "no",
+      "hw.keyboard": "yes",
+      "hw.gpu.enabled": "yes",
+      "hw.gpu.mode": "swiftshader_indirect",
+      "image.sysdir.1": "/Users/speketi/Library/Android/sdk/system-images/android-35/google_apis_playstore/arm64-v8a/",
+      "skin.dynamic": "yes"
+    },
+    "data_directory": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/data",
+    "copy_existing_profile_or_data": false,
+    "directory_mode": "0700",
+    "file_mode": "0600"
+  },
+  "proposed_child_environment": {
+    "PATH": "<root-reviewed-minimal-PATH-with-pinned-rtk>",
+    "ANDROID_USER_HOME": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/profile/user-home",
+    "ANDROID_EMULATOR_HOME": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/profile/emulator-home",
+    "ANDROID_AVD_HOME": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/profile/avd",
+    "ANDROID_HOME": "/Users/speketi/Library/Android/sdk",
+    "ANDROID_SDK_ROOT": "/Users/speketi/Library/Android/sdk",
+    "TMPDIR": "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/tmp",
+    "ANDROID_ADB_SERVER_ADDRESS": "127.0.0.1",
+    "ANDROID_ADB_SERVER_PORT": "5149",
+    "ANDROID_SERIAL": "emulator-5582",
+    "ADB_MDNS_AUTO_CONNECT": "",
+    "ADB_LIBUSB": "0",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "proposed_vectors": {
+    "server": [
+      "rtk",
+      "proxy",
+      "/Users/speketi/Library/Android/sdk/platform-tools/adb",
+      "-L",
+      "tcp:127.0.0.1:5149",
+      "-P",
+      "5149",
+      "--one-device",
+      "emulator-5582",
+      "nodaemon",
+      "server"
+    ],
+    "emulator": [
+      "rtk",
+      "proxy",
+      "/Users/speketi/Library/Android/sdk/emulator/emulator",
+      "-avd",
+      "JustSharePermissionRecovery20261006_<same-32hex>",
+      "-port",
+      "5582",
+      "-datadir",
+      "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/data",
+      "-data",
+      "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/data/userdata-qemu.img",
+      "-cache",
+      "/Users/speketi/Projects/Just-Share/build/permission-recovery-device-validation-20261006-<root-approved-32hex>/data/cache.img",
+      "-wipe-data",
+      "-no-snapshot",
+      "-no-snapstorage",
+      "-no-window",
+      "-no-audio",
+      "-no-boot-anim",
+      "-cores",
+      "2",
+      "-memory",
+      "1536",
+      "-http-proxy",
+      "http://127.0.0.1:5151",
+      "-dns-server",
+      "127.0.0.1"
+    ],
+    "device_prefix": [
+      "rtk",
+      "proxy",
+      "/Users/speketi/Library/Android/sdk/platform-tools/adb",
+      "-H",
+      "127.0.0.1",
+      "-P",
+      "5149",
+      "-s",
+      "emulator-5582"
+    ],
+    "instrumentation": [
+      "rtk",
+      "proxy",
+      "/Users/speketi/Library/Android/sdk/platform-tools/adb",
+      "-H",
+      "127.0.0.1",
+      "-P",
+      "5149",
+      "-s",
+      "emulator-5582",
+      "shell",
+      "am",
+      "instrument",
+      "-w",
+      "-r",
+      "-e",
+      "class",
+      "com.blackandblue.justshare.ui.screens.PermissionsScreenTest#finalPermissionAndRecoveryActionsRemainAccessible,com.blackandblue.justshare.ui.screens.PermissionsScreenTest#returningFromSettingsRefreshesActualGrantsWithoutAutoNavigation,com.blackandblue.justshare.ui.screens.PermissionsScreenTest#unavailableSettingsKeepsRecoveryAndBrowseExitUsable,com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#directShareDenialCanBrowseAndResumeDoesNotBounceNonlocalPages,com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#foregroundRevocationDisposesDiscoveryBeforeRecoveryAndCanResume,com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#otherTransportGrantCannotConstructBluetoothDiscovery,com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#receiverRoleSurvivesDirectEntryRecoveryWithoutInventingFiles,com.blackandblue.justshare.navigation.PermissionRecoveryNavigationTest#selectedFilesAndSenderRoleSurviveDenialSettingsAndReturnToPicker,com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest#deniedLateConnectionAndDiscoveryCallbacksCannotStartLocalService,com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest#revocationStopsExistingServiceAndRejectsQueuedConnectionCallback,com.blackandblue.justshare.presentation.WifiPermissionRecoveryTest#settingsRecoveryTargetsOnlyThisAppsPermissionPage,com.blackandblue.justshare.presentation.TransferRetryStateTest#cancelledAndQueuedOldProgressCannotBlockSelectedFileRetry,com.blackandblue.justshare.presentation.TransferRetryStateTest#fastIncomingCompletionSurvivesTheNavigationStart,com.blackandblue.justshare.presentation.TransferRetryStateTest#permissionInterruptionInvalidatesOldUpdatesAndRetainsExactSelectionForRetry,com.blackandblue.justshare.presentation.TransferRetryStateTest#permissionLossAfterFastIncomingCompletionDoesNotReplaceTheFinishedResult,com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest#liveGrantRevocationRejectsProtectedMetadataAndUnregistersFoundReceiver,com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest#protectedGetterRaceIsCaughtAndQueuedCallbacksStayInactive,com.blackandblue.justshare.data.chat.BluetoothDiscoveryPermissionTest#stopWithoutScanGrantUnregistersAndRegrantRegistersOnceAgain,com.blackandblue.justshare.navigation.LocalTransportOwnershipTest#immediateHomeReentryReleasesOldLeaseWhileOutgoingDiscoveryStillFades,com.blackandblue.justshare.navigation.LocalTransportOwnershipTest#receiverProgressReusesDiscoveryOwnerAndRevocationKeepsReceiveDirection,com.blackandblue.justshare.navigation.LocalTransportOwnershipTest#senderProgressReusesDiscoveryOwnerAndRevocationStopsItWithoutLosingFiles",
+      "com.blackandblue.justshare.test/androidx.test.runner.AndroidJUnitRunner"
+    ],
+    "installed_cli_syntax_verified": false,
+    "executed": false
+  },
+  "offline_boundary": {
+    "proxy_dns_arguments": "PROPOSED_NOT_INSTALLED_SDK_VERIFIED",
+    "intended_tcp": "All outgoing TCP routed to dead loopback HTTP proxy127.0.0.1:5151",
+    "intended_dns": "Dead loopback resolver127.0.0.1; installed SDK semantics require root verification",
+    "host_global_network_changes": false,
+    "candidate_host_boundary": "Deny network by default; allow only own loopback5149/5582/5583. Deny proxy5151/DNS53 even if a later foreign listener appears. This is a proposal, not a supported sandbox or egress proof.",
+    "udp_and_other_egress_verified": false,
+    "zero_sdk_calls_claimed": false,
+    "provider_acceptance_claimed": false,
+    "normal_application_initialization": [
+      "configured Firebase/AppCheck debug provider",
+      "JustShareTelemetry initialize/app_open",
+      "conditional RevenueCat configuration",
+      "purchaseRepository observation",
+      "BillingClient connection"
+    ],
+    "account_login_purchases_provider_configuration_external_messages": false,
+    "logcat_or_sdk_tokens_captured": false
+  },
+  "proposed_lifecycle": [
+    "Separate root-reviewed source/packaging/supervisor binding and fresh capacity/ports gate; this proposal confers no runtime authority.",
+    "One monotonic600s native start includes every query/launch/install/test/UI/cleanup/receipt; no renewal or replacement target.",
+    "Preflight pressure1/free>=15GiB/no foreign actual Java/Gradle/emulator/QEMU/Godot; all four ports unused; preserve existing server inventory and exclude actual observer ancestors, not shell/RTK argv substring matches.",
+    "Exclusively create config-only owner Android profile/data3G/tmp under ignored build root; immutable SDK/public config before+after checks; never read/copy existing private userdata or accounts.",
+    "RTK-proxied foreground adb nodaemon server in new recorded session; exact actual PID+lstart+exe mapping+argv+uid+parent/group+loopback5149 listener; never default5037/adopt/autostart/kill-server.",
+    "RTK-proxied emulator in its own recorded session; exact new AVD/profile and launch PID plus actual emulator/QEMU descendants; every child accounted by PID+lstart+exe+uid+parent/group; no grants inherited from other apps.",
+    "Before install and before every mutation require same own server listener/identity and emulator serial+uniqueAVD+bootId+API35+ARM64+quemu1+user0+boot_completed1; fresh no-human-credential baseline and both exact packages absent.",
+    "Every child/query is RTK wrapped, output bounded, and timeout<=remaining phase. Recheck pressure1/free>=12GiB/foreign heavy work/ports/identity/immutable bytes. Abort only owned work on drift.",
+    "Install exact source-bound app/test debug pair; one installed base.apk per package; pull and match host/pulled SHA,size,cert,package,debuggable,test-target/runner and packaging source/receipt before tests.",
+    "One bounded instrumentation invocation for exact21 selectors; raw stdout/stderr+hashes and unique class/method outcomes/count; zero failures/errors/skips and final completion required.",
+    "If time/resources remain, clear only owned synthetic app state and launch actual MainActivity for separate production normal/1.3scale UI cases; capture hierarchy/PNG hashes and genuine blockers. Never substitute mock Compose results for production UI.",
+    "All work ends at480s. Only exact owned foreground server/emulator/RTK sessions and verified descendants receive TERM then KILL after identity/group rechecks; reap children before570s. No killall/adoption/existing-server termination.",
+    "By600s independently prove no matching owned identities or live owned group members, own ports free, prior servers/public config/SDK unchanged and resource floor/pressure, then seal receipts. Late/incomplete cleanup never nativePASS."
+  ],
+  "proposed_command_caps_seconds": {
+    "query": 3,
+    "server_start": 15,
+    "boot_total_cutoff": 120,
+    "each_install_or_pull": 30,
+    "instrumentation": 240,
+    "each_ui_action_capture": 10,
+    "owned_term_or_kill_reap": 5,
+    "always_capped_by_remaining_phase": true,
+    "per_command_output_bytes": 16777216
+  },
+  "production_ui_plan": {
+    "scope": "Real MainActivity; independent from selected mock/context tests",
+    "font_scales": [
+      1.0,
+      1.3
+    ],
+    "cases": [
+      "Fresh onboarding to Share with nearby devices",
+      "Tap Allow nearby sharing; actually deny OS dialogs; capture recovery and accessible final row/actions",
+      "Not now leads Home; History and Settings browse/return do not bounce to permissions",
+      "Receive/local Bluetooth and Wi-Fi contextual recovery as available; Open app settings; return without automatic navigation; Not now exit",
+      "At1.3scale verify final row/Allow/Open app settings/Not now within safe drawing area and capture Home/History/Settings as time allows",
+      "Capture hardware modal/unsupported route as blocker; no fake override or invented peers; missing captures remainUNRUN"
+    ],
+    "hardware_note": "Historical Home RequireHardware can create nondismissible emulator Wi-Fi/Bluetooth modal. Root Home fixd66 is committed but unbound; no browse acceptance from blocked captures.",
+    "scope_exclusions": [
+      "hardware discovery",
+      "two-device transfer",
+      "other Android APIs",
+      "provider acceptance"
+    ],
+    "fake_context_tests_are_full_MainActivity_proof": false,
+    "original_font_scale_must_be_recorded_and_restored": true
+  },
+  "required_receipt": [
+    "reviewed caller/supervisor/plan/tool bytes",
+    "source/APK packaging receipt",
+    "host+pulled APK/cert/package/test-target parity",
+    "SDK/publicconfig before+after",
+    "actual packet/ports/serial/AVD/bootId/API/ABI/quemu/user and process PID/lstart/exe/parent/group",
+    "per-command RTK vectors/timeout/identity/exit/output hashes",
+    "raw instrumentation21outcomes",
+    "separate productionUI hierarchy/PNG/fontscale andUNRUN/blockers",
+    "reaped owned children + independent owned identity/group absence/portfree/priorserversunchanged/resource after proof",
+    "terminal sealed hashes within600s"
+  ],
+  "source_only_blockers": [
+    "Actual APK/cert/build-source pins absent; old compile proof does not bind APKs.",
+    "This helper implements pure checks and proposal only; separate root supervisor review must validate foreground/new-session lifecycle, bounded descendant accounting and owned-only teardown.",
+    "Installed CLI/proxy/DNS and supported offline host boundary are unverified; no SDK isolation/readiness claim.",
+    "No fresh root actual capacity/port/identity/start gate; proposed ports unreserved.",
+    "No stock userdata.img: actual fresh boot may fail and must stop before installation.",
+    "Historical965baseline is not currentd66Home successor; source/APK pair must be rebound before native review."
+  ],
+  "reference_sources": [
+    {
+      "path": "/Users/speketi/Projects/HearthLedger/tools/run_debug_bootstrap.py",
+      "sha256": "317f12cf7bffe246aebe1163a49de126da30624c8265a78ed42ca476fd4dc101",
+      "bytes": 45457
+    },
+    {
+      "path": "/Users/speketi/Projects/HearthLedger/tools/run_debug_review_batch.py",
+      "sha256": "088ccce0ba8c8ba70140fa1ff1d3eef50953b60326b4677f26d9416af4b35563",
+      "bytes": 28834
+    },
+    {
+      "path": "/Users/speketi/Projects/PaceShelf/docs/reviews/operation-tools/native-ui-sequence.py",
+      "sha256": "e9946525cb7aa3da9b79164c4ab82ede8db30e7885f0c3ebc8cfa0995bf4d409",
+      "bytes": 11662
+    },
+    {
+      "path": "/private/tmp/dawn-four-compose-native-20261006.py",
+      "sha256": "8481924fe989679e4b35a68f50d464dd55134a1a4d81bfe92d26741632d0d678",
+      "bytes": 8279
+    },
+    {
+      "path": "/private/tmp/ux-root-shared-resource-check-20261006.py",
+      "sha256": "555e56782d6131478c3eec5dae40eddf2f32ea171f1079a4c99242b73e775495",
+      "bytes": 3457
+    }
+  ],
+  "reference_limits": "Source patterns only. No imports/execution/adoption/shared lease/application grants. Hearth disabled gate is reference evidence, not a Just Share authority rule.",
+  "preparation_validation": {
+    "python_ast": "PASS",
+    "pure_mock_checks": {
+      "kind": "PURE_MOCK_ONLY",
+      "count": 73,
+      "checks": [
+        "exact unique 21 class+method outcomes/count accepted",
+        "missing method",
+        "duplicate method",
+        "wrong class",
+        "wrong numtests",
+        "failure/error/ignore/assumption code -1",
+        "failure/error/ignore/assumption code -2",
+        "failure/error/ignore/assumption code -3",
+        "failure/error/ignore/assumption code -4",
+        "pass without start",
+        "overlapping start",
+        "duplicate field",
+        "malformed extra status code",
+        "missing final code",
+        "duplicate final code",
+        "wrong final total",
+        "aborted output",
+        "shortMsg output",
+        "actual executable and PID+lstart identity classify native work",
+        "exact owned identity admitted for pure classification",
+        "PID reuse with changed start identity remains foreign",
+        "shell/RTK argv text alone is not classified as native work",
+        "foreign actual executable: java.bin",
+        "foreign actual executable: emulator",
+        "foreign actual executable: emulator64-arm",
+        "foreign actual executable: qemu",
+        "foreign actual executable: qemu-system-aarch64",
+        "foreign actual executable: Godot_v4",
+        "foreign actual executable: Gradle",
+        "missing executable mapping",
+        "duplicate process PID",
+        "raced extra executable",
+        "pressure1 and15GiB preflight admit pure observation",
+        "pressure2",
+        "below15GiB",
+        "foreign heavy workload",
+        "below12GiB runtime floor",
+        "every future command timeout capped to remaining480s work window",
+        "cleanup timeout capped to remaining570s cutoff",
+        "work after480s",
+        "cleanup after570s",
+        "final after600s",
+        "nonfinite timeout",
+        "complete exact mock target and dedicated server identity",
+        "target identity drift: boot_id",
+        "target identity drift: server_pid",
+        "target identity drift: server_lstart",
+        "target identity drift: server_listener",
+        "target identity drift: serial",
+        "target identity drift: avd_name",
+        "target identity drift: api",
+        "target identity drift: abi",
+        "target identity drift: qemu",
+        "target identity drift: current_user",
+        "target identity drift: emulator_pgid",
+        "target identity drift: emulator_executable",
+        "exact mocked host/pulled APK/cert/source/package/test-target pair",
+        "installed APK parity drift: sha256",
+        "installed APK parity drift: certificate_sha256",
+        "installed APK parity drift: package",
+        "installed APK parity drift: app_src_tree",
+        "installed APK parity drift: debuggable",
+        "installed APK parity drift: bytes",
+        "installed APK parity drift: test_target",
+        "installed APK parity drift: runner",
+        "unbound APK",
+        "different pair signers",
+        "mocked owned absence/group/port/input release proof",
+        "live owned identity",
+        "live owned group",
+        "occupied owned port",
+        "original bytes changed",
+        "unconditional native refusal"
+      ],
+      "native_executed": false,
+      "device_cases_executed": 0
+    },
+    "sdk_java_gradle_helper_native_process_inventory_adb_avd_browser_remote_provider_pixels_executed": false,
+    "method_declarations_and_selected_source_hashes": "MATCH_21_OF_6_SUITES",
+    "static_sdk_public_config_rehash": "MATCH",
+    "validation_method": "AST extraction of pure definitions; no target module import, CLI/main, process query or native call."
+  },
+  "child_environment_home_policy": {
+    "HOME": "inherited unchanged",
+    "CFFIXED_USER_HOME": "no new override",
+    "authority": "root supervisor environment constraint"
+  }
+}
