@@ -233,7 +233,7 @@ REVIEWED_CONFIGURED_PINS = {'configured_environment_sha256': {'ANDROID_HOME': No
                                    'JAVA_HOME': None,
                                    'JAVA_OPTS': None,
                                    'JDK_JAVA_OPTIONS': None,
-                                   'PATH': 'bf61bcb73564b49984ded20e7226e2805beea4af2f29942f33760b73d1a9ddca',
+                                   'PATH': 'f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3',
                                    'QUOTA_API_BASE_URL': None,
                                    'USERPROFILE': None,
                                    '_JAVA_OPTIONS': None},
