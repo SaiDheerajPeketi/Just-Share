@@ -1,0 +1,23 @@
+{
+  "epoch": 1791277353.877232,
+  "source": "6753bcd9e62644b5f6ab722c6373411804826f8e",
+  "result_sha256": "ac42de50810ddc7d72e44c7b935ad5ff51a14951c1b6f9ea504bdbdeccef959e",
+  "memory_pressure": 1,
+  "free_gib": 22.85,
+  "owned_identity_count": 20,
+  "matching_live_identities": {},
+  "owned_groups": [
+    81817,
+    81849,
+    87992,
+    88139,
+    88253,
+    88408,
+    88502,
+    88592
+  ],
+  "live_group_members": [],
+  "release_verified": true,
+  "current_foreign_heavy": [],
+  "observation_scope": "Independent actual executable/start identity snapshot; no process termination or coordinator grant."
+}

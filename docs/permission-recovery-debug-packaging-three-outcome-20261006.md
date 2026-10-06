@@ -1,0 +1,22 @@
+# Verified current debug APK pair
+
+The exact THREE caller at `6753bcd9e62644b5f6ab722c6373411804826f8e`, SHA256 `9bd52cfa5943348b3ccd50519354e90c62227b69467ba63cf51dbf3aa6df8c74`, completed actual session **11797** with exit **0**. Gradle succeeded in **1m52s**, 78 tasks (16 executed, 62 up-to-date); the caller and all six SDK inspections completed in **117.714 seconds** within the unchanged 300-second window.
+
+Before launch, the actual Just-Share/escalated context passed all 175 source hashes, tree/build/wrapper/caller/configured/JDK/helper/signing/SDK and 18 packaging pins. Independent source review accepted the exact three-doc freeze with no concrete P0/P1 and 44 pure guard checks. The fresh resource snapshot at `1791277160.028532` found pressure 1, 22.76 GiB free and no heavy worker.
+
+`:app:compileDebugKotlin` actually executed, compiling the current Home fix `d66c25bf172fc821052298f34a6936bbf3b925a3`, `app/src` tree `5b78e7caa7244e6aa7795e118dbd835f2b34cae3`. Android-test Kotlin/Java compilation was up-to-date and reused unchanged compiled test inputs. Both `:app:packageDebug` and `:app:packageDebugAndroidTest` executed freshly, followed by successful assemble tasks. **No JVM rerun or Android device case was requested or executed; all 21 selected Android methods remain UNRUN.** The earlier eight JVM passes remain bound to their original source.
+
+The captured pair has verified ZIP CRC/structure, fresh package metadata, installed aapt badging/XML-tree output and apksigner verification. Main is `com.blackandblue.justshare`, version 9/1.0.5, with no instrumentation. Test is `com.blackandblue.justshare.test`, with absent version fields and exactly one direct-child `androidx.test.runner.AndroidJUnitRunner` targeting the main package. The matching single debug certificate is `e5767f7427cd1cf36c74aa712ff9b321cc2ce064a07d961c770dc9b9871a8692`, with verified APK v2 signatures. Public badging also reports min SDK 24, target SDK 36 and debuggable for both; main contains arm64-v8a, armeabi-v7a, x86 and x86_64 native code, while test has no native-code row.
+
+| Captured artifact | Bytes | SHA256 |
+| --- | ---: | --- |
+| `main-debug.apk` | 26,328,998 | `cb78d1411e335da34c93782ea14ed95fe75a5f12625f8d8bb4ae2dcb042281b9` |
+| `test-debug.apk` | 1,073,069 | `373f66bd6e63bc3b1c896d257a1fa1ee316f7f2bea7c8dba6fb8b8becefd1128` |
+
+Inputs stayed identical before/after; owned cleanup succeeded, failures were empty, and no foreign-work observation was recorded. The independent actual executable/start snapshot at `1791277353.877232` found all **20 recorded identities** and groups **81817/81849/87992/88139/88253/88408/88502/88592 absent**, pressure 1, 22.85 GiB free and no foreign heavy worker. Root owns no live runtime or reservation and has reported the explicit release to the human-authorized coordinator.
+
+Root executed the separately authored standard-library checker against the actual APK pair, all raw logs/metadata/source hashes and independent release. It returned exit **0**, `PASS_INDEPENDENTLY_VERIFIED`, with no packet writes, subprocess, helper or SDK operation. Its exact source is archived as `check-permission-recovery-debug-packaging-three-20261006.py`, SHA256 `40b4946698f8b7c466ad49f26ad11720795853431ad20c970c8300485216a6e1`. Its 14 focused new fixtures remain separate preparation evidence.
+
+The original packet bytes remain intact: result SHA256 `ac42de50810ddc7d72e44c7b935ad5ff51a14951c1b6f9ea504bdbdeccef959e`, Gradle log `8c8ee06f3ef8354dd8c7f44458bd4cdb591a73f22a2cf39708e4ec224396b20f`, independent release `b6a5da7d5b17629544cd3422f5a8050355e0953e2c7f51706ea82ceab518d58a`, and identical actor/sibling claims `4aad86503cf30ffb6ee8e198d8d78f4fb6d08530eda9f2741233f4be1c067b2b`. Both earlier failed One/Two packets remain unchanged in commits `04ba89b5`/`fb21bb95`; they are not reclassified as passes.
+
+This verifies packaging and current Home compilation. **Installed Home/permission/recovery behavior, readable native captures, real radios/two-device transfer, persisted URI behavior, provider/accounts, billing and whole-product acceptance remain unverified.** The separate native supervisor `713ebdd2` is accepted only as disabled source preparation: admission unconditionally raises because fast detached/spawn/Mach-broker containment and actual QEMU inheritance remain unproven. No native binding, SDK launch, store release, phone operation or coordinator grant is inferred from this APK result.
