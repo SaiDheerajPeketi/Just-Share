@@ -1,0 +1,35 @@
+{
+  "source": "4e35e47fee047a6cfafd92079aacdc0c21df9efb",
+  "result_sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79",
+  "release_verified": true,
+  "suites": {
+    "com.blackandblue.justshare.LocalTransferPermissionsTest": {
+      "counts": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "report_sha256": "ecf553171390e223e133ccf9713f15ba1ec11eb4322f52f55888b982e1753300"
+    },
+    "com.blackandblue.justshare.domain.transfer.TransferProgressSessionTest": {
+      "counts": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "report_sha256": "66360eebbf05a43e21f2639c3a994b96bb468a1ef136eb5266ac7694aa3c7385"
+    }
+  },
+  "totals": {
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_device_cases_executed": 0,
+  "android_declarations_unrun": 21,
+  "validation_passed": true,
+  "validator_sha256": "274af327a222d802978747d5fadd056c2bad53bb517e47b693cf246d5fa93269"
+}
