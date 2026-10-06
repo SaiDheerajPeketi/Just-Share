@@ -1,0 +1,655 @@
+{
+  "source": "30cd318123f2a6f3ba088ad7ea66913adc9761a0",
+  "source_pins": {
+    "app/src/main/java/com/blackandblue/justshare/CommunicationService.kt": "9b82fa4356f03ffbfe43989925838f572ca4cd69bb3ff3642bb3e846cd279fda",
+    "app/src/main/java/com/blackandblue/justshare/domain/transfer/TransferProgressSession.kt": "5b00733420d644c90fbe48b9f496b48d332592abc9528d01d5f7adf7181ceed6",
+    "app/src/main/java/com/blackandblue/justshare/presentation/TransferViewModel.kt": "808fe4762b931b0d905c1dbd6942a1ac0b218da0db42d4d282f8e52bd314eb3a",
+    "app/src/main/java/com/blackandblue/justshare/ui/components/TransferExitGuard.kt": "f5a68570eda56924fe9f0ff6b4aab3136b470d471e2c358a089cb1016af0a23e",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/TransferProgressScreen.kt": "a547a9f65920f46ca15bfaac657c7e7ab7865d25bb76d71c1a0b444a8c30942e",
+    "app/src/main/java/com/blackandblue/justshare/ui/screens/RemoteTransferProgressScreen.kt": "ebc6def8d78654a9a38aae80a571ce8787e6c4def3a1accfc8c35497c75b7647",
+    "app/src/test/java/com/blackandblue/justshare/domain/transfer/TransferProgressSessionTest.kt": "09fd1b5698c920bdb5165d726117bb56c1a542649f1777f3e5dc6e1d733d5340",
+    "app/src/androidTest/java/com/blackandblue/justshare/ui/components/TransferExitGuardTest.kt": "c5e82fc758c8a8bc810039b0e522534457f6119e55b0ca04c0f813d28d4082b0",
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/TransferRetryStateTest.kt": "e439a4015c93e2fd7773b7018f1ca569d769ba95d7eea7fd2d793f832b889048",
+    "app/src/androidTest/java/com/blackandblue/justshare/TransferConnectionOwnershipTest.kt": "0a969ece7ab47d8a560f3af64b4a4e54c782d8d9e40e50d31402b4d1ec6de6c8",
+    "build.gradle": "3f2f6e900c236549cb371311b00253ccf930f7852f99514baefb240ca02ab18c",
+    "settings.gradle": "61bff6e9290e07e60d7fe0a05fde0f03ae177f95f9485bfbcd0e20b4f04ad475",
+    "app/build.gradle": "f50a723037e543135cc04efaa3164dd9ae7cf758d7631952de0ee7499b1355e7",
+    "gradle.properties": "f3f77d5f4ac2622e5ba6b48b01cdd20ec4b9fd8622b3f7d4b76a57f511ee347f",
+    "gradle/wrapper/gradle-wrapper.properties": "1896801cf5fb078319cbb70a8917ac171210fe46b7749c696f011593332126dc"
+  },
+  "argv": [
+    "rtk",
+    "proxy",
+    "/Users/speketi/Projects/Just-Share/gradlew",
+    "--offline",
+    ":app:testDebugUnitTest",
+    "--tests",
+    "*TransferProgressSessionTest",
+    ":app:compileDebugAndroidTestKotlin",
+    "--no-daemon",
+    "--max-workers=1",
+    "-Dorg.gradle.jvmargs=-Xmx1536m",
+    "-Pkotlin.compiler.execution.strategy=in-process"
+  ],
+  "apk_assembly": false,
+  "android_cases_executed": 0,
+  "coordinator_grant": false,
+  "watchdog_completed": false,
+  "failure": "ValueError('Bounded subprocess failed')",
+  "owned_cleanup": true,
+  "owned_identities": {
+    "3705": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+    "3707": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+    "3743": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d"
+  },
+  "samples": [
+    {
+      "elapsedSeconds": 0.117,
+      "freeBytes": 33239965696,
+      "ownedLiveProcesses": []
+    },
+    {
+      "elapsedSeconds": 0.187,
+      "freeBytes": 33239961600,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "d793951b49e148fc46e5d996f2bfb40548bfd6f7dd0a21f769ad845ad3dee1e9"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 0.248,
+      "freeBytes": 33239961600,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 0.423,
+      "freeBytes": 33239859200,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 0.497,
+      "freeBytes": 33239859200,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 0.67,
+      "freeBytes": 33239859200,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 0.739,
+      "freeBytes": 33239859200,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 0.915,
+      "freeBytes": 33239818240,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3705,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 0.986,
+      "freeBytes": 33239814144,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3705,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.162,
+      "freeBytes": 33239805952,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3705,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.231,
+      "freeBytes": 33239805952,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3705,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.405,
+      "freeBytes": 33239789568,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.474,
+      "freeBytes": 33239781376,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.65,
+      "freeBytes": 33239744512,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.722,
+      "freeBytes": 33239736320,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.897,
+      "freeBytes": 33239728128,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1.971,
+      "freeBytes": 33239719936,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.143,
+      "freeBytes": 33239703552,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.214,
+      "freeBytes": 33239678976,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.392,
+      "freeBytes": 33239646208,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.462,
+      "freeBytes": 33239576576,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.639,
+      "freeBytes": 33239506944,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.711,
+      "freeBytes": 33239457792,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.884,
+      "freeBytes": 33252212736,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "dd6babd458f834dfe376f7918bd0362a7f30f17b0be6c5d80434f9bfa480c704"
+        },
+        {
+          "pid": 3707,
+          "ppid": 3705,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "caacc3d309f651a516c923a3f9dd8099547518a3cbc64e5a20c28a568ffbb151"
+        },
+        {
+          "pid": 3743,
+          "ppid": 3707,
+          "pgid": 3743,
+          "startIdentitySha256": "4168f8bb79679ce6c65c3840c0b51f16787ffec8620963ab8192f2aac2bb4b8d",
+          "commandSha256": "f1e58be6e2f4897d0df01a2af73d8891dd2e0de5322668e863ea2241580044d7"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2.952,
+      "freeBytes": 33252274176,
+      "ownedLiveProcesses": [
+        {
+          "pid": 3705,
+          "ppid": 3690,
+          "pgid": 3705,
+          "startIdentitySha256": "4018a94d34849b51106648116df2f3d5ea0bc956e64a36161475d11e6b76ec0a",
+          "commandSha256": "b8b873405c7a6f565975c5eac3c96fc6ec72e33dedd8b7678515735a32a0b668"
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 3.139,
+      "freeBytes": 33252270080,
+      "ownedLiveProcesses": []
+    },
+    {
+      "elapsedSeconds": 3.208,
+      "freeBytes": 33252270080,
+      "ownedLiveProcesses": []
+    }
+  ],
+  "seconds": 3.208
+}

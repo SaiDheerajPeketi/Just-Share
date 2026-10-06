@@ -1,4 +1,4 @@
-"""One-use current-source unit/Android-test compilation through the maintained Watchdog."""
+"""Pinned current-source unit/Android-test compilation through the maintained Watchdog."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -12,9 +12,7 @@ import time
 import xml.etree.ElementTree as ET
 
 REPO = Path(__file__).resolve().parents[1]
-PACKET = REPO / "docs/reviews/transfer-exit-20261006/compile-one"
 HELPER = Path("/Users/speketi/Projects/HearthLedger/tools/run_offline_release.py")
-CLAIM = Path("/private/tmp/UX-JUSTSHARE-COMPILE-20261006-ONE.json")
 SOURCE_PATHS = [
     "app/src/main/java/com/blackandblue/justshare/CommunicationService.kt",
     "app/src/main/java/com/blackandblue/justshare/domain/transfer/TransferProgressSession.kt",
@@ -48,12 +46,20 @@ def foreign_work(rows, allowed=()):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True)
+    parser.add_argument("--attempt", choices=("one", "two"), default="one")
     args = parser.parse_args()
+    packet = REPO / ("docs/reviews/transfer-exit-20261006/compile-" + args.attempt)
+    claim_path = Path("/private/tmp/UX-JUSTSHARE-COMPILE-20261006-" + args.attempt.upper() + ".json")
+    if args.attempt == "two":
+        previous = json.loads((REPO / "docs/reviews/transfer-exit-20261006/compile-one/result.json").read_text())
+        raw = (REPO / "docs/reviews/transfer-exit-20261006/compile-one/gradle.log").read_text()
+        assert previous["owned_cleanup"] and previous["failure"]
+        assert "version: '8.10.1'" in raw and "could not resolve plugin artifact" in raw
     assert command("git", "rev-parse", "HEAD") == args.source
     subprocess.run(["rtk", "proxy", "git", "-c", "core.fsmonitor=false", "diff", "--quiet", "HEAD", "--", "app", "gradle", "build.gradle", "settings.gradle", "gradle.properties"], cwd=REPO, check=True, timeout=10)
     pins = {name: sha(REPO / name) for name in SOURCE_PATHS}
     assert sha(HELPER) == "b7667e7646e9e0a6d650fecdfdc8a4563f5a1153d068125c781744684283202e"
-    assert not PACKET.exists() and not CLAIM.exists(), "One-use execution already exists"
+    assert not packet.exists() and not claim_path.exists(), "One-use execution already exists"
     sys.path.insert(0, str(HELPER.parent))
     spec = importlib.util.spec_from_file_location("unchanged_transfer_watchdog", HELPER)
     module = importlib.util.module_from_spec(spec)
@@ -61,21 +67,24 @@ def main():
     pressure = int(command("sysctl", "-n", "kern.memorystatus_vm_pressure_level"))
     assert pressure <= 2 and shutil.disk_usage(REPO).free >= 12 * 1024**3
     assert not foreign_work(module.processes()), "Shared Java/AVD/engine work is live"
-    PACKET.mkdir(parents=True, mode=0o700)
+    packet.mkdir(parents=True, mode=0o700)
     claim = {"actor": "root", "coordinator_grant": False, "source": args.source,
              "started_after_epoch": time.time(), "pressure": pressure,
              "scope": "Current four JVM cases and Kotlin compilation of eleven Android cases only",
+             "dependency_resolution": "offline" if args.attempt == "one" else "online after missing offline plugin",
              "helper_sha256": sha(HELPER), "source_pins": pins}
-    with CLAIM.open("x") as stream:
+    with claim_path.open("x") as stream:
         json.dump(claim, stream, indent=2)
         stream.write("\n")
-    (PACKET / "actor-claim.json").write_text(json.dumps(claim, indent=2) + "\n")
-    argv = ["rtk", "proxy", str(REPO / "gradlew"), "--offline",
+    (packet / "actor-claim.json").write_text(json.dumps(claim, indent=2) + "\n")
+    argv = ["rtk", "proxy", str(REPO / "gradlew"),
             ":app:testDebugUnitTest", "--tests", "*TransferProgressSessionTest",
             ":app:compileDebugAndroidTestKotlin", "--no-daemon", "--max-workers=1",
             "-Dorg.gradle.jvmargs=-Xmx1536m", "-Pkotlin.compiler.execution.strategy=in-process"]
+    if args.attempt == "one":
+        argv.insert(3, "--offline")
     env = dict(os.environ, JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home")
-    watch = module.Watchdog(REPO, PACKET, "JUSTSHARE-EXIT-COMPILE-20261006-ONE", seconds=300)
+    watch = module.Watchdog(REPO, packet, "JUSTSHARE-EXIT-COMPILE-20261006-" + args.attempt.upper(), seconds=300)
     result = {"source": args.source, "source_pins": pins, "argv": argv,
               "apk_assembly": False, "android_cases_executed": 0,
               "coordinator_grant": False, "watchdog_completed": False}
@@ -96,14 +105,14 @@ def main():
         counts = {name: int(suite.attrib[name]) for name in ("tests", "failures", "errors", "skipped")}
         assert counts == {"tests": 4, "failures": 0, "errors": 0, "skipped": 0}
         result.update(tests=counts, report_sha256=sha(report), inputs_unchanged=True)
-        (PACKET / report.name).write_bytes(report.read_bytes())
+        (packet / report.name).write_bytes(report.read_bytes())
     except BaseException as error:
         failure = repr(error)
     finally:
         result.update(failure=failure, owned_cleanup=watch.cleanup(),
                       owned_identities=watch.owned, samples=watch.samples,
                       seconds=round(time.monotonic() - watch.start, 3))
-        (PACKET / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+        (packet / "result.json").write_text(json.dumps(result, indent=2) + "\n")
         print(json.dumps({key: value for key, value in result.items()
                           if key not in ("samples", "owned_identities", "source_pins")}))
     raise SystemExit(0 if failure is None and result["owned_cleanup"] else 1)

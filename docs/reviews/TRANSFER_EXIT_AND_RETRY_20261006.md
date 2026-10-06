@@ -26,17 +26,24 @@ cleanup cannot stop a replacement's executor or foreground service.
   stale cleanup/install guards against replacement sockets and executor. They do not
   start a service, transfer files or connect to a peer.
 
-`scripts/run_transfer_exit_validation.py` is a one-use caller of the unchanged
+`scripts/run_transfer_exit_validation.py` is a pinned caller of the unchanged
 HearthLedger Watchdog. It pins source and helper hashes, admits no other Java/AVD/engine
 worker, uses offline JDK 21/one worker/1536 MiB/in-process Kotlin, and retains the
 300-second deadline and raw failure log. It runs the four JVM cases and compiles the
-eleven Android cases. It does not assemble an APK or execute Android tests. The
+eleven Android cases. Each attempt has a distinct one-use packet. It does not assemble an APK or execute Android tests. The
 actor claim explicitly records that it is not a coordinator grant.
 
 At source handoff, authored whitespace checks and independent bounded source review
 of progress isolation, navigation timing and service ownership pass. All Kotlin compilation, JVM
 execution, Android execution and visual review are still **unrun**. Results belong
-in the caller's separate `compile-one` packet after execution.
+in the caller's separate packets after execution.
+
+Attempt one stopped before compilation because the host's offline cache lacked the
+existing Android plugin 8.10.1. Its raw failure and released worker identities are
+retained in `compile-one`; no tests ran. Attempt two permits ordinary dependency
+resolution with the same unchanged 300-second Watchdog and resource bounds. It is
+only admitted after checking that exact plugin failure and release. Build files and
+dependency versions are unchanged; attempt two is still unrun at this handoff.
 
 ## Limits
 
