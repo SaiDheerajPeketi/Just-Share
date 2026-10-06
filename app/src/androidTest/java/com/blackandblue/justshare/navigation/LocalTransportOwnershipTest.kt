@@ -12,6 +12,9 @@ import android.net.Uri
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.wifi.p2p.WifiP2pInfo
 import android.os.Build
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
@@ -91,6 +94,167 @@ class LocalTransportOwnershipTest {
 
     @Test
     fun receiverProgressReusesDiscoveryOwnerAndRevocationKeepsReceiveDirection() = exercise(sender = false)
+
+    @Test
+    fun immediateHomeReentryReleasesOldLeaseWhileOutgoingDiscoveryStillFades() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val application = instrumentation.targetContext.applicationContext as Application
+        val context = PermissionContext(application).also { it.allowed = true }
+        val mounted = mutableStateOf(true)
+        val composedEntries = mutableSetOf<String>()
+        val leases = mutableMapOf<String, Long>()
+        lateinit var owner: Owner
+        var ownerCreated = false
+        lateinit var transfer: TransferViewModel
+        lateinit var wifi: WifiDirectViewModel
+        lateinit var nav: NavHostController
+        var constructions = 0
+        val factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                check(modelClass == WifiDirectViewModel::class.java)
+                constructions++
+                @Suppress("UNCHECKED_CAST")
+                return WifiDirectViewModel(context) as T
+            }
+        }
+        try {
+            composeRule.runOnIdle {
+                owner = Owner().also { it.registry.currentState = Lifecycle.State.RESUMED }
+                ownerCreated = true
+                CommunicationService.clearTransferUpdate()
+                transfer = TransferViewModel(application, UserPreferencesDataStore(application))
+                owner.viewModelStore.put("overlap-transfer", transfer)
+                transfer.resetTransfer()
+                transfer.setMethod("wifi")
+            }
+            composeRule.setContent {
+                if (mounted.value) {
+                    CompositionLocalProvider(LocalContext provides context, LocalViewModelStoreOwner provides owner) {
+                        JediShareTheme {
+                            val transportOwner = checkNotNull(LocalViewModelStoreOwner.current)
+                            nav = rememberNavController()
+                            NavHost(
+                                nav, startDestination = Screen.DiscoverWifi.route,
+                                enterTransition = { fadeIn(tween(300)) },
+                                exitTransition = { fadeOut(tween(300)) }
+                            ) {
+                                composable(
+                                    Screen.Home.route,
+                                    enterTransition = { androidx.compose.animation.EnterTransition.None },
+                                    exitTransition = { androidx.compose.animation.ExitTransition.None }
+                                ) { Text("Overlap home") }
+                                composable(Screen.DiscoverWifi.route) { entry ->
+                                    DisposableEffect(entry.id) {
+                                        composedEntries.add(entry.id)
+                                        onDispose { composedEntries.remove(entry.id) }
+                                    }
+                                    CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+                                        LocalDiscoveryDestination(LocalTransferMethod.WIFI, nav, context) {
+                                            wifi = sharedWifiTransferViewModel(transportOwner, factory)
+                                            WifiLocalTransferLifetime(wifi, nav, transfer) {
+                                                LaunchedEffect(entry.id) {
+                                                    wifi.registerLocalReceiver()
+                                                    leases[entry.id] = checkNotNull(wifi.beginLocalSession())
+                                                }
+                                                Text("Overlap discovery")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            composeRule.onNodeWithText("Overlap discovery").assertIsDisplayed()
+            composeRule.waitForIdle()
+            // Hold the 300ms outgoing transition; Home and replacement enter
+            // without advancing the frame clock to old-page disposal.
+            composeRule.mainClock.autoAdvance = false
+            val overlapStarted = composeRule.mainClock.currentTime
+            lateinit var oldEntry: String
+            lateinit var oldReceiver: BroadcastReceiver
+            var oldLease = 0L
+            lateinit var originalOwner: WifiDirectViewModel
+            composeRule.runOnIdle {
+                oldEntry = checkNotNull(nav.currentBackStackEntry).id
+                oldLease = checkNotNull(leases[oldEntry])
+                oldReceiver = context.activeReceivers.single()
+                originalOwner = wifi
+                wifi.setTransferRole(false)
+                wifi.connectionInfoListener.onConnectionInfoAvailable(WifiP2pInfo().apply {
+                    groupFormed = true; isGroupOwner = false; groupOwnerAddress = InetAddress.getLoopbackAddress()
+                })
+                assertEquals(1, context.serviceStarts)
+                nav.navigate(Screen.Home.route)
+                // Synchronous destination change, before composition/disposal.
+                assertTrue(composedEntries.contains(oldEntry))
+                assertTrue(context.activeReceivers.isEmpty())
+                assertEquals(1, context.receiverRemovals)
+                assertEquals(1, context.serviceStops)
+                assertFalse(wifi.uiState.value.isConnected)
+            }
+            composeRule.mainClock.advanceTimeBy(16)
+            composeRule.waitForIdle()
+            composeRule.runOnIdle {
+                assertEquals(Screen.Home.route, nav.currentDestination?.route)
+                assertTrue(composedEntries.contains(oldEntry))
+                // Faithful Receive direction; files/role are owned by the
+                // shared transfer and transport, not a replacement nav entry.
+                transfer.resetTransfer()
+                transfer.setMethod("wifi")
+                nav.navigate(Screen.DiscoverWifi.route)
+            }
+            composeRule.mainClock.advanceTimeBy(16)
+            composeRule.waitForIdle()
+            var replacementLease = 0L
+            composeRule.runOnIdle {
+                val replacementEntry = checkNotNull(nav.currentBackStackEntry).id
+                assertTrue(composeRule.mainClock.currentTime - overlapStarted < 300)
+                assertTrue(replacementEntry != oldEntry)
+                assertTrue(composedEntries.contains(oldEntry))
+                assertTrue(composedEntries.contains(replacementEntry))
+                assertSame(originalOwner, wifi)
+                assertEquals(1, constructions)
+                replacementLease = checkNotNull(leases[replacementEntry])
+                assertTrue(replacementLease != oldLease)
+                assertEquals(2, context.registeredReceivers.size)
+                assertEquals(1, context.activeReceivers.size)
+                assertNotSame(oldReceiver, context.activeReceivers.single())
+                wifi.connectionInfoListener.onConnectionInfoAvailable(WifiP2pInfo().apply {
+                    groupFormed = true; isGroupOwner = false; groupOwnerAddress = InetAddress.getLoopbackAddress()
+                })
+                assertEquals(2, context.serviceStarts)
+                assertFalse(wifi.releaseLocalSession(oldLease))
+                oldReceiver.onReceive(context, Intent(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION).apply {
+                    putExtra(WifiP2pManager.EXTRA_WIFI_STATE, WifiP2pManager.WIFI_P2P_STATE_DISABLED)
+                })
+                assertTrue(wifi.uiState.value.isConnected)
+                assertEquals(1, context.serviceStops)
+                assertTrue(transfer.state.value.urisToShare.isEmpty())
+            }
+            composeRule.mainClock.advanceTimeBy(400)
+            composeRule.waitForIdle()
+            composeRule.runOnIdle {
+                // The old lifetime's real onDispose cannot close the new lease.
+                assertFalse(composedEntries.contains(oldEntry))
+                assertEquals(replacementLease, checkNotNull(wifi.beginLocalSession()))
+                assertTrue(wifi.uiState.value.isConnected)
+                assertEquals(1, context.activeReceivers.size)
+                assertEquals(1, context.receiverRemovals)
+                assertEquals(1, context.serviceStops)
+                assertEquals(2, context.serviceStarts)
+            }
+        } finally {
+            composeRule.mainClock.autoAdvance = true
+            composeRule.runOnIdle { mounted.value = false }
+            composeRule.waitForIdle()
+            composeRule.runOnIdle {
+                if (ownerCreated) owner.viewModelStore.clear()
+                CommunicationService.clearTransferUpdate()
+            }
+        }
+    }
 
     private fun exercise(sender: Boolean) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()

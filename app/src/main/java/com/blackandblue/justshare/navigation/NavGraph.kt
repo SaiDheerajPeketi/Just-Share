@@ -283,8 +283,9 @@ internal fun sharedWifiTransferViewModel(
 ): WifiDirectViewModel = if (factory == null) hiltViewModel(owner)
     else viewModel(viewModelStoreOwner = owner, factory = factory)
 
-/** Keep the lease for Wi-Fi handoff/retry; release it on a browse/nonlocal exit.
- * Disposal uses the captured identity, so an old page cannot close a new lease. */
+/** Keep the lease for Wi-Fi handoff/retry; release at the actual nonlocal
+ * destination change, before a fading old page is disposed. Captured identity
+ * prevents that old page from closing a replacement lease. */
 @Composable
 internal fun WifiLocalTransferLifetime(
     wifiViewModel: WifiDirectViewModel,
@@ -297,12 +298,19 @@ internal fun WifiLocalTransferLifetime(
     val session = remember(wifiViewModel, enabled) {
         if (enabled) wifiViewModel.beginLocalSession() else null
     }
-    DisposableEffect(wifiViewModel, navController, session) {
-        onDispose {
-            val route = navController.currentDestination?.route
+    DisposableEffect(wifiViewModel, navController, transferViewModel, session) {
+        fun releaseIfNonlocal(route: String?) {
             val remainsLocal = route == Screen.DiscoverWifi.route ||
                 (route == Screen.TransferProgress.route && transferViewModel.state.value.method == "wifi")
             if (!remainsLocal && session != null) wifiViewModel.releaseLocalSession(session)
+        }
+        val listener = androidx.navigation.NavController.OnDestinationChangedListener { _, destination, _ ->
+            releaseIfNonlocal(destination.route)
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose {
+            navController.removeOnDestinationChangedListener(listener)
+            releaseIfNonlocal(navController.currentDestination?.route)
         }
     }
     if (!enabled || session != null || allowIdleContent) content()

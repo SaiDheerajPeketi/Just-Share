@@ -1,0 +1,49 @@
+{
+  "iteration": "Just-Share Wi-Fi lifetime overlap correction",
+  "base_rejected_commit": "24011c5e0c4fbde0d4ba28091883d1f9ae5cf3ca",
+  "historical_rejected_evidence_preserved": {
+    "docs/permission-recovery-source-handoff-20261006.md": {
+      "commit": "20b34ed60776f12594217661639c5da349396516",
+      "sha256": "9a90c784d6eb1a6a86e86ff3aca88cdbf510e1f17354e0f78b6b042e005d536c"
+    },
+    "docs/permission-recovery-source-pins-20261006.json": {
+      "commit": "20b34ed60776f12594217661639c5da349396516",
+      "sha256": "c456ae3d02a0f8fb422883583cd68142dd7c98e273b32d2f22a184df930d5a5d"
+    },
+    "docs/permission-recovery-repair-source-handoff-20261006.md": {
+      "commit": "24011c5e0c4fbde0d4ba28091883d1f9ae5cf3ca",
+      "sha256": "1a06d0be54b35b3c91e671b331dfc09e9adc8c1a7fc824da6b0c022b66572d92"
+    },
+    "docs/permission-recovery-repair-source-pins-20261006.json": {
+      "commit": "24011c5e0c4fbde0d4ba28091883d1f9ae5cf3ca",
+      "sha256": "bf626f9ab26cd31cc7822cc88316544e9bd24b0ea78f526284c7a46f92e990c1"
+    }
+  },
+  "source_files": {
+    "app/src/main/java/com/blackandblue/justshare/navigation/NavGraph.kt": "0c9efd27bc75b7b05e053fa86f308031347225f138f4eaad3283538aa8f62510",
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/LocalTransportOwnershipTest.kt": "7e9b54891e7e076f5679abc5d7533ca947a82b2a87a34a5146d5c5f4350eddca"
+  },
+  "prior_source_scope_declarations": 24,
+  "test_declarations": {
+    "app/src/androidTest/java/com/blackandblue/justshare/ui/screens/PermissionsScreenTest.kt": 3,
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/PermissionRecoveryNavigationTest.kt": 5,
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/WifiPermissionRecoveryTest.kt": 3,
+    "app/src/test/java/com/blackandblue/justshare/LocalTransferPermissionsTest.kt": 4,
+    "app/src/androidTest/java/com/blackandblue/justshare/presentation/TransferRetryStateTest.kt": 4,
+    "app/src/androidTest/java/com/blackandblue/justshare/data/chat/BluetoothDiscoveryPermissionTest.kt": 3,
+    "app/src/androidTest/java/com/blackandblue/justshare/navigation/LocalTransportOwnershipTest.kt": 3
+  },
+  "total_declared_tests": 25,
+  "new_declarations": 1,
+  "executed_tests": 0,
+  "compile_status": "UNRUN / unknown; parent owns runtime",
+  "native_executions": 0,
+  "source_checks": "PASS lexical delimiter/listener-and-overlap-wiring/declaration checks; prior exercise assertions and four historical handoff/pins files byte-identical; not AST, compilation or runtime",
+  "whitespace_check": "PASS rtk git diff --check (separate check)",
+  "priority_android_class": "com.blackandblue.justshare.navigation.LocalTransportOwnershipTest",
+  "limitations": [
+    "Real NavHost/production lifetime/ViewModels are declared with fake grants, registration and service calls; no Hilt/MainActivity/full AppNavGraph, WifiP2pManager/Channel, service process or radio runtime",
+    "All prior progress/Bluetooth recovery assertions and expected-lease semantics retained; all tests remain UNRUN",
+    "No Java/Gradle/helper runtime/process inventory/browser/native/provider/pixels in this lane"
+  ]
+}
