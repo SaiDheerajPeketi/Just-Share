@@ -230,7 +230,7 @@
       "JAVA_HOME": null,
       "JAVA_OPTS": null,
       "JDK_JAVA_OPTIONS": null,
-      "PATH": "f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3",
+      "PATH": "bf61bcb73564b49984ded20e7226e2805beea4af2f29942f33760b73d1a9ddca",
       "QUOTA_API_BASE_URL": null,
       "USERPROFILE": null,
       "_JAVA_OPTIONS": null
@@ -283,7 +283,7 @@
     }
   },
   "caller": "docs/run-permission-recovery-debug-packaging-20261006.py",
-  "caller_sha256": "8b7b4e6b73553a612b138a0ff34f1171b3ab5f68f5660203cbb7454e9eac6f08",
+  "caller_sha256": "ca2249dd52d24ae963fc6b58112a7169515daef305131313de77e12708a1d0fb",
   "accepted_host_caller_sha256": "fb362f7af2bae50cd21852f2aec1f5b5c09e7c775b28974543e905fe0c798525",
   "accepted_host_result_sha256": "7a4d7499a1c33f38d516cb86fc3ec294b9cde978fe7f097b1b972776faa88b79",
   "accepted_host_validation_head": "4e35e47fee047a6cfafd92079aacdc0c21df9efb",
@@ -612,6 +612,44 @@
     "packet_claim": "UNUSED",
     "SDK_xmltree_static_binary_token": "PRESENT",
     "shared_boundary_ast": "UNCHANGED",
-    "real_native_runtime": "UNRUN"
+    "real_native_runtime": "UNRUN",
+    "root_actor_environment": "ROOT_REVIEWED_PATH_REBOUND_FRESH_ROOT_COMPARE_PENDING"
+  },
+  "root_actor_path_rebind": {
+    "reviewed_root_path_sha256": "bf61bcb73564b49984ded20e7226e2805beea4af2f29942f33760b73d1a9ddca",
+    "previous_agent_path_sha256": "f63ceeedec246f962421d434b34110a1284aaab8abc1158db2ca07ad3cb552b3",
+    "root_actor_environment": "Root rtk proxy Python execution at /Users/speketi/Projects with default login=true",
+    "change": "Only reviewed PATH hash data; PATH itself, other pins and comparison guards unchanged",
+    "preserved_predecessor_commit": "b9c0be8b82e1d42dbc5d54c101cd90876f1319d4",
+    "predecessor_caller_sha256": "8b7b4e6b73553a612b138a0ff34f1171b3ab5f68f5660203cbb7454e9eac6f08",
+    "function_asts": "UNCHANGED",
+    "git_adapter": "UNCHANGED; fsmonitor stderr did not affect successful read-only pins"
+  },
+  "root_read_only_preflight_refusal": {
+    "source175_build_caller_jdk_helpers_signing_sdk_gates": "MATCH",
+    "historical_host_gate": "PASS",
+    "configured_environment_mismatch": "PATH_ONLY",
+    "SDK_Java_helper_or_packaging_runtime_started": false,
+    "packaging_claim_or_packet_used": false
+  },
+  "root_shared_snapshot": {
+    "timestamp": 1791273939,
+    "pressure": 1,
+    "free_gib": 24.78,
+    "foreign_heavy_executable": "Godot",
+    "foreign_pid": 34620,
+    "foreign_pgid": 34619,
+    "launch_admission": "REFUSED_FOREIGN_WORK",
+    "provenance": "Root observation; this preparer ran no process inventory",
+    "fresh_shared_recheck_still_required": true
+  },
+  "root_path_rebind_static_validation": {
+    "only_configured_pin_delta": "PATH_HASH",
+    "function_asts": "UNCHANGED",
+    "tasks_deadline_source_and_guard_constants": "UNCHANGED",
+    "source_build_sdk_signing_host_proof": "MATCH",
+    "packet_claim": "UNUSED",
+    "runtime": "UNRUN",
+    "comparison_against_b9": "ONLY_PATH_HASH_DATA_DIFF_ALL_FUNCTION_ASTS_AND_REVIEWED_INPUT_CONSTANTS_IDENTICAL"
   }
 }
