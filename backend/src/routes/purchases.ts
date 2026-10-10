@@ -3,6 +3,7 @@ import { PlayBillingService } from '../services/PlayBillingService';
 import { QuotaService } from '../services/QuotaService';
 import { deviceAuth } from '../middleware/deviceAuth';
 import { appCheckAuth } from '../middleware/appCheckAuth';
+import { SUPPORT_TIP_PRODUCT_IDS } from '../productCatalog';
 
 const router = Router();
 const billingService = new PlayBillingService();
@@ -27,9 +28,7 @@ router.post('/verify', async (req, res) => {
   const dataPackProductId = process.env.DATA_PACK_PRODUCT_ID || 'data_pack_10gb';
   const supportTipProductIds = [
     process.env.SUPPORT_TIP_PRODUCT_ID || 'student_developer_tip',
-    'support_developer_1',
-    'support_developer_10',
-    'support_developer_100',
+    ...SUPPORT_TIP_PRODUCT_IDS,
   ];
   const dataPackGb = Number(process.env.DATA_PACK_GB) || 10;
   if (

@@ -60,11 +60,8 @@ fun SettingsScreen(
     val purchaseState by billingViewModel.purchaseState.collectAsStateWithLifecycle()
     val activity = context as? android.app.Activity
     val proPrice = proProduct?.oneTimePurchaseOfferDetails?.formattedPrice
-    val supportCatalogReady = BillingViewModel.SUPPORT_PRODUCT_IDS.keys.all { productId ->
-        supportProducts[productId]?.oneTimePurchaseOfferDetails != null
-    }
-    val purchaseBusy = purchaseState is PurchaseState.Loading ||
-        purchaseState is PurchaseState.Verifying
+    val availableSupportTiers = BillingViewModel.SUPPORT_PRODUCT_IDS.filterKeys { it in supportProducts }
+    val purchaseBusy = purchaseState.inProgress
     val activeProductId = purchaseState.productIdOrNull()
 
     Column(
@@ -225,6 +222,9 @@ fun SettingsScreen(
                             activeProductId == BillingViewModel.PRO_PRODUCT_ID &&
                                 purchaseState is PurchaseState.Verifying ->
                                 "Verifying your Pro purchase securely…"
+                            activeProductId == BillingViewModel.PRO_PRODUCT_ID &&
+                                purchaseState is PurchaseState.Pending ->
+                                "Payment is pending in Google Play. Pro activates only after verification."
                             proPrice != null ->
                                 "One-time $proPrice purchase for a higher monthly Remote allowance"
                             else -> "Pro purchase unavailable right now"
@@ -262,70 +262,80 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (availableSupportTiers.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.cardBg, RoundedCornerShape(16.dp))
-                    .padding(vertical = 16.dp),
-            ) {
-                Text(
-                    text = "SUPPORT",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.mutedFg,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                )
-                BillingViewModel.SUPPORT_PRODUCT_IDS.forEach { (productId, label) ->
-                    val price = supportProducts[productId]
-                        ?.oneTimePurchaseOfferDetails?.formattedPrice
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                enabled = activity != null && supportCatalogReady && !purchaseBusy,
-                            ) {
-                                activity?.let { billingViewModel.purchaseSupport(it, productId) }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.cardBg, RoundedCornerShape(16.dp))
+                        .padding(vertical = 16.dp),
+                ) {
+                    Text(
+                        text = "SUPPORT",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.mutedFg,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                    )
+                    Text(
+                        "Optional one-time tips. No Pro features or Remote allowance are unlocked. Not a charitable donation.",
+                        style = MaterialTheme.typography.body2,
+                        color = colors.mutedFg,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                    availableSupportTiers.forEach { (productId, label) ->
+                        val price = supportProducts[productId]
+                            ?.oneTimePurchaseOfferDetails?.formattedPrice
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    enabled = activity != null && !purchaseBusy,
+                                ) {
+                                    activity?.let { billingViewModel.purchaseSupport(it, productId) }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = "Support a Student Developer — $label",
+                                style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium),
+                                color = colors.black,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = when {
+                                    activeProductId == productId && purchaseState is PurchaseState.Loading ->
+                                        "Opening secure Google Play checkout…"
+                                    activeProductId == productId && purchaseState is PurchaseState.Verifying ->
+                                        "Verifying your purchase securely…"
+                                    activeProductId == productId && purchaseState is PurchaseState.Pending ->
+                                        "Payment is pending in Google Play. Don’t purchase again."
+                                    price != null ->
+                                        "One-time $price support purchase; no Pro features unlocked"
+                                    else -> "Support purchase unavailable right now"
+                                },
+                                style = MaterialTheme.typography.body2,
+                                color = colors.mutedFg,
+                            )
+                            when (val state = purchaseState) {
+                                is PurchaseState.Error -> if (state.productId == productId) {
+                                    Text(
+                                        "The purchase wasn't completed. ${state.message}",
+                                        style = MaterialTheme.typography.caption,
+                                        color = colors.red,
+                                    )
+                                }
+                                else -> Unit
                             }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            text = "Support a Student Developer — $label",
-                            style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium),
-                            color = colors.black,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = when {
-                                activeProductId == productId && purchaseState is PurchaseState.Loading ->
-                                    "Opening secure Google Play checkout…"
-                                activeProductId == productId && purchaseState is PurchaseState.Verifying ->
-                                    "Verifying your purchase securely…"
-                                supportCatalogReady && price != null ->
-                                    "One-time $price support purchase; no Pro features unlocked"
-                                else -> "Support purchase unavailable right now"
-                            },
-                            style = MaterialTheme.typography.body2,
-                            color = colors.mutedFg,
-                        )
-                        when (val state = purchaseState) {
-                            is PurchaseState.Error -> if (state.productId == productId) {
+                            if (productId in verifiedSupportProducts) {
                                 Text(
-                                    "The purchase wasn't completed. ${state.message}",
+                                    "Thank you for supporting this student developer!",
                                     style = MaterialTheme.typography.caption,
                                     color = colors.red,
                                 )
                             }
-                            else -> Unit
-                        }
-                        if (productId in verifiedSupportProducts) {
-                            Text(
-                                "Thank you for supporting this student developer!",
-                                style = MaterialTheme.typography.caption,
-                                color = colors.red,
-                            )
                         }
                     }
                 }
@@ -338,6 +348,7 @@ private fun PurchaseState.productIdOrNull(): String? = when (this) {
     PurchaseState.Idle -> null
     is PurchaseState.Loading -> productId
     is PurchaseState.Verifying -> productId
+    is PurchaseState.Pending -> productId
     is PurchaseState.Success -> productId
     is PurchaseState.Error -> productId
 }

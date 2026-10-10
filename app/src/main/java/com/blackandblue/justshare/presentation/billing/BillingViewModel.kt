@@ -4,10 +4,12 @@ import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
 import com.blackandblue.justshare.data.billing.BillingClientWrapper
 import com.blackandblue.justshare.data.billing.PurchaseResult
 import com.blackandblue.justshare.data.billing.PurchaseRepository
 import com.blackandblue.justshare.data.billing.PurchaseVerificationResult
+import com.blackandblue.justshare.data.billing.StudentSupportProducts
 import com.blackandblue.justshare.data.repository.QuotaRepository
 import com.blackandblue.justshare.domain.billing.QuotaState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,11 +44,7 @@ class BillingViewModel @Inject constructor(
     companion object {
         const val PRO_PRODUCT_ID = "pro_unlock"
         const val DATA_PACK_PRODUCT_ID = "data_pack_10gb"
-        val SUPPORT_PRODUCT_IDS = linkedMapOf(
-            "support_developer_1" to "Small",
-            "support_developer_10" to "Plus",
-            "support_developer_100" to "Generous",
-        )
+        val SUPPORT_PRODUCT_IDS = StudentSupportProducts.tiers
     }
 
     // ── Quota ────────────────────────────────────────────────────────────────
@@ -82,6 +80,7 @@ class BillingViewModel @Inject constructor(
     // ── Actions ──────────────────────────────────────────────────────────────
 
     fun purchasePro(activity: Activity) {
+        if (_purchaseState.value.inProgress) return
         val details = _proProductDetails.value ?: return
         pendingProductId = PRO_PRODUCT_ID
         _purchaseState.value = PurchaseState.Loading(PRO_PRODUCT_ID)
@@ -89,6 +88,7 @@ class BillingViewModel @Inject constructor(
     }
 
     fun purchaseDataPack(activity: Activity) {
+        if (_purchaseState.value.inProgress) return
         val details = _dataPackProductDetails.value ?: return
         pendingProductId = DATA_PACK_PRODUCT_ID
         _purchaseState.value = PurchaseState.Loading(DATA_PACK_PRODUCT_ID)
@@ -96,12 +96,11 @@ class BillingViewModel @Inject constructor(
     }
 
     fun purchaseSupport(activity: Activity, productId: String) {
-        if (productId !in SUPPORT_PRODUCT_IDS) return
-        if (SUPPORT_PRODUCT_IDS.keys.any { id ->
-                _supportProductDetails.value[id]?.oneTimePurchaseOfferDetails == null
-            }
-        ) return
+        if (productId !in SUPPORT_PRODUCT_IDS || _purchaseState.value.inProgress) return
         val details = _supportProductDetails.value[productId] ?: return
+        if (!StudentSupportProducts.isAvailable(
+                details.productId, details.productType, details.oneTimePurchaseOfferDetails?.formattedPrice,
+            )) return
         pendingProductId = productId
         _purchaseState.value = PurchaseState.Loading(productId)
         billingClientWrapper.launchPurchaseFlow(activity, details)
@@ -123,7 +122,10 @@ class BillingViewModel @Inject constructor(
                 _proProductDetails.value = products.firstOrNull { it.productId == PRO_PRODUCT_ID }
                 _dataPackProductDetails.value = products.firstOrNull { it.productId == DATA_PACK_PRODUCT_ID }
                 _supportProductDetails.value = products
-                    .filter { it.productId in SUPPORT_PRODUCT_IDS }
+                    .filter { StudentSupportProducts.isAvailable(
+                        it.productId, it.productType, it.oneTimePurchaseOfferDetails?.formattedPrice,
+                    ) }
+                    .groupBy { it.productId }.values.mapNotNull { it.singleOrNull() }
                     .associateBy { it.productId }
                 if (requestedProductIds.all { id -> products.any { it.productId == id } }) {
                     return@launch
@@ -140,7 +142,7 @@ class BillingViewModel @Inject constructor(
                     is PurchaseResult.Success -> {
                         val expected = pendingProductId
                         if (expected == null || expected !in result.purchase.products) return@onEach
-                        PurchaseState.Verifying(expected)
+                        purchaseStateAfterStoreUpdate(expected, result.purchase.purchaseState)
                     }
                     is PurchaseResult.Cancelled -> {
                         pendingProductId = null
@@ -175,12 +177,22 @@ class BillingViewModel @Inject constructor(
 }
 
 sealed class PurchaseState {
+    val inProgress: Boolean
+        get() = this is Loading || this is Verifying || this is Pending
     object Idle : PurchaseState()
     data class Loading(val productId: String) : PurchaseState()
     data class Verifying(val productId: String) : PurchaseState()
+    data class Pending(val productId: String) : PurchaseState()
     data class Success(val productId: String) : PurchaseState()
     data class Error(val productId: String?, val message: String) : PurchaseState()
 }
+
+internal fun purchaseStateAfterStoreUpdate(productId: String, storeState: Int): PurchaseState =
+    when (storeState) {
+        Purchase.PurchaseState.PENDING -> PurchaseState.Pending(productId)
+        Purchase.PurchaseState.PURCHASED -> PurchaseState.Verifying(productId)
+        else -> PurchaseState.Error(productId, "Google Play has not confirmed this purchase.")
+    }
 
 private fun PurchaseVerificationResult.productIdOrNull(): String = when (this) {
     is PurchaseVerificationResult.Verified -> productId
