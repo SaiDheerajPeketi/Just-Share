@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Wifi
@@ -260,6 +261,14 @@ fun SettingsScreen(
                         else -> Unit
                     }
                 }
+            }
+
+            if (purchaseState is PurchaseState.Pending) {
+                TextButton(onClick = { billingViewModel.recheckPurchase() }) {
+                    Text("Check payment status")
+                }
+                Text("We will check your existing order. This does not start another payment.",
+                    style = MaterialTheme.typography.caption, color = colors.mutedFg)
             }
 
             if (availableSupportTiers.isNotEmpty()) {

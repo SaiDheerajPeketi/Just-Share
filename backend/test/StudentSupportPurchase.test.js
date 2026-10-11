@@ -45,3 +45,23 @@ test('fourth support tier records repeat tokens idempotently without granting pa
   assert.equal(quota.usedThisPeriodGb, 0.25);
   assert.equal(quotas.size, 3);
 });
+
+test('fresh exact-token Play proof recovers consumed support without crediting a different receipt', () => {
+  const { verifiedProductProof, hashPurchaseToken } = require('../dist/services/PlayBillingService');
+  const paid = { purchaseState: 0, consumptionState: 1, acknowledgementState: 1,
+    productId: 'support_developer_999', purchaseToken: 'token-B', orderId: 'order-B' };
+  const proof = verifiedProductProof('support_developer_999', 'token-B', paid);
+  assert.equal(proof.success, true);
+  assert.equal(proof.consumed, true);
+  assert.equal(proof.purchaseTokenHash, hashPurchaseToken('token-B'));
+  assert.notEqual(proof.purchaseTokenHash, hashPurchaseToken('token-A'));
+  assert.equal(proof.orderId, 'order-B');
+  assert.equal(verifiedProductProof('support_developer_1', 'token-B', paid).success, false);
+  assert.equal(verifiedProductProof('support_developer_999', 'token-A', paid).success, false);
+  assert.equal(verifiedProductProof('support_developer_999', 'token-B', { ...paid, purchaseState: 2 }).success, false);
+  assert.equal(verifiedProductProof('support_developer_999', 'token-B', { ...paid, purchaseState: 1 }).success, false);
+  const cancelled = verifiedProductProof('support_developer_999', 'token-B', { ...paid, purchaseState: 1 });
+  assert.equal(cancelled.reason, 'PURCHASE_CANCELLED');
+  assert.equal(cancelled.purchaseTokenHash, hashPurchaseToken('token-B'));
+  assert.throws(() => verifiedProductProof('support_developer_999', 'token-B', { purchaseState: 0 }));
+});

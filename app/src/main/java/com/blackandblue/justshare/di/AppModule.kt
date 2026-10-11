@@ -115,8 +115,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideBillingClientWrapper(
-        @ApplicationContext context: Context
-    ): BillingClientWrapper = BillingClientWrapper(context)
+        @ApplicationContext context: Context,
+        dataStore: UserPreferencesDataStore,
+    ): BillingClientWrapper = BillingClientWrapper(context, dataStore)
 
     @Provides
     @Singleton

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Named
@@ -80,10 +81,11 @@ class PurchaseRepository @Inject constructor(
     private var observing = false
 
     private suspend fun handlePurchase(purchase: Purchase) {
-        if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) return
+        if (purchase.purchaseState !in setOf(Purchase.PurchaseState.PURCHASED, Purchase.PurchaseState.PENDING)) return
 
         val deviceId = dataStore.ensureDeviceId()
-        val productId = purchase.products.firstOrNull() ?: return
+        val productId = purchase.products.singleOrNull()?.takeIf { it in checkoutProductIds } ?: return
+        val receipt = purchase.purchaseToken.receiptHash()
 
         Log.d(TAG, "Handling purchase: productId=$productId")
 
@@ -98,11 +100,16 @@ class PurchaseRepository @Inject constructor(
                     put("purchaseToken", purchase.purchaseToken)
                 }.toString()
 
-                val (code, _) = apiService.postForJson(
+                val (code, response) = apiService.postForJson(
                     "$baseUrl/purchase/verify", deviceId, body
                 )
 
                 if (code in 200..299) {
+                    val proof = checkNotNull(response)
+                    check(proof.optBoolean("success") && proof.optString("productId") == productId &&
+                        proof.optString("purchaseTokenHash") == receipt &&
+                        (purchase.orderId.isNullOrBlank() || proof.optString("orderId") == purchase.orderId) &&
+                        proof.has("consumed") && proof.has("acknowledged")) { "Exact purchase proof is unavailable" }
                     if (productId in SUPPORT_PRODUCT_IDS && productId != "student_developer_tip") {
                         // Save the promised acknowledgement before consumption; a process death
                         // after consumption would otherwise lose the only UI success event.
@@ -112,20 +119,29 @@ class PurchaseRepository @Inject constructor(
                         Purchases.sharedInstance.syncPurchases()
                     }
                     // Server confirmed — now safe to finalize on the client
-                    check(finalizeOnClient(purchase, productId)) {
+                    check(finalizeOnClient(purchase, productId, proof.getBoolean("consumed"), proof.getBoolean("acknowledged"))) {
                         "Google Play could not finalize the verified purchase"
                     }
+                    // Commit this exact receipt before enabling a repeat payment. Server/Play proof can
+                    // recover a failed commit on restart even if the token has already been consumed.
+                    check(billingClientWrapper.finishVerified(purchase)) { "Verified checkout could not be saved" }
                     quotaRepository.refresh()
                     reportPurchaseTelemetry(deviceId, productId)
-                    _verificationResults.emit(PurchaseVerificationResult.Verified(productId))
+                    _verificationResults.emit(PurchaseVerificationResult.Verified(productId, receipt))
                     Log.d(TAG, "Purchase verified and finalized: $productId")
                     return
                 } else if (code == 400) {
+                    if (response?.optString("reason") == "PURCHASE_CANCELLED" &&
+                        response.optString("productId") == productId && response.optString("purchaseTokenHash") == receipt) {
+                        billingClientWrapper.finishCancelled(purchase)
+                        return
+                    }
                     // Bad token — don't retry, token is invalid
                     Log.e(TAG, "Purchase verification rejected by server (400): $productId")
+                    billingClientWrapper.verificationDelayed(purchase)
                     _verificationResults.emit(
                         PurchaseVerificationResult.Error(
-                            productId,
+                            productId, receipt,
                             "Google Play purchase verification was rejected.",
                         ),
                     )
@@ -143,9 +159,10 @@ class PurchaseRepository @Inject constructor(
             }
         }
         Log.e(TAG, "Purchase verification exhausted retries for $productId — will retry on next app open via pending-purchase recovery")
+        billingClientWrapper.verificationDelayed(purchase)
         _verificationResults.emit(
             PurchaseVerificationResult.Error(
-                productId,
+                productId, receipt,
                 "Purchase verification is delayed. Google Play will retry safely.",
             ),
         )
@@ -155,12 +172,12 @@ class PurchaseRepository @Inject constructor(
      * Acknowledge (non-consumable Pro) or Consume (consumable Data Pack) the purchase.
      * Called only after server-side verification succeeds.
      */
-    private suspend fun finalizeOnClient(purchase: Purchase, productId: String): Boolean {
+    private suspend fun finalizeOnClient(purchase: Purchase, productId: String, consumed: Boolean, acknowledged: Boolean): Boolean = withContext(Dispatchers.Main) {
         val billingClient = billingClientWrapper.billingClient
-        if (!billingClient.isReady) return false
+        if (!billingClient.isReady) return@withContext false
 
         if (productId == PRO_PRODUCT_ID) {
-            if (!purchase.isAcknowledged) {
+            if (!acknowledged) {
                 val params = AcknowledgePurchaseParams.newBuilder()
                     .setPurchaseToken(purchase.purchaseToken)
                     .build()
@@ -171,11 +188,12 @@ class PurchaseRepository @Inject constructor(
                 }
                 if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                     Log.w(TAG, "Acknowledge failed: ${result.debugMessage}")
-                    return false
+                    return@withContext false
                 }
             }
         } else if (productId == DATA_PACK_PRODUCT_ID || productId in SUPPORT_PRODUCT_IDS) {
-            // Consume repeatable data packs and support purchases after verification.
+            // A fresh server read of this exact token can prove a previous consumption after a crash.
+            if (consumed) return@withContext true
             val params = ConsumeParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken)
                 .build()
@@ -186,10 +204,10 @@ class PurchaseRepository @Inject constructor(
             }
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                 Log.w(TAG, "Consume failed: ${result.debugMessage}")
-                return false
+                return@withContext false
             }
         }
-        return true
+        return@withContext true
     }
 
     private fun reportPurchaseTelemetry(deviceId: String, productId: String) {
@@ -206,6 +224,6 @@ class PurchaseRepository @Inject constructor(
 }
 
 sealed class PurchaseVerificationResult {
-    data class Verified(val productId: String) : PurchaseVerificationResult()
-    data class Error(val productId: String, val message: String) : PurchaseVerificationResult()
+    data class Verified(val productId: String, val receiptHash: String) : PurchaseVerificationResult()
+    data class Error(val productId: String, val receiptHash: String, val message: String) : PurchaseVerificationResult()
 }

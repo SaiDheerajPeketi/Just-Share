@@ -56,9 +56,14 @@ router.post('/verify', async (req, res) => {
       });
 
       const newQuota = await quotaService.getQuota(deviceId);
-      res.status(200).json({ success: true, newQuota });
+      res.status(200).json({
+        success: true, newQuota,
+        productId: result.productId, purchaseTokenHash: result.purchaseTokenHash, orderId: result.orderId,
+        consumed: result.consumed, acknowledged: result.acknowledged,
+      });
     } else {
-      res.status(400).json({ error: 'Purchase verification failed', reason: result.reason });
+      res.status(400).json({ error: 'Purchase verification failed', reason: result.reason,
+        productId: result.productId, purchaseTokenHash: result.purchaseTokenHash });
     }
   } catch {
     res.status(502).json({ error: 'Purchase verification temporarily unavailable' });

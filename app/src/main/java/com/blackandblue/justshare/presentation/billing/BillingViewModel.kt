@@ -6,9 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.blackandblue.justshare.data.billing.BillingClientWrapper
-import com.blackandblue.justshare.data.billing.PurchaseResult
+import com.blackandblue.justshare.data.billing.CheckoutStatus
 import com.blackandblue.justshare.data.billing.PurchaseRepository
-import com.blackandblue.justshare.data.billing.PurchaseVerificationResult
 import com.blackandblue.justshare.data.billing.StudentSupportProducts
 import com.blackandblue.justshare.data.repository.QuotaRepository
 import com.blackandblue.justshare.domain.billing.QuotaState
@@ -68,12 +67,10 @@ class BillingViewModel @Inject constructor(
 
     private val _purchaseState = MutableStateFlow<PurchaseState>(PurchaseState.Idle)
     val purchaseState: StateFlow<PurchaseState> = _purchaseState.asStateFlow()
-    private var pendingProductId: String? = null
 
     init {
         loadProducts()
-        observePurchaseResults()
-        observeVerificationResults()
+        observeCheckoutStatus()
         quotaRepository.refresh()
     }
 
@@ -82,16 +79,12 @@ class BillingViewModel @Inject constructor(
     fun purchasePro(activity: Activity) {
         if (_purchaseState.value.inProgress) return
         val details = _proProductDetails.value ?: return
-        pendingProductId = PRO_PRODUCT_ID
-        _purchaseState.value = PurchaseState.Loading(PRO_PRODUCT_ID)
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
     fun purchaseDataPack(activity: Activity) {
         if (_purchaseState.value.inProgress) return
         val details = _dataPackProductDetails.value ?: return
-        pendingProductId = DATA_PACK_PRODUCT_ID
-        _purchaseState.value = PurchaseState.Loading(DATA_PACK_PRODUCT_ID)
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
@@ -101,15 +94,11 @@ class BillingViewModel @Inject constructor(
         if (!StudentSupportProducts.isAvailable(
                 details.productId, details.productType, details.oneTimePurchaseOfferDetails?.formattedPrice,
             )) return
-        pendingProductId = productId
-        _purchaseState.value = PurchaseState.Loading(productId)
         billingClientWrapper.launchPurchaseFlow(activity, details)
     }
 
-    fun resetPurchaseState() {
-        pendingProductId = null
-        _purchaseState.value = PurchaseState.Idle
-    }
+    fun resetPurchaseState() { billingClientWrapper.resetFeedback() }
+    fun recheckPurchase() { billingClientWrapper.recoverPendingPurchases() }
 
     // ── Private Helpers ──────────────────────────────────────────────────────
 
@@ -135,45 +124,20 @@ class BillingViewModel @Inject constructor(
         }
     }
 
-    private fun observePurchaseResults() {
-        billingClientWrapper.purchaseResults
-            .onEach { result ->
-                val nextState = when (result) {
-                    is PurchaseResult.Success -> {
-                        val expected = pendingProductId
-                        if (expected == null || expected !in result.purchase.products) return@onEach
-                        purchaseStateAfterStoreUpdate(expected, result.purchase.purchaseState)
-                    }
-                    is PurchaseResult.Cancelled -> {
-                        pendingProductId = null
-                        PurchaseState.Idle
-                    }
-                    is PurchaseResult.Error -> {
-                        val expected = pendingProductId
-                        pendingProductId = null
-                        PurchaseState.Error(expected, result.message)
-                    }
-                }
-                _purchaseState.value = nextState
+    private fun observeCheckoutStatus() {
+        billingClientWrapper.checkoutStatus.onEach { status ->
+            _purchaseState.value = when (status) {
+                CheckoutStatus.Idle -> PurchaseState.Idle
+                CheckoutStatus.Unavailable -> PurchaseState.Error(null, "Payment recovery is unavailable. Checkout stays paused to protect your orders.")
+                is CheckoutStatus.Loading -> PurchaseState.Loading(status.product)
+                is CheckoutStatus.Pending -> PurchaseState.Pending(status.product)
+                is CheckoutStatus.Verifying -> PurchaseState.Verifying(status.product)
+                is CheckoutStatus.Completed -> PurchaseState.Success(status.product)
+                is CheckoutStatus.Failed -> PurchaseState.Error(status.product, status.message)
             }
-            .launchIn(viewModelScope)
+        }.launchIn(viewModelScope)
     }
 
-    private fun observeVerificationResults() {
-        purchaseRepository.verificationResults
-            .onEach { result ->
-                if (result.productIdOrNull() != pendingProductId) return@onEach
-                _purchaseState.value = when (result) {
-                    is PurchaseVerificationResult.Verified -> PurchaseState.Success(result.productId)
-                    is PurchaseVerificationResult.Error -> PurchaseState.Error(
-                        result.productId,
-                        result.message,
-                    )
-                }
-                pendingProductId = null
-            }
-            .launchIn(viewModelScope)
-    }
 }
 
 sealed class PurchaseState {
@@ -193,8 +157,3 @@ internal fun purchaseStateAfterStoreUpdate(productId: String, storeState: Int): 
         Purchase.PurchaseState.PURCHASED -> PurchaseState.Verifying(productId)
         else -> PurchaseState.Error(productId, "Google Play has not confirmed this purchase.")
     }
-
-private fun PurchaseVerificationResult.productIdOrNull(): String = when (this) {
-    is PurchaseVerificationResult.Verified -> productId
-    is PurchaseVerificationResult.Error -> productId
-}
