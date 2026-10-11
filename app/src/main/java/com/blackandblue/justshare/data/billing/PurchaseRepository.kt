@@ -71,7 +71,7 @@ class PurchaseRepository @Inject constructor(
         billingClientWrapper.purchaseResults
             .onEach { result ->
                 if (result is PurchaseResult.Success) {
-                    handlePurchase(result.purchase)
+                    handlePurchase(result)
                 }
             }
             .launchIn(repoScope)
@@ -80,7 +80,8 @@ class PurchaseRepository @Inject constructor(
     @Volatile
     private var observing = false
 
-    private suspend fun handlePurchase(purchase: Purchase) {
+    private suspend fun handlePurchase(result: PurchaseResult.Success) {
+        val purchase = result.purchase
         if (purchase.purchaseState !in setOf(Purchase.PurchaseState.PURCHASED, Purchase.PurchaseState.PENDING)) return
 
         val deviceId = dataStore.ensureDeviceId()
@@ -98,6 +99,7 @@ class PurchaseRepository @Inject constructor(
                     put("deviceId", deviceId)
                     put("productId", productId)
                     put("purchaseToken", purchase.purchaseToken)
+                    if (result.live) put("checkout", JSONObject().put("startedAt", result.startedAt).put("account", result.account))
                 }.toString()
 
                 val (code, response) = apiService.postForJson(
@@ -109,7 +111,9 @@ class PurchaseRepository @Inject constructor(
                     check(proof.optBoolean("success") && proof.optString("productId") == productId &&
                         proof.optString("purchaseTokenHash") == receipt &&
                         (purchase.orderId.isNullOrBlank() || proof.optString("orderId") == purchase.orderId) &&
-                        proof.has("consumed") && proof.has("acknowledged")) { "Exact purchase proof is unavailable" }
+                        proof.has("consumed") && proof.has("acknowledged") &&
+                        (!result.live || (proof.optLong("purchaseTimeMillis", -1L) >= checkNotNull(result.startedAt) &&
+                            proof.optString("account") == result.account))) { "Exact purchase proof is unavailable" }
                     if (productId in SUPPORT_PRODUCT_IDS && productId != "student_developer_tip") {
                         // Save the promised acknowledgement before consumption; a process death
                         // after consumption would otherwise lose the only UI success event.
@@ -124,7 +128,7 @@ class PurchaseRepository @Inject constructor(
                     }
                     // Commit this exact receipt before enabling a repeat payment. Server/Play proof can
                     // recover a failed commit on restart even if the token has already been consumed.
-                    check(billingClientWrapper.finishVerified(purchase)) { "Verified checkout could not be saved" }
+                    check(billingClientWrapper.finishVerified(purchase, result.identifier)) { "Verified checkout could not be saved" }
                     quotaRepository.refresh()
                     reportPurchaseTelemetry(deviceId, productId)
                     _verificationResults.emit(PurchaseVerificationResult.Verified(productId, receipt))
@@ -133,7 +137,7 @@ class PurchaseRepository @Inject constructor(
                 } else if (code == 400) {
                     if (response?.optString("reason") == "PURCHASE_CANCELLED" &&
                         response.optString("productId") == productId && response.optString("purchaseTokenHash") == receipt) {
-                        billingClientWrapper.finishCancelled(purchase)
+                        billingClientWrapper.finishCancelled(purchase, result.identifier)
                         return
                     }
                     // Bad token — don't retry, token is invalid

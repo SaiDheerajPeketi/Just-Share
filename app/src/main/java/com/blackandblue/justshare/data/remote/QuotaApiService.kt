@@ -105,6 +105,14 @@ class QuotaApiService @Inject constructor(
             }
         }
 
+    /** Authoritative time floor for a new Play checkout; device clock changes cannot admit an older order. */
+    suspend fun checkoutTime(deviceId: String): Long? = withContext(Dispatchers.IO) {
+        runCatching {
+            val json = get("$baseUrl/purchase/preflight", deviceId) ?: return@runCatching null
+            json.getLong("startedAt").takeIf { it > 0L }
+        }.getOrNull()
+    }
+
     // ── Telemetry ───────────────────────────────────────────────────────────
 
     /**

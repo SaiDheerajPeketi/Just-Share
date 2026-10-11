@@ -39,7 +39,8 @@ internal class ProtectedPurchase {
         }
         val payload = JSONObject(String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)), Charsets.UTF_8))
         Purchase(payload.getString("json"), payload.getString("signature")).also {
-            check(it.products.singleOrNull() == attempt.product && it.purchaseToken.receiptHash() == attempt.receipt)
+            check(it.products.singleOrNull() == attempt.product && it.purchaseToken.receiptHash() == attempt.receipt &&
+                attempt.acceptsReceipt(it.purchaseTime, it.accountIdentifiers?.obfuscatedAccountId))
         }
     }.getOrNull()
     private companion object {

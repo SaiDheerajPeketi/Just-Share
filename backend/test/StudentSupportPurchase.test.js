@@ -65,3 +65,17 @@ test('fresh exact-token Play proof recovers consumed support without crediting a
   assert.equal(cancelled.purchaseTokenHash, hashPurchaseToken('token-B'));
   assert.throws(() => verifiedProductProof('support_developer_999', 'token-B', { purchaseState: 0 }));
 });
+
+
+test("live checkout rejects an unseen older order and a different app account before quota credit", () => {
+  const { matchesLiveCheckout, hashPurchaseToken } = require("../dist/services/PlayBillingService");
+  const account = hashPurchaseToken("device-one");
+  const checkout = { startedAt: 200, account };
+  assert.equal(matchesLiveCheckout({ purchaseTimeMillis: "199", account }, checkout, "device-one", 300), false);
+  assert.equal(matchesLiveCheckout({ purchaseTimeMillis: "220", account: "foreign" }, checkout, "device-one", 300), false);
+  assert.equal(matchesLiveCheckout({ purchaseTimeMillis: "220" }, checkout, "device-one", 300), false);
+  assert.equal(matchesLiveCheckout({ purchaseTimeMillis: "220", account }, checkout, "device-one", 300), true);
+  assert.equal(matchesLiveCheckout({ purchaseTimeMillis: "220", account }, { startedAt: 400, account }, "device-one", 300), false);
+  assert.equal(matchesLiveCheckout({ purchaseTimeMillis: "220" }, undefined, "device-one", 300), true); // Existing legacy restoration.
+  assert.equal(matchesLiveCheckout({ purchaseTimeMillis: "220", account: "foreign" }, undefined, "device-one", 300), false);
+});

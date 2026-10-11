@@ -8,6 +8,7 @@ export function hashPurchaseToken(purchaseToken: string): string {
 export function verifiedProductProof(productId: string, purchaseToken: string, purchase: {
   purchaseState?: number | null; consumptionState?: number | null; acknowledgementState?: number | null;
   productId?: string | null; purchaseToken?: string | null; orderId?: string | null;
+  purchaseTimeMillis?: string | null; obfuscatedExternalAccountId?: string | null;
 }) {
   if ((purchase.productId && purchase.productId !== productId) ||
       (purchase.purchaseToken && purchase.purchaseToken !== purchaseToken)) {
@@ -25,6 +26,7 @@ export function verifiedProductProof(productId: string, purchaseToken: string, p
     success: true, productId, orderId: purchase.orderId || undefined,
     purchaseTokenHash: hashPurchaseToken(purchaseToken),
     consumed: purchase.consumptionState === 1, acknowledged: purchase.acknowledgementState === 1,
+    purchaseTimeMillis: purchase.purchaseTimeMillis, account: purchase.obfuscatedExternalAccountId,
   };
 }
 
@@ -58,4 +60,17 @@ export class PlayBillingService {
       throw new Error('PLAY_VERIFICATION_FAILED');
     }
   }
+}
+
+/** A live checkout cannot credit a delayed order created before its fresh server time floor. */
+export function matchesLiveCheckout(proof: { purchaseTimeMillis?: string | null; account?: string | null },
+  checkout: unknown, deviceId: string, now: number = Date.now()): boolean {
+  if (checkout === undefined) return !proof.account || proof.account === hashPurchaseToken(deviceId);
+  if (!checkout || typeof checkout !== "object") return false;
+  const attempt = checkout as { startedAt?: unknown; account?: unknown };
+  const purchasedAt = Number(proof.purchaseTimeMillis);
+  return typeof attempt.startedAt === "number" && Number.isSafeInteger(attempt.startedAt) &&
+    attempt.startedAt > 0 && attempt.startedAt <= now && Number.isSafeInteger(purchasedAt) &&
+    purchasedAt >= attempt.startedAt && attempt.account === hashPurchaseToken(deviceId) &&
+    proof.account === attempt.account;
 }

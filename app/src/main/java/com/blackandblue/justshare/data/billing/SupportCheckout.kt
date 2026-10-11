@@ -24,17 +24,18 @@ internal open class SupportCheckoutState {
     val pending: SupportAttempt? get() = synchronized(this) { ledger?.pending }
     val ready: Boolean get() = synchronized(this) { ledger != null }
     @Synchronized fun begin(): Long? = if (ledger == null || ledger?.pending != null) null else gate.begin()
-    @Synchronized fun remember(ticket: Long, user: String, product: String, current: Set<String>): Boolean =
-        gate.owns(ticket) && runCatching { ledger?.begin(SupportAttempt(user, product, current)) == true }.getOrDefault(false)
+    @Synchronized fun remember(ticket: Long, attempt: SupportAttempt): Boolean =
+        gate.owns(ticket) && runCatching { ledger?.begin(attempt) == true }.getOrDefault(false)
     @Synchronized fun known(user: String): Set<String> = ledger?.baselineFor(user).orEmpty()
-    @Synchronized fun clear(confirmed: Set<String> = emptySet()): Boolean =
-        runCatching { ledger?.clear(confirmed) == true }.getOrDefault(false)
-    @Synchronized fun bindReceipt(user: String, product: String, receipt: String, protectedPurchase: String): Boolean =
-        runCatching { ledger?.bindReceipt(user, product, receipt, protectedPurchase) == true }.getOrDefault(false)
-    @Synchronized fun finalized(user: String, product: String, receipt: String): Boolean {
+    @Synchronized fun clear(confirmed: Set<String> = emptySet(), identifier: String? = pending?.identifier): Boolean =
+        runCatching { ledger?.clear(confirmed, identifier) == true }.getOrDefault(false)
+    @Synchronized fun bindReceipt(identifier: String, user: String, product: String, receipt: String, protectedPurchase: String,
+        purchasedAt: Long, account: String?): Boolean =
+        runCatching { ledger?.bindReceipt(identifier, user, product, receipt, protectedPurchase, purchasedAt, account) == true }.getOrDefault(false)
+    @Synchronized fun finalized(identifier: String, user: String, product: String, receipt: String): Boolean {
         val attempt = pending ?: return false
-        if (attempt.user != user || attempt.product != product || attempt.receipt != receipt || receipt in attempt.baseline) return false
-        return clear(setOf(receipt))
+        if (attempt.identifier != identifier || attempt.user != user || attempt.product != product || attempt.receipt != receipt || receipt in attempt.baseline) return false
+        return clear(setOf(receipt), identifier)
     }
     fun onMain(action: () -> Unit) {
         if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) action()

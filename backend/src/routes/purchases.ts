@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PlayBillingService } from '../services/PlayBillingService';
+import { PlayBillingService, matchesLiveCheckout } from '../services/PlayBillingService';
 import { QuotaService } from '../services/QuotaService';
 import { deviceAuth } from '../middleware/deviceAuth';
 import { appCheckAuth } from '../middleware/appCheckAuth';
@@ -11,8 +11,14 @@ const quotaService = new QuotaService();
 
 router.use(appCheckAuth, deviceAuth);
 
+// Served through the existing App Check and device authentication, without caching.
+router.get("/preflight", (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.status(200).json({ startedAt: Date.now() });
+});
+
 router.post('/verify', async (req, res) => {
-  const { deviceId, productId, purchaseToken } = req.body;
+  const { deviceId, productId, purchaseToken, checkout } = req.body;
   if (
     deviceId !== req.header('X-Device-Id') ||
     typeof productId !== 'string' ||
@@ -44,6 +50,11 @@ router.post('/verify', async (req, res) => {
     const result = await billingService.verifyPurchase(productId, purchaseToken);
     
     if (result.success) {
+      if (!matchesLiveCheckout(result, checkout, deviceId)) {
+        res.status(400).json({ error: "Checkout proof does not match this payment", reason: "CHECKOUT_MISMATCH",
+          productId: result.productId, purchaseTokenHash: result.purchaseTokenHash });
+        return;
+      }
       await quotaService.applyVerifiedPurchase({
         deviceId,
         productId,
@@ -60,6 +71,7 @@ router.post('/verify', async (req, res) => {
         success: true, newQuota,
         productId: result.productId, purchaseTokenHash: result.purchaseTokenHash, orderId: result.orderId,
         consumed: result.consumed, acknowledged: result.acknowledged,
+        purchaseTimeMillis: result.purchaseTimeMillis, account: result.account,
       });
     } else {
       res.status(400).json({ error: 'Purchase verification failed', reason: result.reason,

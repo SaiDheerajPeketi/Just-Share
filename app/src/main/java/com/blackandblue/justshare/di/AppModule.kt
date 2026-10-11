@@ -117,7 +117,8 @@ object AppModule {
     fun provideBillingClientWrapper(
         @ApplicationContext context: Context,
         dataStore: UserPreferencesDataStore,
-    ): BillingClientWrapper = BillingClientWrapper(context, dataStore)
+        apiService: QuotaApiService,
+    ): BillingClientWrapper = BillingClientWrapper(context, dataStore, apiService)
 
     @Provides
     @Singleton
