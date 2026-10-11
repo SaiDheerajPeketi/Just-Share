@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import android.app.Activity
+import android.os.Build
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.runtime.SideEffect
@@ -135,7 +136,12 @@ fun JediShareTheme(content: @Composable () -> Unit) {
             val window = view.context.findActivity()?.window
             if (window != null) {
                 window.statusBarColor = customColors.surface.toArgb()
-                window.navigationBarColor = customColors.surface.toArgb()
+                // API 24–25 only supports light navigation glyphs.
+                window.navigationBarColor = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    DarkSurface.toArgb()
+                } else {
+                    customColors.surface.toArgb()
+                }
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkMode
                 WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDarkMode
             }

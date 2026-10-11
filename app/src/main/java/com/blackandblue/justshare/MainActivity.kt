@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.Modifier
 import com.blackandblue.justshare.data.UserPreferencesDataStore
@@ -75,6 +76,7 @@ class MainActivity : ComponentActivity() {
                         .background(MaterialTheme.colors.background)
                 ) {
                     AppNavGraph(
+                        modifier = Modifier.safeDrawingPadding(),
                         startDestination = startRoute,
                         transferViewModel = transferViewModel,
                         initialUris = initialUris,
